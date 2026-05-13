@@ -90,7 +90,12 @@ class StaffController extends Controller
 
         // 2. Send WhatsApp
         $waMessage = "Welcome to TruMark, {$user->name}\n\nYour staff account has been successfully created.\n\nYou can now access your dashboard using the details below:\n\nBranch : {$branchName}\nRole : {$roleName}\nUsername : {$user->email}\nPassword : {$plainPassword}\n\nPlease log in and change your password after your first access for security purposes.\n\nIf you need help, contact your Manager.\n\n- TruMark Team";
-        $this->whatsapp->sendMessage($user->phone, $waMessage);
+        try {
+            $waResult = $this->whatsapp->sendMessage($user->phone, $waMessage);
+            \Illuminate\Support\Facades\Log::info("Staff WhatsApp to {$user->phone}: " . json_encode($waResult));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Staff WhatsApp failed: " . $e->getMessage());
+        }
 
         // 3. Send Professional Email
         try {
@@ -179,25 +184,36 @@ class StaffController extends Controller
 
         // 1. Send via SMS
         $message = "TruMark CRM: Your password has been reset. New Password: {$newPassword}. Please login and change it.";
-        $smsResult = $this->sms->sendSms($user->phone, $message);
-
-        // Log the SMS
-        \App\Models\SmsLog::create([
-            'customer_id' => null,
-            'sender_id'   => Auth::id(),
-            'phone'       => $user->phone,
-            'message'     => $message,
-            'status'      => $smsResult['success'] ? 'sent' : 'failed',
-            'response'    => $smsResult['response'] ?? ($smsResult['error'] ?? 'Unknown Error'),
-        ]);
+        try {
+            $smsResult = $this->sms->sendSms($user->phone, $message);
+            \Illuminate\Support\Facades\Log::info("Reset SMS to {$user->phone}: " . json_encode($smsResult));
+            
+            // Log to SmsLog table
+            \App\Models\SmsLog::create([
+                'customer_id' => null,
+                'sender_id'   => Auth::id(),
+                'phone'       => $user->phone,
+                'message'     => $message,
+                'status'      => $smsResult['success'] ? 'sent' : 'failed',
+                'response'    => $smsResult['response'] ?? ($smsResult['error'] ?? 'Unknown Error'),
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Reset SMS failed: " . $e->getMessage());
+        }
 
         // 2. Send via WhatsApp
         $waMessage = "TRUMARK CRM: Password Reset 🔐\n\nYour new password is: *{$newPassword}*\n\nPlease login and change it immediately for security.\n" . url('/');
-        $this->whatsapp->sendMessage($user->phone, $waMessage);
+        try {
+            $waResult = $this->whatsapp->sendMessage($user->phone, $waMessage);
+            \Illuminate\Support\Facades\Log::info("Reset WhatsApp to {$user->phone}: " . json_encode($waResult));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Reset WhatsApp failed: " . $e->getMessage());
+        }
 
         // 3. Send via Professional Email
         try {
             \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\StaffPasswordResetMail($user, $newPassword));
+            \Illuminate\Support\Facades\Log::info("Reset Email sent to {$user->email}");
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Failed to send password reset email: " . $e->getMessage());
         }

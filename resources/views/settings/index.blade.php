@@ -223,8 +223,8 @@ Configure global application behavior, branding, and automation settings
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label>API Key</label>
-                                                <input type="password" name="sms_api_key" class="form-control form-control-lg-custom" value="{{ $settings['sms_api_key'] ?? '' }}" readonly>
-                                                <small class="text-muted"><i class="fa fa-lock mr-1"></i> Secured by System Admin</small>
+                                                <input type="password" name="sms_api_key" class="form-control form-control-lg-custom" value="{{ $settings['sms_api_key'] ?? '' }}">
+                                                <small class="text-muted"><i class="fa fa-info-circle mr-1"></i> Paste your Onfon SMS API Key here.</small>
                                             </div>
                                         </div>
                                         <div class="col-md-6">

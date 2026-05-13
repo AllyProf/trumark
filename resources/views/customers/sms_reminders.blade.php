@@ -89,7 +89,7 @@ Select multiple recipients and broadcast bulk SMS notifications
 
     <div class="col-md-4">
         <div class="tile composer-tile">
-            <h3 class="tile-title">SMS Composer</h3>
+            <h3 class="tile-title">Broadcast Composer</h3>
             <div class="tile-body">
                 <form action="{{ route('customers.send_bulk_sms') }}" method="POST" id="bulkForm">
                     @csrf
@@ -118,17 +118,23 @@ Select multiple recipients and broadcast bulk SMS notifications
 
                     <div class="form-group">
                         <label class="font-weight-bold">Delivery Channels</label>
-                        <div class="d-flex justify-content-around p-2 bg-light border rounded mb-3">
+                        <div class="d-flex justify-content-between p-2 bg-light border rounded mb-3">
                             <div class="animated-checkbox">
                                 <label>
                                     <input type="checkbox" name="channels[]" value="sms" checked>
-                                    <span class="label-text font-weight-bold">SMS</span>
+                                    <span class="label-text font-weight-bold text-primary">SMS</span>
                                 </label>
                             </div>
                             <div class="animated-checkbox">
                                 <label>
                                     <input type="checkbox" name="channels[]" value="whatsapp">
                                     <span class="label-text font-weight-bold text-success">WhatsApp</span>
+                                </label>
+                            </div>
+                            <div class="animated-checkbox">
+                                <label>
+                                    <input type="checkbox" name="channels[]" value="email">
+                                    <span class="label-text font-weight-bold text-info">Email</span>
                                 </label>
                             </div>
                         </div>

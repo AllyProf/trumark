@@ -529,14 +529,24 @@ class CustomerController extends Controller
                         'status'      => $result['success'] ? 'sent' : 'failed',
                         'response'    => $result['response'] ?? null,
                     ]);
-                    // Only count once for the overall status if we sent both, 
-                    // but for simplicity we'll just track if at least one worked? 
-                    // Or track them separately. Let's keep it simple.
+                }
+
+                // Send via Email if selected
+                if (in_array('email', $channels) && $customer->email) {
+                    try {
+                        \Illuminate\Support\Facades\Mail::to($customer->email)->send(new \App\Mail\CustomerReminderMail($customer, $message));
+                        $successCount++;
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error("Bulk Email failed for {$customer->email}: " . $e->getMessage());
+                        $failCount++;
+                    }
+                } elseif (in_array('email', $channels)) {
+                    $failCount++; // No email address
                 }
             }
         }
 
-        $msg = "✅ Messages dispatched to selected customers via: " . implode(', ', array_map('strtoupper', $channels));
+        $msg = "🚀 Broadcast successfully dispatched to selected customers via: " . implode(', ', array_map('strtoupper', $channels));
         return back()->with('success', $msg);
     }
 

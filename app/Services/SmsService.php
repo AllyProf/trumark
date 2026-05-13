@@ -27,7 +27,7 @@ class SmsService
         
         $payload = [
             'SenderId' => $this->senderId,
-            'IsUnicode' => false,
+            'IsUnicode' => true,
             'IsFlash' => false,
             'MessageParameters' => [
                 [

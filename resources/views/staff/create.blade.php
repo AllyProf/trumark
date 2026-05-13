@@ -48,14 +48,20 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="font-weight-bold">Phone Number <span class="text-danger">*</span></label>
-                                <input type="text" name="phone" class="form-control" value="+255" required>
-                                <small class="text-muted">Password will be sent to this number.</small>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">+255</span>
+                                    </div>
+                                    <input type="text" name="phone" class="form-control" placeholder="742999024" maxlength="9" pattern="[0-9]{9}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,9)" required>
+                                </div>
+                                <small class="text-muted">Enter exactly 9 digits. e.g. 742999024. The +255 country code is added automatically.</small>
                             </div>
 
                              <div class="form-group">
                                 <label class="font-weight-bold">Assign Role <span class="text-danger">*</span></label>
                                 <select name="role" class="form-control select2" required>
                                     <option value="">Select a Role...</option>
+                                    <option value="super_admin">Super Admin (Full Access)</option>
                                     <option value="manager">Manager (Warehouse / Operations)</option>
                                     <option value="sales_officer">Sales Officer (Field Agent)</option>
                                 </select>
@@ -75,8 +81,8 @@
                     </div>
 
                     <div class="alert alert-info mt-3">
-                        <i class="fa fa-info mr-2"></i> 
-                        <strong>Password Rule:</strong> The default password will be the staff member's <strong>LAST NAME in ALL CAPS</strong>. A welcome SMS will be sent automatically.
+                        <i class="fa fa-info mr-2"></i>
+                        <strong>Password Rule:</strong> The default password will be the staff member's <strong>LAST NAME in ALL CAPS</strong>. Credentials will be sent via <strong>Email, WhatsApp & SMS</strong> automatically.
                     </div>
 
                     <div class="text-right mt-4">

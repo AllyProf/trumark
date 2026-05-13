@@ -43,7 +43,15 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="font-weight-bold">Phone Number <span class="text-danger">*</span></label>
-                                <input type="text" name="phone" class="form-control" value="{{ $staff->phone }}" required>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">+255</span>
+                                    </div>
+                                    <input type="text" name="phone" class="form-control" placeholder="742999024"
+                                        value="{{ ltrim(str_replace('+255', '', $staff->phone), '0') }}"
+                                        maxlength="9" pattern="[0-9]{9}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,9)" required>
+                                </div>
+                                <small class="text-muted">Enter exactly 9 digits. e.g. 742999024. The +255 country code is added automatically.</small>
                             </div>
 
                             <div class="form-group">

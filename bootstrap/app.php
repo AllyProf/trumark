@@ -12,12 +12,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->validateCsrfTokens(except: [
+            'api/whatsapp/webhook',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })
     ->withSchedule(function ($schedule) {
-        $schedule->command('crm:send-followups')->dailyAt('08:00');
+        $schedule->command('surveys:send-automated')->dailyAt('08:30');
+        $schedule->command('followups:send-reminders')->dailyAt('08:45');
     })
     ->create();

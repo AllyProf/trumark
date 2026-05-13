@@ -36,6 +36,8 @@ class WhatsAppService
 
         try {
             $response = Http::withToken($this->accessToken)
+                ->timeout(30)
+                ->withOptions(['verify' => false])
                 ->post("{$this->baseUrl}/{$this->phoneNumberId}/messages", [
                     'messaging_product' => 'whatsapp',
                     'recipient_type'    => 'individual',

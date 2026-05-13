@@ -376,15 +376,19 @@
     <div class="app-sidebar__overlay" data-toggle="sidebar"></div>
     <aside class="app-sidebar">
       <div class="app-sidebar__user">
-        @php
-            $initials = '';
-            $names = explode(' ', auth()->user()->name);
-            foreach ($names as $n) {
-                $initials .= strtoupper(substr($n, 0, 1));
-            }
-            $initials = substr($initials, 0, 2);
-        @endphp
-        <div class="app-sidebar__user-avatar-initials">{{ $initials }}</div>
+        @if(auth()->user()->avatar)
+            <img class="app-sidebar__user-avatar" src="{{ asset('storage/' . auth()->user()->avatar) }}" alt="User Image" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; margin-right: 15px;">
+        @else
+            @php
+                $initials = '';
+                $names = explode(' ', auth()->user()->name);
+                foreach ($names as $n) {
+                    $initials .= strtoupper(substr($n, 0, 1));
+                }
+                $initials = substr($initials, 0, 2);
+            @endphp
+            <div class="app-sidebar__user-avatar-initials">{{ $initials }}</div>
+        @endif
         <div>
           <p class="app-sidebar__user-name">{{ strtoupper(auth()->user()->name) }}</p>
           <p class="app-sidebar__user-designation">{{ ucfirst(auth()->user()->role) }}</p>

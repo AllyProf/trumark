@@ -89,13 +89,34 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="font-weight-bold">New Password</label>
-                                <input type="password" name="password" class="form-control" placeholder="Leave blank to stay current">
+                                <div class="input-group">
+                                    <input type="password" name="password" id="password" class="form-control" placeholder="Leave blank to stay current">
+                                    <div class="input-group-append">
+                                        <span class="input-group-text cursor-pointer" onclick="togglePassword('password')">
+                                            <i class="fa fa-eye" id="toggle-password"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <!-- Password Strength Indicator -->
+                                <div class="password-strength-container mt-2 d-none" id="strength-container">
+                                    <div class="progress" style="height: 5px;">
+                                        <div id="strength-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                    <small id="strength-text" class="form-text text-muted"></small>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="font-weight-bold">Confirm New Password</label>
-                                <input type="password" name="password_confirmation" class="form-control" placeholder="Re-type new password">
+                                <div class="input-group">
+                                    <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" placeholder="Re-type new password">
+                                    <div class="input-group-append">
+                                        <span class="input-group-text cursor-pointer" onclick="togglePassword('password_confirmation')">
+                                            <i class="fa fa-eye" id="toggle-password_confirmation"></i>
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -110,4 +131,63 @@
         </div>
     </div>
 </div>
+
+<style>
+    .cursor-pointer { cursor: pointer; }
+    .progress-bar { transition: width 0.3s ease, background-color 0.3s ease; }
+</style>
+
+<script>
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById('toggle-' + inputId);
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+document.getElementById('password').addEventListener('input', function() {
+    const password = this.value;
+    const strengthBar = document.getElementById('strength-bar');
+    const strengthText = document.getElementById('strength-text');
+    const container = document.getElementById('strength-container');
+    
+    if (password.length === 0) {
+        container.classList.add('d-none');
+        return;
+    }
+    
+    container.classList.remove('d-none');
+    
+    let strength = 0;
+    if (password.length >= 6) strength += 20;
+    if (password.length >= 10) strength += 20;
+    if (/[A-Z]/.test(password)) strength += 20;
+    if (/[0-9]/.test(password)) strength += 20;
+    if (/[^A-Za-z0-9]/.test(password)) strength += 20;
+    
+    strengthBar.style.width = strength + '%';
+    
+    if (strength <= 40) {
+        strengthBar.className = 'progress-bar bg-danger';
+        strengthText.innerHTML = 'Weak';
+        strengthText.className = 'form-text text-danger';
+    } else if (strength <= 80) {
+        strengthBar.className = 'progress-bar bg-warning';
+        strengthText.innerHTML = 'Medium';
+        strengthText.className = 'form-text text-warning';
+    } else {
+        strengthBar.className = 'progress-bar bg-success';
+        strengthText.innerHTML = 'Strong';
+        strengthText.className = 'form-text text-success';
+    }
+});
+</script>
 @endsection

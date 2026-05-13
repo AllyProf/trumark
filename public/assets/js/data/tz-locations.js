@@ -1,0 +1,33 @@
+if (typeof tzLocations === 'undefined') {
+    var tzLocations = {
+        "Arusha": ["Arusha City", "Arusha District", "Karatu", "Longido", "Meru", "Monduli", "Ngorongoro"],
+        "Dar es Salaam": ["Ilala", "Kinondoni", "Temeke", "Ubungo", "Kigamboni"],
+        "Dodoma": ["Bahi", "Chamwino", "Chemba", "Dodoma City", "Kondoa", "Kongwa", "Mpwapwa"],
+        "Geita": ["Bukombe", "Chato", "Geita District", "Geita Town", "Mbogwe", "Nyang'hwale"],
+        "Iringa": ["Iringa District", "Iringa Municipal", "Kilolo", "Mufindi"],
+        "Kagera": ["Biharamulo", "Bukoba District", "Bukoba Municipal", "Karagwe", "Kyerwa", "Missenyi", "Muleba", "Ngara"],
+        "Katavi": ["Mlele", "Mpanda District", "Mpanda Town"],
+        "Kigoma": ["Buhigwe", "Kakonko", "Kasalulu", "Kibondo", "Kigoma District", "Kigoma Municipal", "Uvinza"],
+        "Kilimanjaro": ["Hai", "Moshi District", "Moshi Municipal", "Mwanga", "Rombo", "Same", "Siha"],
+        "Lindi": ["Kilwa", "Lindi District", "Lindi Municipal", "Liwale", "Nachingwea", "Ruangwa"],
+        "Manyara": ["Babati District", "Babati Town", "Hanang", "Kiteto", "Mbulu", "Simanjiro"],
+        "Mara": ["Bunda", "Butiama", "Musoma District", "Musoma Municipal", "Rorya", "Serengeti", "Tarime"],
+        "Mbeya": ["Busokelo", "Chunya", "Kyela", "Mbarali", "Mbeya District", "Mbeya City", "Rungwe"],
+        "Morogoro": ["Gairo", "Kilombero", "Kilosa", "Morogoro District", "Morogoro Municipal", "Mvomero", "Ulanga"],
+        "Mtwara": ["Masasi District", "Masasi Town", "Mtwara District", "Mtwara Municipal", "Nanyamba", "Nanyumbu", "Newala", "Tandahimba"],
+        "Mwanza": ["Ilemela", "Kwimba", "Magu", "Misungwi", "Nyamagana", "Sengerema", "Ukerewe"],
+        "Njombe": ["Ludewa", "Makambako Town", "Makete", "Njombe District", "Njombe Town", "Wanging'ombe"],
+        "Pwani": ["Bagamoyo", "Kibaha District", "Kibaha Town", "Kisarawe", "Mafia", "Mkuranga", "Rufiji"],
+        "Rukwa": ["Kalambo", "Nkasi", "Sumbawanga District", "Sumbawanga Town"],
+        "Ruvuma": ["Mbinga", "Namtumbo", "Nyasa", "Songea District", "Songea Municipal", "Tunduru"],
+        "Shinyanga": ["Kahama District", "Kahama Town", "Kishapu", "Shinyanga District", "Shinyanga Municipal"],
+        "Simiyu": ["Bariadi District", "Bariadi Town", "Busega", "Itilima", "Maswa", "Meatu"],
+        "Singida": ["Iramba", "Ikungi", "Manyoni", "Mkalama", "Singida District", "Singida Municipal"],
+        "Songwe": ["Ileje", "Mbozi", "Momba", "Songwe District"],
+        "Tabora": ["Igunga", "Kaliua", "Nzega", "Sikonge", "Tabora Municipal", "Urambo", "Uyui"],
+        "Tanga": ["Handeni District", "Handeni Town", "Kilindi", "Korogwe District", "Korogwe Town", "Lushoto", "Mkinga", "Muheza", "Pangani", "Tanga City"],
+        "Zanzibar North": ["Kaskazini A", "Kaskazini B"],
+        "Zanzibar South": ["Kati", "Kusini"],
+        "Zanzibar West": ["Magharibi", "Mjini"]
+    };
+}

@@ -1,0 +1,76 @@
+<?php
+
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\ReportController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', function () {
+    if (Illuminate\Support\Facades\Auth::check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
+});
+
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'authenticate']);
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+// Public Customer Feedback
+Route::get('/feedback/{uuid}', [\App\Http\Controllers\FeedbackController::class, 'show'])->name('feedback.show');
+Route::post('/feedback/{uuid}', [\App\Http\Controllers\FeedbackController::class, 'store'])->name('feedback.store');
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/statistics', [ReportController::class, 'statistics'])->name('reports.statistics');
+    Route::get('/reports/surveys', [ReportController::class, 'surveys'])->name('reports.surveys');
+    Route::get('/customers/follow-ups', [CustomerController::class, 'followUps'])->name('customers.follow_ups');
+    Route::get('/customers/sales-records', [CustomerController::class, 'salesRecords'])->name('customers.sales_records');
+    Route::get('/customers/sms-reminders', [CustomerController::class, 'smsReminders'])->name('customers.sms_reminders');
+    Route::post('/customers/sms-reminders/send', [CustomerController::class, 'sendBulkSms'])->name('customers.send_bulk_sms');
+    Route::patch('/customers/{customer}/quick-update', [CustomerController::class, 'quickUpdate'])->name('customers.quick_update');
+    Route::post('/customers/send-all-reminders', [CustomerController::class, 'sendAllReminders'])->name('customers.send_all_reminders');
+    Route::post('/customers/{customer}/send-sms', [CustomerController::class, 'sendSms'])->name('customers.send_sms');
+    Route::post('/customers/{customer}/send-survey', [CustomerController::class, 'sendSurvey'])->name('customers.send_survey');
+    Route::post('/customers/{customer}/new-transaction', [CustomerController::class, 'newTransaction'])->name('customers.new_transaction');
+    Route::get('/settings', [\App\Http\Controllers\SettingController::class, 'index'])->name('settings.index');
+    Route::post('/settings', [\App\Http\Controllers\SettingController::class, 'update'])->name('settings.update');
+    
+    Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'index'])->name('profile.index');
+    Route::post('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+    
+    Route::post('/staff/{user}/reset-password', [\App\Http\Controllers\StaffController::class, 'resetPassword'])->name('staff.reset_password');
+    Route::post('/staff/{user}/toggle-status', [\App\Http\Controllers\StaffController::class, 'toggleStatus'])->name('staff.toggle_status');
+    Route::post('/staff/{user}/adjust-kpi', [\App\Http\Controllers\StaffController::class, 'adjustKpi'])->name('staff.adjust_kpi');
+    
+    Route::post('/customers/check-duplicate', [\App\Http\Controllers\CustomerController::class, 'checkDuplicate'])->name('customers.check_duplicate');
+    Route::get('/customers/import', [\App\Http\Controllers\CustomerController::class, 'import'])->name('customers.import');
+    Route::post('/customers/import', [\App\Http\Controllers\CustomerController::class, 'processImport'])->name('customers.process_import');
+    Route::get('/customers/download-template', [\App\Http\Controllers\CustomerController::class, 'downloadTemplate'])->name('customers.download_template');
+    Route::resource('customers', \App\Http\Controllers\CustomerController::class);
+    Route::resource('staff', \App\Http\Controllers\StaffController::class);
+    
+    // Branch Management
+    Route::post('/branches/{branch}/toggle-status', [\App\Http\Controllers\BranchController::class, 'toggleStatus'])->name('branches.toggle_status');
+    Route::resource('branches', \App\Http\Controllers\BranchController::class);
+
+    // KPI & Performance
+    Route::group(['prefix' => 'kpi', 'as' => 'kpi.'], function() {
+        Route::get('/leaderboard', [\App\Http\Controllers\KpiController::class, 'leaderboard'])->name('leaderboard');
+        Route::get('/guide', [\App\Http\Controllers\KpiController::class, 'guide'])->name('guide');
+        Route::get('/activities', [\App\Http\Controllers\KpiController::class, 'activities'])->name('activities');
+        Route::get('/attendance', [\App\Http\Controllers\KpiController::class, 'attendance'])->name('attendance');
+        Route::get('/officer/{id}', [\App\Http\Controllers\KpiController::class, 'officerProfile'])->name('officer_profile');
+        Route::get('/comparison', [\App\Http\Controllers\KpiController::class, 'branchComparison'])->name('comparison');
+        Route::post('/note', [\App\Http\Controllers\KpiController::class, 'storeNote'])->name('store_note');
+        Route::delete('/note/{id}', [\App\Http\Controllers\KpiController::class, 'deleteNote'])->name('delete_note');
+    });
+
+    // Notifications
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.read_all');
+    Route::get('/notifications/fetch', [\App\Http\Controllers\NotificationController::class, 'fetchUnread'])->name('notifications.fetch');
+});

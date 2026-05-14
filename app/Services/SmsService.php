@@ -52,7 +52,7 @@ class SmsService
             CURLOPT_CUSTOMREQUEST => 'POST',
             CURLOPT_POSTFIELDS => json_encode($payload),
             CURLOPT_HTTPHEADER => array(
-                'AccessKey: ' . $this->clientId,
+                'AccessKey: ' . $this->apiKey,
                 'Content-Type: application/json'
             ),
         ));

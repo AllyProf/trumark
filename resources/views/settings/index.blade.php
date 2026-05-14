@@ -287,7 +287,17 @@ Configure global application behavior, branding, and automation settings
                                                         <tr>
                                                             <td><input type="text" name="wa_template_followup_name" class="form-control form-control-sm" value="{{ $settings['wa_template_followup_name'] ?? 'follow_up_reminder' }}" placeholder="e.g. general_followup"></td>
                                                             <td><input type="text" name="wa_template_followup_lang" class="form-control form-control-sm" value="{{ $settings['wa_template_followup_lang'] ?? 'en' }}" placeholder="e.g. en or sw"></td>
-                                                            <td class="align-middle small">Used for bulk follow-up reminders</td>
+                                                            <td class="align-middle small">Used for automated follow-up reminders</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><input type="text" name="whatsapp_template_general" class="form-control form-control-sm" value="{{ $settings['whatsapp_template_general'] ?? 'general_broadcast' }}" placeholder="e.g. marketing_promo"></td>
+                                                            <td><input type="text" name="wa_template_general_lang" class="form-control form-control-sm" value="{{ $settings['wa_template_general_lang'] ?? 'en' }}" placeholder="e.g. en or sw"></td>
+                                                            <td class="align-middle small">Default template for manual broadcasts</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><input type="text" name="wa_template_welcome_name" class="form-control form-control-sm" value="{{ $settings['wa_template_welcome_name'] ?? 'general_broadcast' }}" placeholder="e.g. welcome_lead"></td>
+                                                            <td><input type="text" name="wa_template_welcome_lang" class="form-control form-control-sm" value="{{ $settings['wa_template_welcome_lang'] ?? 'en' }}" placeholder="e.g. en or sw"></td>
+                                                            <td class="align-middle small">Sent instantly to new lead registrations</td>
                                                         </tr>
                                                     </tbody>
                                                 </table>
@@ -406,8 +416,20 @@ Configure global application behavior, branding, and automation settings
                                         </div>
                                         <div class="col-md-12">
                                             <div class="form-group">
-                                                <label>SMS Template (Keep it short)</label>
                                                 <textarea name="survey_sms_template" class="form-control" rows="2">{{ $settings['survey_sms_template'] ?? 'Habari {name}, asante kwa kuchagua TRUMARK. Tafadhali tufahamishe jinsi ulivyohudumiwa hapa: {link}. Asante!' }}</textarea>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>WhatsApp Template Name (Meta)</label>
+                                                <input type="text" name="wa_template_survey_name" class="form-control form-control-lg-custom" value="{{ $settings['wa_template_survey_name'] ?? 'survey_invitation' }}">
+                                                <small class="text-muted">Ensure it uses <code>{{1}}</code> for Name and <code>{{2}}</code> for Link.</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>WhatsApp Template Language</label>
+                                                <input type="text" name="wa_template_survey_lang" class="form-control form-control-lg-custom" value="{{ $settings['wa_template_survey_lang'] ?? 'en' }}">
                                             </div>
                                         </div>
                                         <div class="col-md-12">
@@ -446,9 +468,20 @@ Configure global application behavior, branding, and automation settings
                                         </div>
                                         <div class="col-md-12">
                                             <div class="form-group">
-                                                <label>Reminder SMS Template</label>
                                                 <textarea name="followup_reminder_template" class="form-control" rows="2">{{ $settings['followup_reminder_template'] ?? 'Habari {name}, TRUMARK tunapenda kukukumbusha kuhusu huduma tulizozungumzia. Je, una maswali yoyote? Karibu!' }}</textarea>
                                                 <small class="text-muted">Use <b>{name}</b> for customer name.</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>WhatsApp Follow-up Template (Meta)</label>
+                                                <input type="text" name="wa_template_followup_name" class="form-control form-control-lg-custom" value="{{ $settings['wa_template_followup_name'] ?? 'follow_up_reminder' }}">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>WhatsApp Follow-up Language</label>
+                                                <input type="text" name="wa_template_followup_lang" class="form-control form-control-lg-custom" value="{{ $settings['wa_template_followup_lang'] ?? 'en' }}">
                                             </div>
                                         </div>
                                     </div>
@@ -460,8 +493,19 @@ Configure global application behavior, branding, and automation settings
                                     <div class="row">
                                         <div class="col-md-12">
                                             <div class="form-group">
-                                                <label>Welcome SMS (New Lead)</label>
                                                 <textarea name="template_welcome_sms" class="form-control" rows="2">{{ $settings['template_welcome_sms'] ?? 'Hello, a new lead for {name} has been added to the TRUMARK system.' }}</textarea>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Welcome WhatsApp Template (Meta)</label>
+                                                <input type="text" name="wa_template_welcome_name" class="form-control form-control-lg-custom" value="{{ $settings['wa_template_welcome_name'] ?? 'general_broadcast' }}">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Welcome WhatsApp Language</label>
+                                                <input type="text" name="wa_template_welcome_lang" class="form-control form-control-lg-custom" value="{{ $settings['wa_template_welcome_lang'] ?? 'en' }}">
                                             </div>
                                         </div>
                                         <div class="col-md-12">

@@ -109,7 +109,7 @@ Manage registered customers, leads, and sales pipeline progress
                                 <div class="btn-group">
                                     <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-primary btn-sm" title="View"><i class="fa fa-eye"></i></a>
                                     <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#updateModal-{{ $customer->id }}" title="Quick Update"><i class="fa fa-bolt"></i></button>
-                                    <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#smsModal-{{ $customer->id }}" title="Send SMS"><i class="fa fa-envelope"></i></button>
+                                    <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#smsModal-{{ $customer->id }}" title="Direct Broadcast"><i class="fa fa-paper-plane"></i></button>
                                     <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-secondary btn-sm" title="Edit Full Profile"><i class="fa fa-edit"></i></a>
                                 </div>
                             </td>
@@ -181,7 +181,7 @@ Manage registered customers, leads, and sales pipeline progress
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header" style="background:#940000;">
-                <h5 class="modal-title"><i class="fa fa-envelope mr-2"></i> Direct SMS: {{ $customer->name }}</h5>
+                <h5 class="modal-title"><i class="fa fa-paper-plane mr-2"></i> Direct Broadcast: {{ $customer->name }}</h5>
                 <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
             </div>
             <form action="{{ route('customers.send_sms', $customer->id) }}" method="POST">
@@ -191,33 +191,35 @@ Manage registered customers, leads, and sales pipeline progress
                     
                     {{-- SMS Templates --}}
                     <label class="font-weight-bold small d-block mb-2">QUICK TEMPLATES</label>
+                    <input type="hidden" name="wa_template" id="wa-template-{{ $customer->id }}" value="general_broadcast">
+                    
                     <div class="row mb-3" id="sms-templates-{{ $customer->id }}">
                         <div class="col-md-6">
-                            <div class="sms-template-btn" data-target="sms-msg-{{ $customer->id }}"
+                            <div class="sms-template-btn" data-target="sms-msg-{{ $customer->id }}" data-template-id="wa-template-{{ $customer->id }}" data-template="general_broadcast"
                                 data-msg="Dear {{ $customer->name }}, thank you for choosing TRUMARK. We look forward to serving you. Feel free to contact us anytime.">
                                 <i class="fa fa-handshake-o mr-1 text-primary"></i> <b>Welcome Message</b><br>
                                 <small class="text-muted">Greeting for new customers</small>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="sms-template-btn" data-target="sms-msg-{{ $customer->id }}"
-                                data-msg="Dear {{ $customer->name }}, this is a follow-up from TRUMARK. We wanted to check in on your requirements and how we can best assist you. Please feel free to reach out.">
+                            <div class="sms-template-btn" data-target="sms-msg-{{ $customer->id }}" data-template-id="wa-template-{{ $customer->id }}" data-template="follow_up_reminder"
+                                data-msg="Dear {{ $customer->name }}, TruMark Co. LTD would like to follow up on our previous discussion. Do you have any questions or need further assistance? We are here to help! 😊">
                                 <i class="fa fa-phone mr-1 text-warning"></i> <b>Follow-Up Reminder</b><br>
                                 <small class="text-muted">Check-in with existing lead</small>
                             </div>
                         </div>
                         <div class="col-md-6 mt-2">
-                            <div class="sms-template-btn" data-target="sms-msg-{{ $customer->id }}"
-                                data-msg="Dear {{ $customer->name }}, we would like to inform you that your order/quotation is ready for review. Please visit our office or contact us for further details.">
+                            <div class="sms-template-btn" data-target="sms-msg-{{ $customer->id }}" data-template-id="wa-template-{{ $customer->id }}" data-template="quote_ready"
+                                data-msg="Dear {{ $customer->name }}, your quotation from TruMark Co. LTD is now ready! . Please check your email for the details or let us know if you have any questions. 🤝">
                                 <i class="fa fa-file-text mr-1 text-success"></i> <b>Quotation Ready</b><br>
                                 <small class="text-muted">Notify quotation is ready</small>
                             </div>
                         </div>
                         <div class="col-md-6 mt-2">
-                            <div class="sms-template-btn" data-target="sms-msg-{{ $customer->id }}"
-                                data-msg="Dear {{ $customer->name }}, we have a special offer available for our valued customers. Contact TRUMARK today to learn more about exclusive deals tailored for your needs.">
-                                <i class="fa fa-tag mr-1" style="color:#940000;"></i> <b>Special Offer</b><br>
-                                <small class="text-muted">Promotional message</small>
+                            <div class="sms-template-btn" data-target="sms-msg-{{ $customer->id }}" data-template-id="wa-template-{{ $customer->id }}" data-template="payment_reminder"
+                                data-msg="Dear {{ $customer->name }}, this is a friendly reminder regarding your pending payment with TruMark Co. LTD. Please reach out if you have any questions or need assistance. We appreciate your business! 😊">
+                                <i class="fa fa-money mr-1 text-danger"></i> <b>Payment Reminder</b><br>
+                                <small class="text-muted">Friendly payment nudge</small>
                             </div>
                         </div>
                     </div>
@@ -272,7 +274,13 @@ $(document).ready(function() {
     $(document).on('click', '.sms-template-btn', function() {
         const targetId = $(this).data('target');
         const msg = $(this).data('msg');
+        const templateId = $(this).data('template-id');
+        const templateName = $(this).data('template');
+
         $('#' + targetId).val(msg).trigger('input');
+        if (templateId) {
+            $('#' + templateId).val(templateName);
+        }
         $(this).closest('.row').find('.sms-template-btn').removeClass('active');
         $(this).addClass('active');
     });

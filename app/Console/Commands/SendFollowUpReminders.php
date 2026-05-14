@@ -56,7 +56,8 @@ class SendFollowupReminders extends Command
         }
 
         $template = $settings['followup_reminder_template'] ?? 'Habari {name}, TRUMARK tunapenda kukukumbusha kuhusu huduma tulizozungumzia. Je, una maswali yoyote? Karibu!';
-        $useWhatsapp = ($settings['survey_channels_whatsapp'] ?? '0') === '1'; // Using the global WA toggle
+        $useWhatsapp = ($settings['survey_channels_whatsapp'] ?? '0') === '1';
+        $useEmail = ($settings['survey_channels_email'] ?? '1') === '1';
 
         $this->info("Sending " . $customers->count() . " reminders...");
 
@@ -68,31 +69,42 @@ class SendFollowupReminders extends Command
             SmsLog::create([
                 'customer_id' => $customer->id,
                 'phone'       => $customer->phone,
-                'message'     => $message,
+                'message'     => "[Automated SMS Followup] " . $message,
                 'status'      => $result['success'] ? 'sent' : 'failed',
-                'response'    => $result['response'] ?? null,
+                'response'    => isset($result['response']) ? (is_array($result['response']) ? json_encode($result['response']) : $result['response']) : null,
             ]);
 
-            // 2. Send WhatsApp (Using template if configured, otherwise standard)
+            // 2. Send WhatsApp (Template)
             if ($useWhatsapp && $customer->phone) {
                 $waTemplate = $settings['wa_template_followup_name'] ?? 'follow_up_reminder';
                 $waLang = $settings['wa_template_followup_lang'] ?? 'en';
                 
-                $waResult = $whatsapp->sendTemplateMessage($customer->phone, $waTemplate, $waLang, [$customer->name]);
+                $waResult = $whatsapp->sendTemplateMessage($customer->phone, $waTemplate, $waLang, [
+                    'customer_name' => $customer->name
+                ]);
                 
                 SmsLog::create([
                     'customer_id' => $customer->id,
                     'phone'       => $customer->phone,
-                    'message'     => "[WhatsApp Template: {$waTemplate}] " . $message,
+                    'message'     => "[Automated WhatsApp Followup: {$waTemplate}] " . $message,
                     'status'      => $waResult['success'] ? 'sent' : 'failed',
-                    'response'    => $waResult['response'] ?? null,
+                    'response'    => isset($waResult['response']) ? (is_array($waResult['response']) ? json_encode($waResult['response']) : $waResult['response']) : null,
                 ]);
             }
 
-            $this->info("Sent to {$customer->name}");
+            // 3. Send Email
+            if ($useEmail && $customer->email) {
+                try {
+                    \Illuminate\Support\Facades\Mail::to($customer->email)->send(new \App\Mail\CustomerReminderMail($customer, $message));
+                } catch (\Exception $e) {
+                    $this->error("Failed to email {$customer->email}: " . $e->getMessage());
+                }
+            }
+
+            $this->info("Successfully dispatched follow-up to: {$customer->name}");
         }
 
-        $this->info('Follow-up reminder dispatch completed.');
+        $this->info('🚀 Multi-channel follow-up reminder dispatch completed!');
     }
 
     /**

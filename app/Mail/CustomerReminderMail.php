@@ -14,15 +14,15 @@ class CustomerReminderMail extends Mailable
     use Queueable, SerializesModels;
 
     public $customer;
-    public $message;
+    public $reminderMessage;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(Customer $customer, $message)
+    public function __construct(Customer $customer, $reminderMessage)
     {
         $this->customer = $customer;
-        $this->message = $message;
+        $this->reminderMessage = $reminderMessage;
     }
 
     /**

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Branch;
+use App\Models\SystemSetting;
 use App\Services\SmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -80,7 +82,7 @@ class StaffController extends Controller
         // 1. Send SMS
         $roleName = ucwords(str_replace('_', ' ', $user->role));
         $branchName = $user->branch ? $user->branch->name : 'Global';
-        $smsMessage = "Welcome to TruMark, {$user->name}\nYour staff account has been successfully created.\n\nBranch : {$branchName}\nRole : {$roleName}\nUsername : {$user->email}\nPassword : {$plainPassword}\n\nPlease log in and change your password after your first access.\nIf you need help, contact your Manager.\n\n- TruMark Team";
+        $smsMessage = "Welcome to TruMark, {$user->name}. Your staff account is ready. Branch: {$branchName}, Role: {$roleName}, User: {$user->email}, Pass: {$plainPassword}. Please login and change your password.";
         try {
             $smsResult = $this->sms->sendSms($user->phone, $smsMessage);
             \Illuminate\Support\Facades\Log::info("Staff SMS to {$user->phone}: " . json_encode($smsResult));
@@ -91,7 +93,22 @@ class StaffController extends Controller
         // 2. Send WhatsApp
         $waMessage = "Welcome to TruMark, {$user->name}\n\nYour staff account has been successfully created.\n\nYou can now access your dashboard using the details below:\n\nBranch : {$branchName}\nRole : {$roleName}\nUsername : {$user->email}\nPassword : {$plainPassword}\n\nPlease log in and change your password after your first access for security purposes.\n\nIf you need help, contact your Manager.\n\n- TruMark Team";
         try {
-            $waResult = $this->whatsapp->sendMessage($user->phone, $waMessage);
+            // Check if we should use a template (once approved) or standard text
+            $waTemplate = SystemSetting::get('whatsapp_template_staff_welcome');
+            
+            if ($waTemplate) {
+                // If template is set, use it (This bypasses the 24-hour window restriction)
+                // Meta templates don't allow newlines in parameters (Error #132018)
+                $cleanWaMessage = preg_replace('/\s+/', ' ', $waMessage);
+                
+                $waResult = $this->whatsapp->sendTemplateMessage($user->phone, $waTemplate, 'en', [
+                    'customer_name' => $user->name,
+                    'message_content' => $cleanWaMessage
+                ]);
+            } else {
+                // Fallback to standard message (Only works if they messaged us in last 24h)
+                $waResult = $this->whatsapp->sendMessage($user->phone, $waMessage);
+            }
             \Illuminate\Support\Facades\Log::info("Staff WhatsApp to {$user->phone}: " . json_encode($waResult));
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Staff WhatsApp failed: " . $e->getMessage());
@@ -104,7 +121,10 @@ class StaffController extends Controller
             \Illuminate\Support\Facades\Log::error("Failed to send welcome email to staff: " . $e->getMessage());
         }
 
-        return redirect()->route('staff.index')->with('success', "Staff member registered! Credentials sent via Email, WhatsApp and SMS.");
+        $smsId = isset($smsResult['response']) ? (json_decode($smsResult['response'], true)['Data'][0]['MessageId'] ?? 'N/A') : 'N/A';
+        $waId = $waResult['response']['messages'][0]['id'] ?? 'N/A';
+
+        return redirect()->route('staff.index')->with('success', "✅ Staff member registered! [SMS ID: {$smsId}] [WhatsApp ID: {$waId}] Credentials sent.");
     }
 
     public function edit($id)
@@ -183,7 +203,7 @@ class StaffController extends Controller
         $user->update(['password' => Hash::make($newPassword)]);
 
         // 1. Send via SMS
-        $message = "TruMark CRM: Your password has been reset. New Password: {$newPassword}. Please login and change it.";
+        $message = "TruMark CRM: Your password has been reset. New Password: {$newPassword}. Login: {$user->email}. Please login and change it.";
         try {
             $smsResult = $this->sms->sendSms($user->phone, $message);
             \Illuminate\Support\Facades\Log::info("Reset SMS to {$user->phone}: " . json_encode($smsResult));

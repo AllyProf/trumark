@@ -28,7 +28,7 @@
             <p>We hope this email finds you well.</p>
 
             <div class="card">
-                {{ $message }}
+                {{ $reminderMessage }}
             </div>
 
             <p>If you have any questions or require further assistance, please do not hesitate to contact our customer support team or your dedicated sales officer.</p>

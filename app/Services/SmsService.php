@@ -21,13 +21,14 @@ class SmsService
     /**
      * Send SMS via Onfon API
      */
-    public function sendSms($phoneNumber, $message)
+    public function sendSms($phoneNumber, $message, $senderId = null)
     {
         $phone_no = $this->formatPhoneNumber($phoneNumber);
+        $this->senderId = $senderId ?: $this->senderId;
         
         $payload = [
             'SenderId' => $this->senderId,
-            'IsUnicode' => true,
+            'IsUnicode' => false,
             'IsFlash' => false,
             'MessageParameters' => [
                 [
@@ -52,7 +53,7 @@ class SmsService
             CURLOPT_CUSTOMREQUEST => 'POST',
             CURLOPT_POSTFIELDS => json_encode($payload),
             CURLOPT_HTTPHEADER => array(
-                'AccessKey: ' . $this->apiKey,
+                'AccessKey: ' . $this->clientId,
                 'Content-Type: application/json'
             ),
         ));

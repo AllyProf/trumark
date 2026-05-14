@@ -83,10 +83,10 @@ class SendAutomatedSurveys extends Command
         $useEmail = ($settings['survey_channels_email'] ?? '1') === '1';
         $useWhatsapp = ($settings['survey_channels_whatsapp'] ?? '0') === '1';
 
-        // Fetch customers who haven't been surveyed in the last 30 days (to avoid spam)
+        // Fetch customers who haven't been surveyed in the last 1 minute (Lowered for testing)
         $customers = Customer::where(function($q) {
             $q->whereNull('last_survey_sent_at')
-              ->orWhere('last_survey_sent_at', '<', now()->subDays(30));
+              ->orWhere('last_survey_sent_at', '<', now()->subMinutes(1));
         })
         ->where('is_draft', false)
         ->get();
@@ -96,59 +96,87 @@ class SendAutomatedSurveys extends Command
         $smsTemplate = $settings['survey_sms_template'] ?? 'Habari {name}, asante kwa kuchagua TRUMARK. Tafadhali tufahamishe jinsi ulivyohudumiwa hapa: {link}. Asante!';
 
         foreach ($customers as $customer) {
-            $url = route('feedback.show', $customer->survey_uuid);
+            if (!$customer->survey_uuid) {
+                $customer->survey_uuid = (string) \Illuminate\Support\Str::uuid();
+                $customer->save();
+            }
+
+            // Use production domain for all links
+            $url = 'https://trumark.mauzolink.co.tz/feedback/' . $customer->survey_uuid;
+            $msg = str_replace(['{name}', '{link}'], [$customer->name, " " . $url . " "], $smsTemplate);
+            $msg .= "\n\n(Note: Save our contact to make the link clickable! 🙏)";
             
             // 1. Send SMS
             if ($useSms && $customer->phone) {
-                $msg = str_replace(['{name}', '{link}'], [$customer->name, $url], $smsTemplate);
                 $result = $sms->sendSms($customer->phone, $msg);
                 
                 SmsLog::create([
                     'customer_id' => $customer->id,
                     'phone'       => $customer->phone,
-                    'message'     => $msg,
+                    'message'     => "[Automated SMS] " . $msg,
                     'status'      => $result['success'] ? 'sent' : 'failed',
-                    'response'    => $result['response'] ?? null,
+                    'response'    => isset($result['response']) ? (is_array($result['response']) ? json_encode($result['response']) : $result['response']) : null,
                 ]);
             }
 
-            // 2. Send WhatsApp
+            // 2. Send WhatsApp (Template)
             if ($useWhatsapp && $customer->phone) {
                 $templateName = $settings['wa_template_survey_name'] ?? 'survey_invitation';
                 $languageCode = $settings['wa_template_survey_lang'] ?? 'en';
                 
-                // Parameters for the template: {{1}} is Name, {{2}} is URL
-                $result = $whatsapp->sendTemplateMessage(
-                    $customer->phone, 
-                    $templateName, 
-                    $languageCode, 
-                    [$customer->name, $url]
-                );
+                $cleanMsg = preg_replace('/\s+/', ' ', $msg);
+                
+                $waParams = ['customer_name' => $customer->name];
+                $buttonParams = [];
+
+                if ($templateName === 'survey_invitation') {
+                    // Only pass UUID for the button
+                    $buttonParams = [$customer->survey_uuid];
+                } else {
+                    $waParams['message_content'] = $cleanMsg;
+                }
+
+                $result = $whatsapp->sendTemplateMessage($customer->phone, $templateName, $languageCode, $waParams, $buttonParams);
                 
                 SmsLog::create([
                     'customer_id' => $customer->id,
                     'phone'       => $customer->phone,
-                    'message'     => "[WhatsApp Template: {$templateName}] " . $url,
+                    'message'     => "[Automated WhatsApp: {$templateName}] " . $msg,
                     'status'      => $result['success'] ? 'sent' : 'failed',
-                    'response'    => $result['response'] ?? null,
+                    'response'    => isset($result['response']) ? (is_array($result['response']) ? json_encode($result['response']) : $result['response']) : null,
                 ]);
             }
 
             // 3. Send Email
             if ($useEmail && $customer->email) {
                 try {
-                    Mail::to($customer->email)->send(new SurveyInvitation($customer));
+                    \Illuminate\Support\Facades\Mail::to($customer->email)->send(new \App\Mail\CustomerReminderMail($customer, $msg));
+                    
+                    SmsLog::create([
+                        'customer_id' => $customer->id,
+                        'phone'       => $customer->phone,
+                        'message'     => "[Automated Email Survey] " . $msg,
+                        'status'      => 'sent',
+                        'response'    => 'Email dispatched successfully via SMTP',
+                    ]);
                 } catch (\Exception $e) {
                     $this->error("Failed to email {$customer->email}: " . $e->getMessage());
+                    SmsLog::create([
+                        'customer_id' => $customer->id,
+                        'phone'       => $customer->phone,
+                        'message'     => "[Automated Email Survey FAILED] " . $msg,
+                        'status'      => 'failed',
+                        'response'    => $e->getMessage(),
+                    ]);
                 }
             }
 
             // Update timestamp
             $customer->update(['last_survey_sent_at' => now()]);
-            $this->info("Sent to {$customer->name}");
+            $this->info("Successfully dispatched survey to: {$customer->name}");
         }
 
-        $this->info('Automated survey dispatch completed.');
+        $this->info('🚀 Automated multi-channel survey dispatch completed!');
     }
 
     /**

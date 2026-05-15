@@ -45,8 +45,8 @@ Updating record for {{ $customer->name }}
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label class="font-weight-bold small mandatory-label">CUSTOMER STATUS</label>
-                            <select name="status" class="form-control select2" required>
+                            <label class="font-weight-bold small">CUSTOMER STATUS</label>
+                            <select name="status" class="form-control select2">
                                 @foreach(['New Customer','Potential Customer','Existing Customer','Inactive Customer','VIP Customer'] as $s)
                                     <option value="{{ $s }}" {{ $customer->status == $s ? 'selected' : '' }}>{{ $s }}</option>
                                 @endforeach
@@ -55,8 +55,8 @@ Updating record for {{ $customer->name }}
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label class="font-weight-bold small mandatory-label">CUSTOMER TYPE</label>
-                            <select name="type" id="customerType" class="form-control select2" required>
+                            <label class="font-weight-bold small">CUSTOMER TYPE</label>
+                            <select name="type" id="customerType" class="form-control select2">
                                 <option value="">Select Type</option>
                                 @foreach(['School','Institution','Company / Organization','Parent','Walk in'] as $t)
                                     <option value="{{ $t }}" {{ $customer->type == $t ? 'selected' : '' }}>{{ $t }}</option>
@@ -77,8 +77,8 @@ Updating record for {{ $customer->name }}
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label class="font-weight-bold small mandatory-label">CUSTOMER SOURCE</label>
-                            <select name="source" class="form-control select2" required>
+                            <label class="font-weight-bold small">CUSTOMER SOURCE</label>
+                            <select name="source" class="form-control select2">
                                 <option value="">Select Source</option>
                                 @foreach(['Walk-in','Referral','WhatsApp','Instagram','Facebook','Website','Phone Call','Seminar','Conference','Exhibitions'] as $src)
                                     <option value="{{ $src }}" {{ $customer->source == $src ? 'selected' : '' }}>{{ $src }}</option>
@@ -94,14 +94,14 @@ Updating record for {{ $customer->name }}
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label class="font-weight-bold small mandatory-label">CONTACT PERSON</label>
-                            <input type="text" name="contact_person" class="form-control" value="{{ old('contact_person', $customer->contact_person) }}" required>
+                            <label class="font-weight-bold small">CONTACT PERSON</label>
+                            <input type="text" name="contact_person" class="form-control" value="{{ old('contact_person', $customer->contact_person) }}">
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label class="font-weight-bold small mandatory-label">POSITION</label>
-                            <input type="text" name="position" class="form-control" value="{{ old('position', $customer->position) }}" required>
+                            <label class="font-weight-bold small">POSITION</label>
+                            <input type="text" name="position" class="form-control" value="{{ old('position', $customer->position) }}">
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -121,7 +121,7 @@ Updating record for {{ $customer->name }}
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label class="font-weight-bold small mandatory-label">COUNTRY</label>
+                            <label class="font-weight-bold small">COUNTRY</label>
                             @php
                                 $currentCountry = $customer->country ?? 'Tanzania';
                                 $countries = [
@@ -141,19 +141,19 @@ Updating record for {{ $customer->name }}
                                     $phoneOnly = substr($phoneOnly, -9);
                                 }
                             @endphp
-                            <select name="country" id="countrySelect" class="form-control select2" required>
+                            <select name="country" id="countrySelect" class="form-control select2">
                                 <!-- Populated by JS -->
                             </select>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label class="font-weight-bold small mandatory-label">PRIMARY PHONE</label>
+                            <label class="font-weight-bold small">PRIMARY PHONE</label>
                             <div class="input-group">
                                 <div class="input-group-prepend">
                                     <span class="input-group-text font-weight-bold" id="countryCodeDisplay" style="background: #f8f9fa;">{{ $currentCode }}</span>
                                 </div>
-                                <input type="text" id="phoneEdit" name="phone_number" class="form-control" value="{{ $phoneOnly }}" maxlength="9" required>
+                                <input type="text" id="phoneEdit" name="phone_number" class="form-control" value="{{ $phoneOnly }}" maxlength="9">
                                 <input type="hidden" name="phone" id="fullPhone" value="{{ $customer->phone }}">
                             </div>
                             <small class="text-muted">Enter 9 digits after country code.</small>
@@ -189,16 +189,16 @@ Updating record for {{ $customer->name }}
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label class="font-weight-bold small mandatory-label">REGION</label>
-                            <select name="region" id="regionSelect" class="form-control select2" required>
+                            <label class="font-weight-bold small">REGION</label>
+                            <select name="region" id="regionSelect" class="form-control select2">
                                 <option value="">Select Region</option>
                             </select>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label class="font-weight-bold small mandatory-label">DISTRICT</label>
-                            <select name="district" id="districtSelect" class="form-control select2" required>
+                            <label class="font-weight-bold small">DISTRICT</label>
+                            <select name="district" id="districtSelect" class="form-control select2">
                                 <option value="">Select District</option>
                             </select>
                         </div>
@@ -228,7 +228,7 @@ Updating record for {{ $customer->name }}
                         $savedReqs = is_array($customer->requirements) ? $customer->requirements : json_decode($customer->requirements ?? '[]', true);
                     @endphp
                     <div class="col-md-12 mb-4">
-                        <label class="font-weight-bold small d-block mb-3 mandatory-label">SELECT CUSTOMER REQUIREMENTS</label>
+                        <label class="font-weight-bold small d-block mb-3">SELECT CUSTOMER REQUIREMENTS</label>
                         <div class="row">
                             @foreach([
                                 ['School Books', 'fa-book'],
@@ -252,8 +252,8 @@ Updating record for {{ $customer->name }}
                     </div>
                     <div class="col-md-12">
                         <div class="form-group">
-                            <label class="font-weight-bold small mandatory-label">DETAILED REQUIREMENTS</label>
-                            <textarea name="detailed_requirement" class="form-control" rows="4" required>{{ old('detailed_requirement', $customer->detailed_requirement) }}</textarea>
+                            <label class="font-weight-bold small">DETAILED REQUIREMENTS</label>
+                            <textarea name="detailed_requirement" class="form-control" rows="4">{{ old('detailed_requirement', $customer->detailed_requirement) }}</textarea>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -289,8 +289,8 @@ Updating record for {{ $customer->name }}
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label class="font-weight-bold small mandatory-label">BUYING STAGE</label>
-                            <select name="buying_stage" class="form-control select2" required>
+                            <label class="font-weight-bold small">BUYING STAGE</label>
+                            <select name="buying_stage" class="form-control select2">
                                 @foreach(['Inquiry','Quotation Sent','Negotiation','Order Confirmed','Delivered','Payment Pending','Closed Won','Closed Lost'] as $stage)
                                     <option value="{{ $stage }}" {{ $customer->buying_stage == $stage ? 'selected' : '' }}>{{ $stage }}</option>
                                 @endforeach
@@ -299,8 +299,8 @@ Updating record for {{ $customer->name }}
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label class="font-weight-bold small mandatory-label">PAYMENT TERMS</label>
-                            <select name="payment_terms" class="form-control select2" required>
+                            <label class="font-weight-bold small">PAYMENT TERMS</label>
+                            <select name="payment_terms" class="form-control select2">
                                 <option value="">Select Payment Terms</option>
                                 @foreach(['Cash','Bank Transfer','Credit','Mobile Money'] as $pt)
                                     <option value="{{ $pt }}" {{ $customer->payment_terms == $pt ? 'selected' : '' }}>{{ $pt }}</option>
@@ -324,8 +324,8 @@ Updating record for {{ $customer->name }}
                     @endif
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label class="font-weight-bold small mandatory-label">NEXT FOLLOW-UP</label>
-                            <input type="date" name="next_follow_up_date" class="form-control" value="{{ old('next_follow_up_date', $customer->next_follow_up_date ? $customer->next_follow_up_date->format('Y-m-d') : '') }}" required>
+                            <label class="font-weight-bold small">NEXT FOLLOW-UP</label>
+                            <input type="date" name="next_follow_up_date" class="form-control" value="{{ old('next_follow_up_date', $customer->next_follow_up_date ? $customer->next_follow_up_date->format('Y-m-d') : '') }}">
                         </div>
                     </div>
                     <div class="col-md-12">
@@ -456,9 +456,10 @@ $(document).ready(function() {
     // Form validation before submit
     $('form').on('submit', function(e) {
         let valid = true;
-        if ($('#phoneEdit').val().length !== 9) {
+        const phoneLen = $('#phoneEdit').val().length;
+        if (phoneLen > 0 && phoneLen !== 9) {
             $('#phoneEdit').addClass('is-invalid');
-            $('#phone-edit-feedback').html('<small class="text-danger">Primary phone must be 9 digits.</small>').show();
+            $('#phone-edit-feedback').html('<small class="text-danger">Primary phone must be 9 digits if provided.</small>').show();
             valid = false;
         }
         const altVal = $('#altPhoneEdit').val();

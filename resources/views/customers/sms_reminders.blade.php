@@ -39,6 +39,11 @@ Select multiple recipients and broadcast bulk SMS notifications
                     </select>
                 </div>
             </div>
+            <div id="selectAllNotice" class="alert alert-info py-2 mb-3 d-none" style="border-left: 5px solid #940000;">
+                <span id="noticeText">All recipients on this page are selected.</span>
+                <a href="javascript:void(0)" id="selectAllInDb" class="font-weight-bold ml-2 text-dark" style="text-decoration: underline;">Select all customers in the database</a>
+                <a href="javascript:void(0)" id="clearAllInDb" class="font-weight-bold ml-2 text-danger d-none">Clear selection</a>
+            </div>
 
             <div class="table-responsive">
                 <table class="table table-hover table-bordered" id="recipientTable">
@@ -127,13 +132,13 @@ Select multiple recipients and broadcast bulk SMS notifications
                             </div>
                             <div class="animated-checkbox">
                                 <label>
-                                    <input type="checkbox" name="channels[]" value="whatsapp">
+                                    <input type="checkbox" name="channels[]" value="whatsapp" checked>
                                     <span class="label-text font-weight-bold text-success">WhatsApp</span>
                                 </label>
                             </div>
                             <div class="animated-checkbox">
                                 <label>
-                                    <input type="checkbox" name="channels[]" value="email">
+                                    <input type="checkbox" name="channels[]" value="email" checked>
                                     <span class="label-text font-weight-bold text-info">Email</span>
                                 </label>
                             </div>
@@ -141,6 +146,7 @@ Select multiple recipients and broadcast bulk SMS notifications
                     </div>
 
                     <div id="hiddenInputs"></div>
+                    <input type="hidden" name="select_all_in_db" id="selectAllInDbInput" value="0">
 
                     <button class="btn btn-primary btn-block py-2" type="submit" id="sendBtn" disabled>
                         <i class="fa fa-paper-plane mr-1"></i> SEND BROADCAST
@@ -169,7 +175,29 @@ $(document).ready(function() {
     });
 
     $('#selectAll').on('change', function() {
-        $('.customer-checkbox').prop('checked', $(this).is(':checked')).trigger('change');
+        let isChecked = $(this).is(':checked');
+        $('.customer-checkbox').prop('checked', isChecked).trigger('change');
+        
+        if (isChecked) {
+            $('#selectAllNotice').removeClass('d-none');
+        } else {
+            $('#selectAllNotice').addClass('d-none');
+            $('#selectAllInDbInput').val(0);
+            $('#clearAllInDb').addClass('d-none');
+            $('#selectAllInDb').removeClass('d-none');
+        }
+    });
+
+    $('#selectAllInDb').on('click', function() {
+        $('#selectAllInDbInput').val(1);
+        $('#noticeText').text('Success! Entire customer database selected.');
+        $(this).addClass('d-none');
+        $('#clearAllInDb').removeClass('d-none');
+        $('#selectedCount').text('ALL');
+    });
+
+    $('#clearAllInDb').on('click', function() {
+        $('#selectAll').prop('checked', false).trigger('change');
     });
 
     $(document).on('change', '.customer-checkbox', function() {
@@ -182,9 +210,11 @@ $(document).ready(function() {
         });
         $('.customer-checkbox:not(:checked)').closest('tr').removeClass('selected-row');
         
-        $('#selectedCount').text(selected.length);
+        if ($('#selectAllInDbInput').val() == 0) {
+            $('#selectedCount').text(selected.length);
+        }
         $('#hiddenInputs').html(html);
-        $('#sendBtn').prop('disabled', selected.length === 0);
+        $('#sendBtn').prop('disabled', selected.length === 0 && $('#selectAllInDbInput').val() == 0);
     });
 
     $('#stageFilter').on('change', function() {

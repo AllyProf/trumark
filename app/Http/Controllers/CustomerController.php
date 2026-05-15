@@ -222,6 +222,14 @@ class CustomerController extends Controller
             }
         }
 
+        // --- SMART BRANCH FALLBACK (Fixes 1452) ---
+        // Ensure the branchId exists in branches table. If not, fallback to first available.
+        if (!\App\Models\Branch::where('id', $branchId)->exists()) {
+            $fallbackBranch = \App\Models\Branch::first();
+            $branchId = $fallbackBranch ? $fallbackBranch->id : null;
+        }
+        // ------------------------------------------
+
         $customer = Customer::create(array_merge($data, [
             'sales_officer_id' => $officerId,
             'branch_id'        => $branchId,
@@ -341,16 +349,28 @@ class CustomerController extends Controller
     {
         $request->validate([
             'name'         => 'required|string|max:255',
-            'phone'        => 'required|string|max:20',
+            'phone'        => 'nullable|string|max:20',
             'email'        => 'nullable|email|max:255',
-            'status'       => 'required|string',
-            'buying_stage' => 'required|string',
+            'status'       => 'nullable|string',
+            'buying_stage' => 'nullable|string',
         ]);
 
         $data = $request->except(['_token', '_method', 'phone_number', 'alternative_phone_number']);
         $data['estimated_monthly_value'] = $request->estimated_monthly_value ?? 0;
+        
+        // Safety Fallback for DB constraints
+        if (empty($data['phone'])) {
+            $data['phone'] = 'No Phone Provided';
+        }
 
         $user = Auth::user();
+
+        // --- SMART BRANCH FALLBACK (Fixes 1452) ---
+        if (isset($data['branch_id']) && !\App\Models\Branch::where('id', $data['branch_id'])->exists()) {
+            $fallbackBranch = \App\Models\Branch::first();
+            $data['branch_id'] = $fallbackBranch ? $fallbackBranch->id : null;
+        }
+        // ------------------------------------------
 
         // Handle officer reassignment (super_admin & manager only)
         if (($user->role === 'super_admin' || $user->role === 'manager') && $request->filled('sales_officer_id')) {
@@ -555,16 +575,30 @@ class CustomerController extends Controller
     public function sendBulkSms(Request $request)
     {
         $request->validate([
-            'customer_ids' => 'required|array',
+            'customer_ids' => 'required_without:select_all_in_db|array',
             'message' => 'required|string|max:500',
-            'channels' => 'required|array|min:1'
+            'channels' => 'required|array|min:1',
+            'select_all_in_db' => 'nullable|integer'
         ]);
 
         $successCount = 0;
         $failCount = 0;
         $channels = $request->channels;
 
-        foreach ($request->customer_ids as $id) {
+        // Handle "Select All in Database" logic
+        if ($request->select_all_in_db == 1) {
+            $user = Auth::user();
+            $branchId = $this->getActiveBranchId();
+            $query = Customer::when($branchId, fn($q) => $q->where('branch_id', $branchId));
+            if ($user->role === 'sales_officer') {
+                $query->where('sales_officer_id', Auth::id());
+            }
+            $customerIds = $query->pluck('id')->toArray();
+        } else {
+            $customerIds = $request->customer_ids;
+        }
+
+        foreach ($customerIds as $id) {
             $customer = Customer::find($id);
             if ($customer) {
                 $message = str_replace('{name}', $customer->name, $request->message);
@@ -585,7 +619,6 @@ class CustomerController extends Controller
 
                 // Send via WhatsApp if selected
                 if (in_array('whatsapp', $channels)) {
-                    // Using the approved general_broadcast template for guaranteed delivery
                     $waTemplate = \App\Models\SystemSetting::where('key', 'whatsapp_template_general')->first()?->value ?? 'general_broadcast';
                     $cleanMsg = preg_replace('/\s+/', ' ', $message);
                     
@@ -602,6 +635,7 @@ class CustomerController extends Controller
                         'status'      => $result['success'] ? 'sent' : 'failed',
                         'response'    => isset($result['response']) ? (is_array($result['response']) ? json_encode($result['response']) : $result['response']) : null,
                     ]);
+                    if ($result['success']) $successCount++;
                 }
 
                 // Send via Email if selected
@@ -614,13 +648,13 @@ class CustomerController extends Controller
                         $failCount++;
                     }
                 } elseif (in_array('email', $channels)) {
-                    $failCount++; // No email address
+                    $failCount++;
                 }
             }
         }
 
-        $msg = "🚀 Broadcast complete! Sent: {$successCount}, Failed: {$failCount} via: " . implode(', ', array_map('strtoupper', $channels));
-        return back()->with('success', $msg);
+        $msg = "🚀 Broadcast complete! Processed: " . count($customerIds) . " recipients via: " . implode(', ', array_map('strtoupper', $channels));
+        return redirect()->route('customers.sms_reminders')->with('success', $msg);
     }
 
     public function sendSurvey(Customer $customer)
@@ -807,46 +841,106 @@ class CustomerController extends Controller
                 return back()->with('error', 'The uploaded file is empty.');
             }
 
-            $rows = $data[0];
-            $header = array_shift($rows); // Remove header row
+            $allRows = $data[0];
+            $headerIndex = 0;
+            foreach ($allRows as $index => $r) {
+                $line = array_map('strtolower', array_map('trim', $r));
+                if (in_array('phone', $line) || in_array('name', $line)) {
+                    $headerIndex = $index;
+                    break;
+                }
+            }
+            $headingsRow = $allRows[$headerIndex];
+            $headings = array_map('strtolower', array_map('trim', $headingsRow));
+            $rows = array_slice($allRows, $headerIndex + 1);
+            
+            // Map column names to indices
+            $map = [
+                'type'           => array_search('type', $headings),
+                'name'           => array_search('name', $headings),
+                'contact_person' => array_search('contact person', $headings),
+                'position'       => array_search('position', $headings),
+                'phone'          => array_search('phone', $headings),
+                'email'          => array_search('email', $headings),
+                'region'         => array_search('region', $headings),
+                'district'       => array_search('district', $headings),
+                'source'         => array_search('source', $headings),
+                'status'         => array_search('status', $headings),
+                'requirements'   => array_search('requirements', $headings),
+                'school_level'   => array_search('school level', $headings),
+            ];
 
             \Illuminate\Support\Facades\DB::beginTransaction();
             
-            foreach ($rows as $row) {
-                // Mapping (index-based to be safe with Excel library)
-                // 0:Type, 1:Name, 2:Contact, 3:Position, 4:Phone, 5:Email, 6:Region, 7:District, 8:Source, 9:Status, 10:Req, 11:SchoolLevel
-                
-                $name = trim($row[1] ?? '');
-                $phone = trim($row[4] ?? '');
+            $lastType = 'Potential Customer';
+            $lastName = '';
 
-                if (empty($name) || empty($phone)) {
-                    $errorCount++;
-                    continue;
+            // Get a safe branch fallback in case the user's branch_id is invalid
+            $fallbackBranchId = \App\Models\Branch::first()->id ?? null;
+            $userBranchId = $user->branch_id;
+            if ($userBranchId && !\App\Models\Branch::where('id', $userBranchId)->exists()) {
+                $userBranchId = $fallbackBranchId;
+            }
+
+            foreach ($rows as $row) {
+                // Skip if row is effectively empty or looks exactly like headings
+                if (empty(array_filter($row)) || $row === $headingsRow) continue;
+
+                $currentType = ($map['type'] !== false) ? trim($row[$map['type']] ?? '') : '';
+                $currentName = ($map['name'] !== false) ? trim($row[$map['name']] ?? '') : '';
+                
+                // Smart Inheritance
+                if (!empty($currentType)) $lastType = $currentType;
+                if (!empty($currentName)) $lastName = $currentName;
+
+                $orgName = !empty($currentName) ? $currentName : $lastName;
+                $type    = !empty($currentType) ? $currentType : $lastType;
+                $contact = ($map['contact_person'] !== false) ? trim($row[$map['contact_person']] ?? '') : '';
+                $phone   = ($map['phone'] !== false) ? trim($row[$map['phone']] ?? '') : '';
+                $sLevel  = ($map['school_level'] !== false) ? trim($row[$map['school_level']] ?? '') : '';
+
+                // Auto-detect School type if school level is present
+                if (empty($currentType) && ($lastType === 'Potential Customer' || empty($lastType)) && !empty($sLevel)) {
+                    $type = 'School';
                 }
 
-                $type = trim($row[0] ?? 'Potential Customer');
-                
+                // Smart Naming: Combine Org + Person for inherited rows to avoid duplicates
+                if (empty($currentName) && !empty($contact) && !empty($lastName)) {
+                    $finalName = $lastName . " - " . $contact;
+                } else {
+                    $finalName = !empty($orgName) ? $orgName : (!empty($contact) ? $contact : 'New Lead (' . date('d-m-Y H:i') . ')');
+                }
+
+                if (empty($phone)) $phone = 'No Phone Provided';
+
+                $source = ($map['source'] !== false) ? trim($row[$map['source']] ?? 'Bulk Import') : 'Bulk Import';
+                $reqRaw = ($map['requirements'] !== false) ? trim($row[$map['requirements']] ?? '') : '';
+                $requirements = !empty($reqRaw) ? array_map('trim', explode(',', $reqRaw)) : [];
+
                 $customer = Customer::create([
                     'sales_officer_id' => $user->id,
-                    'branch_id'        => $user->branch_id,
+                    'branch_id'        => $userBranchId,
                     'type'             => $type,
-                    'name'             => $name,
-                    'contact_person'   => trim($row[2] ?? ''),
-                    'position'         => trim($row[3] ?? ''),
+                    'name'             => $finalName,
+                    'contact_person'   => $contact,
+                    'position'         => ($map['position'] !== false) ? trim($row[$map['position']] ?? '') : '',
                     'phone'            => $phone,
-                    'email'            => trim($row[5] ?? ''),
-                    'region'           => trim($row[6] ?? ''),
-                    'district'         => trim($row[7] ?? ''),
-                    'source'           => trim($row[8] ?? 'Bulk Import'),
-                    'status'           => trim($row[9] ?? 'Potential Customer'),
-                    'requirements'     => trim($row[10] ?? ''),
-                    'school_level'     => trim($row[11] ?? ''),
+                    'email'            => ($map['email'] !== false) ? trim($row[$map['email']] ?? '') : '',
+                    'region'           => ($map['region'] !== false) ? trim($row[$map['region']] ?? '') : '',
+                    'district'         => ($map['district'] !== false) ? trim($row[$map['district']] ?? '') : '',
+                    'source'           => $source,
+                    'status'           => ($map['status'] !== false) ? trim($row[$map['status']] ?? 'Potential Customer') : 'Potential Customer',
+                    'requirements'     => $requirements,
+                    'school_level'     => ($map['school_level'] !== false) ? trim($row[$map['school_level']] ?? '') : '',
                     'buying_stage'     => 'Inquiry',
                 ]);
 
                 if ($customer) {
                     $importedCount++;
                     \App\Services\KpiService::recordActivity('REG_NEW_POTENTIAL', $user->id, $customer->id);
+                    if (strtolower($source) === 'referral') {
+                        \App\Services\KpiService::recordActivity('REFERRAL_EXISTING', $user->id, $customer->id);
+                    }
                     if (in_array(strtolower($type), ['school', 'company', 'organization'])) {
                         \App\Services\KpiService::recordActivity('NEW_ORG_LEAD', $user->id, $customer->id);
                     }

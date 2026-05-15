@@ -240,11 +240,13 @@ Monthly and all-time staff performance rankings
                                 </td>
                                 <td class="align-middle">
                                     <div class="d-flex align-items-center">
-                                        <div class="staff-avatar mr-3">
-                                            @if($s->profile_picture)
-                                                <img src="{{ asset('storage/'.$s->profile_picture) }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                                        <div class="staff-avatar mr-3 shadow-sm" style="width: 45px; height: 45px; border: 2px solid #940000; overflow: hidden; border-radius: 50%;">
+                                            @if($s->avatar)
+                                                <img src="{{ asset('storage/'.$s->avatar) }}" style="width: 100%; height: 100%; object-fit: cover;">
                                             @else
-                                                <i class="fa fa-user-circle-o fa-2x"></i>
+                                                <div class="bg-primary text-white d-flex align-items-center justify-content-center w-100 h-100 font-weight-bold" style="font-size: 14px;">
+                                                    {{ strtoupper(substr($s->name, 0, 1)) }}
+                                                </div>
                                             @endif
                                         </div>
                                         <div>

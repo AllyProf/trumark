@@ -64,7 +64,13 @@ class StaffController extends Controller
             'phone' => 'required|numeric|digits:9',
             'role' => 'required|string|in:super_admin,manager,sales_officer',
             'branch_id' => 'nullable|exists:branches,id',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        $avatarPath = null;
+        if ($request->hasFile('avatar')) {
+            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+        }
 
         $nameParts = explode(' ', trim($request->name));
         $lastName = end($nameParts);
@@ -77,6 +83,7 @@ class StaffController extends Controller
             'password' => Hash::make($plainPassword),
             'role' => $request->role,
             'branch_id' => $request->branch_id,
+            'avatar' => $avatarPath,
         ]);
 
         // 1. Send SMS
@@ -151,7 +158,17 @@ class StaffController extends Controller
             'phone' => 'required|numeric|digits:9',
             'role' => 'required|string|in:super_admin,manager,sales_officer',
             'branch_id' => 'nullable|exists:branches,id',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        if ($request->hasFile('avatar')) {
+            // Delete old avatar if exists
+            if ($user->avatar) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->avatar);
+            }
+            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+            $user->update(['avatar' => $avatarPath]);
+        }
 
         $oldBranchId = $user->branch_id;
         $newBranchId = $request->branch_id;

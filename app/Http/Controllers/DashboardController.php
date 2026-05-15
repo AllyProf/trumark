@@ -9,7 +9,8 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = \Illuminate\Support\Facades\Auth::user();
-        $isGlobal = $user->role === 'super_admin';
+        // Allow both Super Admins and Managers to filter branches
+        $isGlobal = in_array($user->role, ['super_admin', 'manager']);
         $isOfficer = $user->role === 'sales_officer';
         
         // Admins can switch branches — persist selection in session
@@ -120,8 +121,7 @@ class DashboardController extends Controller
                 });
             })
             ->latest()
-            ->take(5)
-            ->get();
+            ->paginate(4, ['*'], 'comms_page');
 
         // Monthly Leads Trend (Last 6 Months)
         $leads_by_month = [];

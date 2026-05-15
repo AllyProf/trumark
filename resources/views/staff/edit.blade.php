@@ -23,7 +23,7 @@
                 <p class="text-muted m-b-0">Update staff details below.</p>
             </div>
             <div class="card-body">
-                <form action="{{ route('staff.update', $staff->id) }}" method="POST">
+                <form action="{{ route('staff.update', $staff->id) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     
@@ -37,6 +37,23 @@
                             <div class="form-group">
                                 <label class="font-weight-bold">Email Address <span class="text-danger">*</span></label>
                                 <input type="email" name="email" class="form-control" value="{{ $staff->email }}" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="font-weight-bold">Profile Photo (Avatar)</label>
+                                <div class="d-flex align-items-center">
+                                    <div class="mr-3 border rounded d-flex align-items-center justify-content-center bg-light" id="avatarPreview" style="width: 100px; height: 100px; overflow: hidden;">
+                                        @if($staff->avatar)
+                                            <img src="{{ asset('storage/' . $staff->avatar) }}" style="width:100%; height:100%; object-fit:cover;">
+                                        @else
+                                            <i class="fa fa-user fa-3x text-muted"></i>
+                                        @endif
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <input type="file" name="avatar" class="form-control-file" accept="image/*" onchange="previewAvatar(this)">
+                                        <small class="text-muted d-block mt-2">Upload a new photo to replace the current one. Max 2MB.</small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -99,5 +116,15 @@
             width: '100%'
         });
     });
+
+    function previewAvatar(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                $('#avatarPreview').html('<img src="' + e.target.result + '" style="width:100%; height:100%; object-fit:cover;">');
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
 </script>
 @endsection

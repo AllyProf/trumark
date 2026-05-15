@@ -25,7 +25,6 @@ Register and manage system users, access roles, and branch assignments
                             <th>Staff Member</th>
                             <th>Email</th>
                             <th>Role & Status</th>
-                            <th>Performance Level</th>
                             <th>Branch</th>
                             <th>Joined Date</th>
                             <th class="text-center">Actions</th>
@@ -36,9 +35,19 @@ Register and manage system users, access roles, and branch assignments
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <div class="mr-3 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; font-weight: bold;">
-                                        {{ strtoupper(substr($user->name, 0, 1)) }}
-                                    </div>
+                                    @if($user->avatar)
+                                        <img src="{{ asset('storage/' . $user->avatar) }}" 
+                                             alt="{{ $user->name }}" 
+                                             class="mr-3 rounded-circle shadow-sm" 
+                                             style="width: 45px; height: 45px; object-fit: cover; border: 2px solid #940000; transition: transform 0.2s;"
+                                             onmouseover="this.style.transform='scale(1.2)'" 
+                                             onmouseout="this.style.transform='scale(1)'">
+                                    @else
+                                        <div class="mr-3 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" 
+                                             style="width: 45px; height: 45px; font-weight: bold; border: 2px solid #940000;">
+                                            {{ strtoupper(substr($user->name, 0, 1)) }}
+                                        </div>
+                                    @endif
                                     <div>
                                         <b>{{ $user->name }}</b><br>
                                         <small class="text-muted">ID: #{{ str_pad($user->id, 4, '0', STR_PAD_LEFT) }}</small>
@@ -57,12 +66,7 @@ Register and manage system users, access roles, and branch assignments
                                     <span class="text-muted" style="font-size: 11px;"><i class="fa fa-times-circle"></i> Inactive</span>
                                 @endif
                             </td>
-                             <td>
-                                 <span class="badge" style="background: {{ $user->kpi_level['color'] }}; color: white;">
-                                     <i class="fa {{ $user->kpi_level['icon'] }} mr-1"></i> {{ $user->kpi_level['name'] }}
-                                 </span><br>
-                                 <small class="font-weight-bold text-primary">{{ $user->kpi_points }} Performance Points</small>
-                             </td>
+
                              <td><b>{{ $user->branch->name ?? 'Global' }}</b></td>
                              <td>{{ $user->created_at->format('d M Y') }}</td>
                             <td class="text-center">

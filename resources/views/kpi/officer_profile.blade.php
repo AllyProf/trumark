@@ -29,11 +29,13 @@ Detailed performance analysis for {{ $officer->name }}
         {{-- Profile Card --}}
         <div class="tile p-0 shadow-sm border-0 mb-4" style="overflow: hidden;">
             <div class="p-4 text-center text-white" style="background: linear-gradient(135deg, #940000, #5a0000);">
-                <div class="mb-3 mx-auto shadow" style="width: 100px; height: 100px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; border: 4px solid rgba(255,255,255,0.3);">
-                    @if($officer->profile_picture)
-                        <img src="{{ asset('storage/'.$officer->profile_picture) }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                <div class="mb-3 mx-auto shadow" style="width: 100px; height: 100px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; border: 4px solid rgba(255,255,255,0.3); overflow: hidden;">
+                    @if($officer->avatar)
+                        <img src="{{ asset('storage/'.$officer->avatar) }}" style="width: 100%; height: 100%; object-fit: cover;">
                     @else
-                        <i class="fa fa-user-o fa-3x" style="color: #940000;"></i>
+                        <div class="bg-white text-primary d-flex align-items-center justify-content-center w-100 h-100 font-weight-bold" style="font-size: 32px; color: #940000 !important;">
+                            {{ strtoupper(substr($officer->name, 0, 1)) }}
+                        </div>
                     @endif
                 </div>
                 <h4 class="font-weight-bold mb-0 text-uppercase">{{ $officer->name }}</h4>
@@ -243,8 +245,8 @@ Detailed performance analysis for {{ $officer->name }}
                     </tbody>
                 </table>
             </div>
-            <div class="p-3 bg-white border-top">
-                {{ $activities->links('pagination::bootstrap-4') }}
+            <div class="p-3 bg-white border-top d-flex justify-content-center">
+                {{ $activities->links() }}
             </div>
         </div>
 

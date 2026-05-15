@@ -390,7 +390,7 @@
             <div class="app-sidebar__user-avatar-initials">{{ $initials }}</div>
         @endif
         <div>
-          <p class="app-sidebar__user-name">{{ strtoupper(auth()->user()->name) }}</p>
+          <p class="app-sidebar__user-name">{{ strtoupper(implode(' ', array_slice(explode(' ', auth()->user()->name), 0, 2))) }}</p>
           <p class="app-sidebar__user-designation">{{ ucfirst(auth()->user()->role) }}</p>
         </div>
       </div>

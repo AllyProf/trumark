@@ -71,7 +71,7 @@ Real-time analytics and performance metrics for your business
                 <div class="d-flex align-items-center">
                     <i class="fa fa-filter text-primary mr-2"></i>
                     <span class="font-weight-bold text-dark mr-3">Filter by Location:</span>
-                    @if(auth()->user()->role === 'super_admin')
+                    @if(in_array(auth()->user()->role, ['super_admin', 'manager']))
                     <form action="{{ route('dashboard') }}" method="GET">
                         <select name="branch_id" class="branch-native-select" onchange="this.form.submit()">
                             <option value="">🌍 All Branches (Global)</option>
@@ -186,6 +186,9 @@ Real-time analytics and performance metrics for your business
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+            <div class="p-3 bg-white border-top d-flex justify-content-center">
+                {{ $recent_logs->appends(request()->except('comms_page'))->links() }}
             </div>
         </div>
     </div>

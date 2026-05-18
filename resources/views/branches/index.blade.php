@@ -2,9 +2,7 @@
 
 @section('title', 'Manage Branches')
 
-@section('page_icon')
-<i class="fa fa-map-marker"></i>
-@endsection
+@section('page_icon', 'fa-map-marker')
 
 @section('subtitle')
 Register and manage company locations, team sizes and performance

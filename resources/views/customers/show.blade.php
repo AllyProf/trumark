@@ -2,9 +2,7 @@
 
 @section('title', 'Lead Summary: ' . $customer->name)
 
-@section('page_icon')
-<i class="fa fa-user"></i>
-@endsection
+@section('page_icon', 'fa-user')
 
 @section('subtitle')
 Detailed profile and sales history for {{ $customer->name }}

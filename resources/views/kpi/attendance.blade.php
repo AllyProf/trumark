@@ -2,9 +2,7 @@
 
 @section('title', 'Staff Attendance & Usage')
 
-@section('page_icon')
-<i class="fa fa-clock-o"></i>
-@endsection
+@section('page_icon', 'fa-clock-o')
 
 @section('subtitle')
 Detailed logs of system entry, exit, and session duration

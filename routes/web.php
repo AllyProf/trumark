@@ -29,6 +29,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/customers/follow-ups', [CustomerController::class, 'followUps'])->name('customers.follow_ups');
     Route::get('/customers/sales-records', [CustomerController::class, 'salesRecords'])->name('customers.sales_records');
     Route::get('/customers/sms-reminders', [CustomerController::class, 'smsReminders'])->name('customers.sms_reminders');
+    Route::get('/customers/bulk-delegate', [CustomerController::class, 'bulkDelegateView'])->name('customers.bulk_delegate');
+    Route::post('/customers/bulk-delegate', [CustomerController::class, 'processBulkDelegate'])->name('customers.process_bulk_delegate');
     Route::post('/customers/sms-reminders/send', [CustomerController::class, 'sendBulkSms'])->name('customers.send_bulk_sms');
     Route::patch('/customers/{customer}/quick-update', [CustomerController::class, 'quickUpdate'])->name('customers.quick_update');
     Route::post('/customers/send-all-reminders', [CustomerController::class, 'sendAllReminders'])->name('customers.send_all_reminders');

@@ -2,9 +2,7 @@
 
 @section('title', 'CRM Reports & Analytics')
 
-@section('page_icon')
-<i class="fa fa-pie-chart"></i>
-@endsection
+@section('page_icon', 'fa-pie-chart')
 
 @section('subtitle')
 Detailed breakdown of sales performance, lead conversion and pipeline trends
@@ -14,10 +12,36 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
 <!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+    .widget-small { 
+        min-height: 90px; 
+        display: flex; 
+        align-items: center; 
+        margin-bottom: 20px; 
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .widget-small .icon {
+        width: 60px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .widget-small .info {
+        padding: 10px 15px;
+        flex-grow: 1;
+    }
     .widget-small .info h4 {
         text-transform: none;
         font-weight: 700;
-        font-size: 14px;
+        font-size: 13px;
+        margin-bottom: 2px;
+        color: #666;
+    }
+    .widget-small .info p {
+        margin-bottom: 0;
+        font-size: 18px;
     }
     .conv-bar-wrap { background: #e9ecef; border-radius: 20px; height: 12px; overflow: hidden; margin-top: 5px; }
     .conv-bar { background: #940000; height: 100%; border-radius: 20px; transition: width 1.5s ease; }
@@ -78,7 +102,7 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
 </div>
 
 <div class="row">
-    <div class="col-md-6 col-lg-2">
+    <div class="col-md-6 col-lg-3">
         <div class="widget-small primary coloured-icon"><i class="icon fa fa-users fa-2x"></i>
             <div class="info">
                 <h4>Total Leads</h4>

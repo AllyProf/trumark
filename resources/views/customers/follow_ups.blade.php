@@ -2,9 +2,7 @@
 
 @section('title', 'Pending Follow-ups')
 
-@section('page_icon')
-<i class="fa fa-calendar-check-o"></i>
-@endsection
+@section('page_icon', 'fa-calendar-check-o')
 
 @section('subtitle')
 Track and manage scheduled follow-ups with potential leads and customers

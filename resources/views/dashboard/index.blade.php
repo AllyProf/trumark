@@ -2,9 +2,7 @@
 
 @section('title', 'Dashboard Overview')
 
-@section('page_icon')
-<i class="fa fa-dashboard"></i>
-@endsection
+@section('page_icon', 'fa-dashboard')
 
 @section('subtitle')
 Real-time analytics and performance metrics for your business

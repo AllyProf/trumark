@@ -2,9 +2,7 @@
 
 @section('title', auth()->user()->role === 'sales_officer' ? 'My Market Statistics' : 'Market Demographics & Statistics')
 
-@section('page_icon')
-<i class="fa fa-bar-chart"></i>
-@endsection
+@section('page_icon', 'fa-bar-chart')
 
 @section('subtitle')
 {{ auth()->user()->role === 'sales_officer' ? 'Personal breakdown of your assigned leads and growth' : 'Dedicated breakdown of customer types, schools, parents and growth trends' }}
@@ -354,7 +352,7 @@
                     </thead>
                     <tbody>
                         @foreach($customers as $customer)
-                        <tr data-region="{{ $customer->region ?? '' }}" data-stage="{{ $customer->buying_stage ?? '' }}" data-status="{{ $customer->status ?? '' }}" data-type="{{ $customer->type ?? '' }}">
+                        <tr data-region="{{ $customer->region ?? '' }}" data-stage="{{ $customer->buying_stage ?? '' }}" data-status="{{ $customer->status ?? '' }}" data-type="{{ $customer->school_level ?: ($customer->type ?? '') }}">
                             <td>
                                 <b>{{ strtoupper($customer->name) }}</b><br>
                                 @if($customer->school_level)

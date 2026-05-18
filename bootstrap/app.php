@@ -22,5 +22,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function ($schedule) {
         $schedule->command('surveys:send-automated')->dailyAt('08:30');
         $schedule->command('followups:send-reminders')->dailyAt('08:45');
+        $schedule->command('queue:work --stop-when-empty')->everyMinute()->withoutOverlapping();
     })
     ->create();

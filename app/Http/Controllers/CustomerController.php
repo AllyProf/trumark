@@ -268,7 +268,7 @@ class CustomerController extends Controller
 
         // Notify the assigned sales officer if it's someone else
         if ($assignedOfficer && $assignedOfficer->id != $user->id) {
-            $assignedOfficer->notify(new \App\Notifications\LeadAssignedNotification($customer));
+            $assignedOfficer->notify(new \App\Notifications\LeadAssignedSmsNotification($customer));
         }
 
         $welcomeTemplate = $settings['template_welcome_sms'] ?? 'Hello {name}, thank you for choosing TRUMARK Co. LTD. We have received your inquiry and our team is working on it. Welcome!';
@@ -380,7 +380,7 @@ class CustomerController extends Controller
                 if ($newOfficer) {
                     $data['branch_id'] = $newOfficer->branch_id;
                     // Notify the newly assigned officer
-                    $newOfficer->notify(new \App\Notifications\LeadAssignedNotification($customer));
+                    $newOfficer->notify(new \App\Notifications\LeadAssignedSmsNotification($customer));
                 }
             }
         }
@@ -584,6 +584,18 @@ class CustomerController extends Controller
         $successCount = 0;
         $failCount = 0;
         $channels = $request->channels;
+        
+        /**
+         * TIMEOUT PROTECTION & SCALABILITY:
+         * If the list is large (e.g. 200+ leads), sending SMS/WhatsApp/Email synchronously 
+         * would normally cause a browser timeout. 
+         * 1. set_time_limit(0) allows this script to run as long as needed.
+         * 2. ignore_user_abort(true) ensures the send continues even if the user closes the browser.
+         * 3. For lists over 1000, we recommend using a Background Job (Queue) which is already
+         *    configured in your .env (QUEUE_CONNECTION=database).
+         */
+        set_time_limit(0);
+        ignore_user_abort(true);
 
         // Handle "Select All in Database" logic
         if ($request->select_all_in_db == 1) {
@@ -596,6 +608,20 @@ class CustomerController extends Controller
             $customerIds = $query->pluck('id')->toArray();
         } else {
             $customerIds = $request->customer_ids;
+        }
+
+        // SMART DISPATCH: 
+        // If the list is large (>50), we move it to the background so you don't have to wait.
+        // This prevents timeouts and allows the CRM to stay fast.
+        if (count($customerIds) > 50) {
+            \App\Jobs\SendBulkBroadcastJob::dispatch(
+                $customerIds, 
+                $request->message, 
+                $channels, 
+                Auth::id()
+            );
+
+            return redirect()->back()->with('success', '🚀 Mega-Broadcast Started! Since you selected ' . count($customerIds) . ' customers, the system is sending them in the background. You can check the logs in a few minutes.');
         }
 
         foreach ($customerIds as $id) {
@@ -655,6 +681,76 @@ class CustomerController extends Controller
 
         $msg = "🚀 Broadcast complete! Processed: " . count($customerIds) . " recipients via: " . implode(', ', array_map('strtoupper', $channels));
         return redirect()->route('customers.sms_reminders')->with('success', $msg);
+    }
+
+    public function bulkDelegateView(Request $request)
+    {
+        $user = Auth::user();
+        if ($user->role !== 'super_admin' && $user->role !== 'manager') {
+            return redirect()->route('dashboard')->with('error', 'Unauthorized access.');
+        }
+
+        $branchId = $this->getActiveBranchId();
+        $currentOfficerId = $request->get('current_officer_id');
+        $region = $request->get('region');
+
+        $query = Customer::with('salesOfficer')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($currentOfficerId === 'unassigned', fn($q) => $q->whereNull('sales_officer_id'))
+            ->when($currentOfficerId && $currentOfficerId !== 'unassigned', fn($q) => $q->where('sales_officer_id', $currentOfficerId))
+            ->when($region, fn($q) => $q->where('region', $region));
+
+        $customers = $query->orderBy('name')->get();
+
+        $officers = \App\Models\User::whereIn('role', ['sales_officer', 'manager', 'super_admin'])
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->get();
+
+        $regions = Customer::whereNotNull('region')
+            ->distinct()
+            ->pluck('region')
+            ->filter(function($r) {
+                $rUpper = strtoupper($r);
+                return !str_contains($rUpper, 'SEC') && 
+                       !str_contains($rUpper, 'SCH') && 
+                       !str_contains($rUpper, 'VTC') &&
+                       !str_contains($rUpper, 'ACADEMY');
+            })
+            ->toArray();
+
+        return view('customers.bulk_delegate', compact('customers', 'officers', 'regions', 'currentOfficerId', 'region'));
+    }
+
+    public function processBulkDelegate(Request $request)
+    {
+        $request->validate([
+            'customer_ids' => 'required|array',
+            'target_officer_id' => 'required|exists:users,id',
+        ]);
+
+        $targetOfficer = \App\Models\User::find($request->target_officer_id);
+        $count = 0;
+
+        foreach ($request->customer_ids as $id) {
+            $customer = Customer::find($id);
+            if ($customer) {
+                $customer->update([
+                    'sales_officer_id' => $targetOfficer->id,
+                    'branch_id'        => $targetOfficer->branch_id
+                ]);
+                
+                // Notify the new officer
+                $targetOfficer->notify(new \App\Notifications\LeadAssignedSmsNotification($customer));
+                
+                $count++;
+            }
+        }
+
+        $delegatedIds = $request->customer_ids;
+
+        return redirect()->route('customers.bulk_delegate')
+            ->with('success', "✅ Successfully delegated {$count} leads to {$targetOfficer->name}!")
+            ->with('delegated_ids', $delegatedIds);
     }
 
     public function sendSurvey(Customer $customer)

@@ -410,6 +410,9 @@
                 <li><a class="treeview-item {{ Route::is('customers.import') ? 'active' : '' }}" href="{{ route('customers.import') }}"><i class="fa fa-cloud-upload"></i> Bulk Import Leads</a></li>
                 <li><a class="treeview-item {{ Route::is('customers.create') ? 'active' : '' }}" href="{{ route('customers.create') }}"><i class="fa fa-user-plus"></i> Add New Lead</a></li>
                 <li><a class="treeview-item {{ Route::is('customers.follow_ups') ? 'active' : '' }}" href="{{ route('customers.follow_ups') }}"><i class="fa fa-calendar-check-o"></i> Follow-ups</a></li>
+                @if(auth()->user()->role === 'super_admin' || auth()->user()->role === 'manager')
+                    <li><a class="treeview-item {{ Route::is('customers.bulk_delegate') ? 'active' : '' }}" href="{{ route('customers.bulk_delegate') }}"><i class="fa fa-exchange"></i> Quick Delegation</a></li>
+                @endif
             </ul>
         </li>
 
@@ -466,7 +469,7 @@
     <main class="app-content">
       <div class="app-title">
         <div>
-          <h1>@yield('page_icon') @yield('title')</h1>
+          <h1><i class="fa @yield('page_icon')"></i> @yield('title')</h1>
           <p>@yield('subtitle')</p>
         </div>
         <ul class="app-breadcrumb breadcrumb">

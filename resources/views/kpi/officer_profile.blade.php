@@ -2,9 +2,7 @@
 
 @section('title', 'Officer Performance Profile')
 
-@section('page_icon')
-<i class="fa fa-user-circle"></i>
-@endsection
+@section('page_icon', 'fa-user-circle')
 
 @section('subtitle')
 Detailed performance analysis for {{ $officer->name }}

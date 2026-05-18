@@ -2,9 +2,7 @@
 
 @section('title', 'Bulk Lead Import')
 
-@section('page_icon')
-<i class="fa fa-upload"></i>
-@endsection
+@section('page_icon', 'fa-upload')
 
 @section('subtitle')
 Upload leads from CSV files to quickly populate your database

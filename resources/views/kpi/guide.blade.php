@@ -2,9 +2,7 @@
 
 @section('title', 'KPI Points Guide')
 
-@section('page_icon')
-<i class="fa fa-info-circle"></i>
-@endsection
+@section('page_icon', 'fa-info-circle')
 
 @section('subtitle')
 Official TRUMARK CRM points structure and performance rules

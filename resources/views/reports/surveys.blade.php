@@ -2,9 +2,7 @@
 
 @section('title', 'Customer Satisfaction & Surveys')
 
-@section('page_icon')
-<i class="fa fa-commenting-o"></i>
-@endsection
+@section('page_icon', 'fa-commenting-o')
 
 @section('subtitle')
 Detailed breakdown of customer feedback, ratings, and service quality assessments

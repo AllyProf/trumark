@@ -126,8 +126,8 @@ class ReportController extends Controller
 
         // Specific Demographic Counts
         $stats = [
-            'primary_schools'   => (clone $baseQuery)->where('type', 'LIKE', '%Primary%')->count(),
-            'secondary_schools' => (clone $baseQuery)->where('type', 'LIKE', '%Secondary%')->count(),
+            'primary_schools'   => (clone $baseQuery)->where('school_level', 'LIKE', '%Primary%')->count(),
+            'secondary_schools' => (clone $baseQuery)->where('school_level', 'LIKE', '%Secondary%')->count(),
             'parents'           => (clone $baseQuery)->where('type', 'Parent')->count(),
             'walk_ins'          => (clone $baseQuery)->where('type', 'Walk in')->count(),
             'new_this_month'    => (clone $baseQuery)->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),

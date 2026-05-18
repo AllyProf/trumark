@@ -2,9 +2,7 @@
 
 @section('title', 'Manage Staff')
 
-@section('page_icon')
-<i class="fa fa-users"></i>
-@endsection
+@section('page_icon', 'fa-users')
 
 @section('subtitle')
 Register and manage system users, access roles, and branch assignments

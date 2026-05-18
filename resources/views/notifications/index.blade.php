@@ -2,9 +2,7 @@
 
 @section('title', 'Notifications Center')
 
-@section('page_icon')
-<i class="fa fa-bell"></i>
-@endsection
+@section('page_icon', 'fa-bell')
 
 @section('subtitle')
 Manage all your system alerts and performance notifications

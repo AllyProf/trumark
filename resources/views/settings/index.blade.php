@@ -2,9 +2,7 @@
 
 @section('title', 'System Settings')
 
-@section('page_icon')
-<i class="fa fa-cogs"></i>
-@endsection
+@section('page_icon', 'fa-cogs')
 
 @section('subtitle')
 Configure global application behavior, branding, and automation settings

@@ -2,9 +2,7 @@
 
 @section('title', 'Bulk SMS Reminders')
 
-@section('page_icon')
-<i class="fa fa-paper-plane"></i>
-@endsection
+@section('page_icon', 'fa-paper-plane')
 
 @section('subtitle')
 Select multiple recipients and broadcast bulk SMS notifications

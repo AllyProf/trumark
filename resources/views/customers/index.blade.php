@@ -2,9 +2,7 @@
 
 @section('title', 'Customer Database')
 
-@section('page_icon')
-<i class="fa fa-users"></i>
-@endsection
+@section('page_icon', 'fa-users')
 
 @section('subtitle')
 Manage registered customers, leads, and sales pipeline progress

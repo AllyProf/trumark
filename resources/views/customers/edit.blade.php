@@ -2,9 +2,7 @@
 
 @section('title', 'Edit Lead: ' . $customer->name)
 
-@section('page_icon')
-<i class="fa fa-edit"></i>
-@endsection
+@section('page_icon', 'fa-edit')
 
 @section('subtitle')
 Updating record for {{ $customer->name }}

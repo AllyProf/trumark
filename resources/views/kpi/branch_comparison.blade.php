@@ -2,9 +2,7 @@
 
 @section('title', 'Branch Performance Comparison')
 
-@section('page_icon')
-<i class="fa fa-balance-scale"></i>
-@endsection
+@section('page_icon', 'fa-balance-scale')
 
 @section('subtitle')
 Comparative analysis of KPI performance across all branches

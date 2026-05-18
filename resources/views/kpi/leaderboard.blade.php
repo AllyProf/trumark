@@ -2,9 +2,7 @@
 
 @section('title', 'KPI Leaderboard')
 
-@section('page_icon')
-<i class="fa fa-trophy"></i>
-@endsection
+@section('page_icon', 'fa-trophy')
 
 @section('subtitle')
 Monthly and all-time staff performance rankings

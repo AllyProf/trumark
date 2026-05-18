@@ -2,9 +2,7 @@
 
 @section('title', 'KPI Activity Ledger')
 
-@section('page_icon')
-<i class="fa fa-list-alt"></i>
-@endsection
+@section('page_icon', 'fa-list-alt')
 
 @section('subtitle')
 Detailed audit trail of all performance-related activities

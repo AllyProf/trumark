@@ -2,9 +2,7 @@
 
 @section('title', 'Lead Registration')
 
-@section('page_icon')
-<i class="fa fa-user-plus"></i>
-@endsection
+@section('page_icon', 'fa-user-plus')
 
 @section('subtitle')
 TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized Review

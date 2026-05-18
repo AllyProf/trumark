@@ -226,15 +226,15 @@
                 @endforelse
             </div>
 
-            <!-- Pagination (for loading next 100 pages from server) -->
-            @if($logs->hasPages())
+            <!-- Pagination -->
             <div class="d-flex justify-content-between align-items-center flex-wrap mt-4 pt-3 border-top">
                 <small class="text-muted font-weight-bold mb-2 mb-md-0">
-                    Page {{ $logs->currentPage() }} of {{ $logs->lastPage() }} &nbsp;·&nbsp; {{ $logs->total() }} total entries
+                    Page {{ $logs->currentPage() }} of {{ $logs->lastPage() }}
+                    &nbsp;·&nbsp;
+                    <span id="visible-count-pg">{{ $logs->count() }}</span> of {{ $logs->total() }} entries shown
                 </small>
                 <div>{{ $logs->links() }}</div>
             </div>
-            @endif
 
         </div>
     </div>
@@ -299,12 +299,12 @@
 
 @section('scripts')
 <script>
-(function () {
-    // ─── State ──────────────────────────────────────────────────────────
-    var searchVal    = '';
-    var categoryVal  = '';
-    var userVal      = '';
+$(document).ready(function () {
 
+    // ─── Cached references ───────────────────────────────────────────────
+    var $searchInput  = $('#filter-search');
+    var $catSelect    = $('#filter-category');
+    var $userSelect   = $('#filter-user');
     var $rows         = $('.audit-row');
     var $cards        = $('.audit-card');
     var $countBadge   = $('#visible-count');
@@ -312,97 +312,70 @@
     var $noResultsMsg = $('#no-results-msg');
     var $clearBtn     = $('#clear-search-btn');
 
-    // ─── Filter Engine ──────────────────────────────────────────────────
+    // ─── Filter Engine ───────────────────────────────────────────────────
     function applyFilters() {
+        // Read values directly from elements (avoids 'this' context issues)
+        var search   = $searchInput.val().toLowerCase().trim();
+        var category = $catSelect.val();
+        var user     = $userSelect.val();
+        var hasFilter = (search !== '' || category !== '' || user !== '');
         var matchCount = 0;
-        var hasFilter  = (searchVal !== '' || categoryVal !== '' || userVal !== '');
+
+        function matches($el) {
+            var ok = true;
+            if (search   && ($el.attr('data-search')   || '').indexOf(search)   === -1) ok = false;
+            if (category && ($el.attr('data-category') || '') !== category)              ok = false;
+            if (user     && String($el.attr('data-user') || '') !== user)                ok = false;
+            return ok;
+        }
 
         // Desktop rows
-        $rows.each(function() {
-            var $el      = $(this);
-            var rowSearch   = $el.data('search')    || '';
-            var rowCategory = $el.data('category')  || '';
-            var rowUser     = String($el.data('user') || '');
-
-            var show = true;
-            if (searchVal   && rowSearch.indexOf(searchVal)         === -1) show = false;
-            if (categoryVal && rowCategory !== categoryVal)                  show = false;
-            if (userVal     && rowUser     !== userVal)                      show = false;
-
-            if (show) {
-                $el.removeClass('hidden-row');
-                matchCount++;
-            } else {
-                $el.addClass('hidden-row');
-            }
+        $rows.each(function () {
+            var $el = $(this);
+            if (matches($el)) { $el.removeClass('hidden-row'); matchCount++; }
+            else               { $el.addClass('hidden-row'); }
         });
 
         // Mobile cards
-        $cards.each(function() {
-            var $el      = $(this);
-            var rowSearch   = $el.data('search')    || '';
-            var rowCategory = $el.data('category')  || '';
-            var rowUser     = String($el.data('user') || '');
-
-            var show = true;
-            if (searchVal   && rowSearch.indexOf(searchVal)         === -1) show = false;
-            if (categoryVal && rowCategory !== categoryVal)                  show = false;
-            if (userVal     && rowUser     !== userVal)                      show = false;
-
-            if (show) {
-                $el.removeClass('hidden-row');
-            } else {
-                $el.addClass('hidden-row');
-            }
+        $cards.each(function () {
+            var $el = $(this);
+            if (matches($el)) $el.removeClass('hidden-row');
+            else              $el.addClass('hidden-row');
         });
 
-        // Update UI
+        // UI feedback
         $countBadge.text(matchCount);
+        $('#visible-count-pg').text(matchCount);
         $filterBadge.toggle(hasFilter);
-        $noResultsMsg.toggle(matchCount === 0);
-        $clearBtn.toggle(searchVal !== '');
+        $noResultsMsg.toggle(matchCount === 0 && $rows.length > 0);
+        $clearBtn.toggle(search !== '');
     }
 
-    // ─── Debounce Helper ────────────────────────────────────────────────
-    function debounce(fn, delay) {
-        var timer;
-        return function () {
-            clearTimeout(timer);
-            timer = setTimeout(fn, delay);
-        };
-    }
-
-    // ─── Event Listeners ────────────────────────────────────────────────
-    $('#filter-search').on('input', debounce(function () {
-        searchVal = $(this).val().toLowerCase().trim();
-        applyFilters();
-    }, 180));
-
-    $('#filter-category').on('change', function () {
-        categoryVal = $(this).val();
-        applyFilters();
+    // ─── Search with debounce ────────────────────────────────────────────
+    var searchTimer;
+    $searchInput.on('input', function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(applyFilters, 180);
     });
 
-    $('#filter-user').on('change', function () {
-        userVal = $(this).val();
-        applyFilters();
+    // ─── Dropdowns: instant ──────────────────────────────────────────────
+    $catSelect.on('change', applyFilters);
+    $userSelect.on('change', applyFilters);
+
+    // ─── Clear X inside search box ───────────────────────────────────────
+    $clearBtn.on('click', function () {
+        $searchInput.val('').trigger('input').focus();
     });
 
-    // Clear X button inside search input
-    $('#clear-search-btn').on('click', function () {
-        $('#filter-search').val('').trigger('input').focus();
-    });
-
-    // Reset all filters
+    // ─── Reset all ───────────────────────────────────────────────────────
     $('#reset-filters').on('click', function () {
-        searchVal = categoryVal = userVal = '';
-        $('#filter-search').val('');
-        $('#filter-category').val('');
-        $('#filter-user').val('');
+        $searchInput.val('');
+        $catSelect.val('');
+        $userSelect.val('');
         applyFilters();
     });
 
-    // ─── Details Modal ──────────────────────────────────────────────────
+    // ─── Details Modal ───────────────────────────────────────────────────
     $(document).on('click', '.btn-detail', function () {
         var b = $(this);
         $('#m-time').text(b.data('time')     || 'N/A');
@@ -415,8 +388,11 @@
         $('#auditDetailModal').modal('show');
     });
 
-    // Initialise count
-    $countBadge.text($rows.length || $cards.length);
-}());
+    // ─── Init count ──────────────────────────────────────────────────────
+    var total = $rows.length > 0 ? $rows.length : $cards.length;
+    $countBadge.text(total);
+    $('#visible-count-pg').text(total);
+
+});
 </script>
 @endsection

@@ -50,11 +50,17 @@
         }
         .footer-text {
             color: #ffffff !important;
-            font-size: 11px;
-            margin-top: 20px;
+            font-size: 12px;
+            margin-top: 25px;
             text-align: center;
-            font-weight: bold;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.65);
+            padding: 8px 20px;
+            border-radius: 50px;
+            display: inline-block;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
     </style>
 </head>

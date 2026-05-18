@@ -12,6 +12,7 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
 <!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+<style>
     .widget-small { 
         min-height: 90px; 
         display: flex; 
@@ -45,6 +46,7 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
     }
     .conv-bar-wrap { background: #e9ecef; border-radius: 20px; height: 12px; overflow: hidden; margin-top: 5px; }
     .conv-bar { background: #940000; height: 100%; border-radius: 20px; transition: width 1.5s ease; }
+</style>
 @endsection
 
 @section('content')

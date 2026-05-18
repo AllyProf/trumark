@@ -21,14 +21,8 @@ Register and manage system users, access roles, and branch assignments
         vertical-align: middle !important;
     }
     
-    /* Interactive Row Hover Slide Effect */
-    .table-hover tbody tr {
-        transition: all 0.2s ease-in-out;
-    }
-    
     .table-hover tbody tr:hover {
         background-color: rgba(148, 0, 0, 0.03) !important;
-        transform: translateX(4px);
     }
     
     /* Card list styling */
@@ -167,49 +161,7 @@ Register and manage system users, access roles, and branch assignments
                                         </button>
                                     </div>
 
-                                    {{-- KPI Adjustment Modal --}}
-                                    <div class="modal fade text-left" id="kpiModal-{{ $user->id }}" tabindex="-1" role="dialog">
-                                        <div class="modal-dialog" role="document">
-                                            <div class="modal-content" style="border-radius: 12px; overflow: hidden;">
-                                                <div class="modal-header bg-info text-white border-0">
-                                                    <h5 class="modal-title font-weight-bold"><i class="fa fa-trophy mr-2"></i> KPI Adjustment: {{ $user->name }}</h5>
-                                                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
-                                                </div>
-                                                <form action="{{ route('staff.adjust_kpi', $user->id) }}" method="POST">
-                                                    @csrf
-                                                    <div class="modal-body">
-                                                        <div class="form-group">
-                                                            <label class="font-weight-bold">Select Activity</label>
-                                                            <select name="activity_code" class="form-control" required>
-                                                                <optgroup label="Positive Achievements">
-                                                                    <option value="PHYSICAL_VISIT">Physical Customer Visit (+5)</option>
-                                                                    <option value="POSITIVE_FEEDBACK">Positive Customer Feedback (+5)</option>
-                                                                    <option value="MEETING_ON_TIME">Attend Sales Meeting on Time (+2)</option>
-                                                                    <option value="WEEKLY_REPORT">Submit Weekly Sales Report (+5)</option>
-                                                                    <option value="RECOVER_INACTIVE">Recover Inactive Customer (+12)</option>
-                                                                    <option value="UPSELLING">Up-selling Additional Products (+6)</option>
-                                                                    <option value="REFERRAL_EXISTING">Referral from Existing Customer (+8)</option>
-                                                                </optgroup>
-                                                                <optgroup label="Discipline (Deductions)">
-                                                                    <option value="MISSED_MEETING">Missing Sales Meeting (-5)</option>
-                                                                    <option value="CUSTOMER_COMPLAINT">Customer Complaint (-10)</option>
-                                                                    <option value="FAKE_DATA">Fake or Incomplete Data (-15)</option>
-                                                                </optgroup>
-                                                            </select>
-                                                        </div>
-                                                        <div class="form-group">
-                                                            <label class="font-weight-bold">Additional Notes</label>
-                                                            <textarea name="notes" class="form-control" rows="3" placeholder="Optional details..."></textarea>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer border-top-0">
-                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                                        <button type="submit" class="btn btn-info font-weight-bold shadow-xs">Apply Adjustment</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
+
 
                                     <form id="reset-form-{{ $user->id }}" action="{{ route('staff.reset_password', $user->id) }}" method="POST" style="display: none;">@csrf</form>
                                     <form id="toggle-form-{{ $user->id }}" action="{{ route('staff.toggle_status', $user->id) }}" method="POST" style="display: none;">@csrf</form>
@@ -311,6 +263,52 @@ Register and manage system users, access roles, and branch assignments
         </div>
     </div>
 </div>
+
+{{-- KPI Adjustment Modals rendered cleanly at page-level to avoid stacking context & transform bugs --}}
+@foreach($staff as $user)
+<div class="modal fade text-left" id="kpiModal-{{ $user->id }}" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" style="border-radius: 12px; overflow: hidden; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+            <div class="modal-header bg-info text-white border-0">
+                <h5 class="modal-title font-weight-bold"><i class="fa fa-trophy mr-2"></i> KPI Adjustment: {{ $user->name }}</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
+            </div>
+            <form action="{{ route('staff.adjust_kpi', $user->id) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="font-weight-bold">Select Activity</label>
+                        <select name="activity_code" class="form-control" required>
+                            <optgroup label="Positive Achievements">
+                                <option value="PHYSICAL_VISIT">Physical Customer Visit (+5)</option>
+                                <option value="POSITIVE_FEEDBACK">Positive Customer Feedback (+5)</option>
+                                <option value="MEETING_ON_TIME">Attend Sales Meeting on Time (+2)</option>
+                                <option value="WEEKLY_REPORT">Submit Weekly Sales Report (+5)</option>
+                                <option value="RECOVER_INACTIVE">Recover Inactive Customer (+12)</option>
+                                <option value="UPSELLING">Up-selling Additional Products (+6)</option>
+                                <option value="REFERRAL_EXISTING">Referral from Existing Customer (+8)</option>
+                            </optgroup>
+                            <optgroup label="Discipline (Deductions)">
+                                <option value="MISSED_MEETING">Missing Sales Meeting (-5)</option>
+                                <option value="CUSTOMER_COMPLAINT">Customer Complaint (-10)</option>
+                                <option value="FAKE_DATA">Fake or Incomplete Data (-15)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Additional Notes</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Optional details..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-info font-weight-bold shadow-xs">Apply Adjustment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endforeach
 @endsection
 
 @section('scripts')

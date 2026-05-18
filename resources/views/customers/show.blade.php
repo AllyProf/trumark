@@ -288,6 +288,35 @@ Detailed profile and sales history for {{ $customer->name }}
 @endsection
 
 @section('scripts')
+<style>
+    #toast-container {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 1055;
+        pointer-events: none;
+    }
+    .custom-toast {
+        background-color: #28a745;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 6px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        font-size: 14px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        margin-top: 8px;
+    }
+    .custom-toast.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+</style>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     $(document).ready(function() {
@@ -297,6 +326,26 @@ Detailed profile and sales history for {{ $customer->name }}
         });
     });
 
+    function showToast(message) {
+        var container = $('#toast-container');
+        if (container.length === 0) {
+            container = $('<div id="toast-container"></div>').appendTo('body');
+        }
+        
+        var toast = $('<div class="custom-toast"><i class="fa fa-check-circle mr-1"></i> ' + message + '</div>').appendTo(container);
+        
+        setTimeout(function() {
+            toast.addClass('show');
+        }, 10);
+        
+        setTimeout(function() {
+            toast.removeClass('show');
+            setTimeout(function() {
+                toast.remove();
+            }, 300);
+        }, 1500);
+    }
+
     function copySurveyLink(url) {
         var btn = $('#copyBtn');
         var icon = $('#copyIcon');
@@ -305,15 +354,7 @@ Detailed profile and sales history for {{ $customer->name }}
             btn.removeClass('btn-outline-info').addClass('btn-success text-white');
             icon.removeClass('fa-copy').addClass('fa-check');
             
-            if (typeof swal === 'function') {
-                swal({
-                    title: "Copied!",
-                    text: "Link copied to clipboard successfully.",
-                    type: "success",
-                    timer: 1200,
-                    showConfirmButton: false
-                });
-            }
+            showToast("Survey link copied successfully!");
             
             setTimeout(function() {
                 btn.removeClass('btn-success text-white').addClass('btn-outline-info');

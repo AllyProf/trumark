@@ -286,4 +286,25 @@ class ReportController extends Controller
 
         return view('reports.surveys', compact('feedbacks', 'avgRating', 'totalFeedbacks', 'ratingBreakdown', 'branches', 'branchId', 'officers', 'staffId'));
     }
+
+    public function forceLogout($id)
+    {
+        $user = auth()->user();
+        if ($user->role !== 'super_admin' && $user->role !== 'manager') {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $log = \App\Models\UserLoginLog::findOrFail($id);
+        if (!$log->logout_at) {
+            $logoutAt = now();
+            $duration = $log->login_at->diffInMinutes($logoutAt);
+            
+            $log->update([
+                'logout_at' => $logoutAt,
+                'duration_minutes' => $duration
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'User session terminated successfully.');
+    }
 }

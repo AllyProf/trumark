@@ -248,6 +248,10 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
                             <th>Exit Time (Logout)</th>
                             <th>Active Duration</th>
                             <th>IP Address</th>
+                            <th>Location</th>
+                            @if(in_array(auth()->user()->role, ['super_admin', 'manager']))
+                            <th>Actions</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -266,14 +270,35 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
                                 @if($log->logout_at)
                                     <span class="badge badge-light border">{{ $log->duration_minutes }} mins</span>
                                 @else
-                                    <i class="fa fa-spinner fa-spin mr-1"></i> Calculating...
+                                    <span class="text-muted"><i class="fa fa-spinner fa-spin mr-1"></i> Calculating...</span>
                                 @endif
                             </td>
                             <td><small class="text-muted">{{ $log->ip_address }}</small></td>
+                            <td>
+                                @if($log->location && $log->location !== 'Unknown')
+                                    <span class="badge badge-pill badge-info"><i class="fa fa-map-marker mr-1"></i> {{ $log->location }}</span>
+                                @else
+                                    <span class="text-muted"><i class="fa fa-map-marker mr-1"></i> Local / Unknown</span>
+                                @endif
+                            </td>
+                            @if(in_array(auth()->user()->role, ['super_admin', 'manager']))
+                            <td>
+                                @if(!$log->logout_at)
+                                    <form action="{{ route('reports.force_logout', $log->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to end this active session?');">
+                                        @csrf
+                                        <button type="submit" class="btn btn-danger btn-sm px-2 py-1" style="font-size: 11px; border-radius: 20px;">
+                                            <i class="fa fa-power-off mr-1"></i> End Session
+                                        </button>
+                                    </form>
+                                @else
+                                    <span class="text-muted"><i class="fa fa-check-circle text-success"></i> Closed</span>
+                                @endif
+                            </td>
+                            @endif
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">No usage logs found for this period.</td>
+                            <td colspan="{{ in_array(auth()->user()->role, ['super_admin', 'manager']) ? 7 : 6 }}" class="text-center py-4 text-muted">No usage logs found for this period.</td>
                         </tr>
                         @endforelse
                     </tbody>

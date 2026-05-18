@@ -26,6 +26,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/statistics', [ReportController::class, 'statistics'])->name('reports.statistics');
     Route::get('/reports/surveys', [ReportController::class, 'surveys'])->name('reports.surveys');
+    Route::post('/reports/login-logs/{id}/logout', [ReportController::class, 'forceLogout'])->name('reports.force_logout');
     Route::get('/customers/follow-ups', [CustomerController::class, 'followUps'])->name('customers.follow_ups');
     Route::get('/customers/sales-records', [CustomerController::class, 'salesRecords'])->name('customers.sales_records');
     Route::get('/customers/sms-reminders', [CustomerController::class, 'smsReminders'])->name('customers.sms_reminders');

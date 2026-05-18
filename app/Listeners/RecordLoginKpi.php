@@ -12,11 +12,33 @@ class RecordLoginKpi
 
     public function handle(Login $event): void
     {
+        $ip = $this->request->ip();
+        $location = 'Localhost';
+
+        if ($ip && $ip !== '127.0.0.1' && $ip !== '::1') {
+            try {
+                $response = \Illuminate\Support\Facades\Http::timeout(3)->get("http://ip-api.com/json/{$ip}");
+                if ($response->successful()) {
+                    $data = $response->json();
+                    if (isset($data['status']) && $data['status'] === 'success') {
+                        $location = ($data['city'] ?? '') . ', ' . ($data['countryCode'] ?? '');
+                        $location = trim($location, ', ');
+                    } else {
+                        $location = 'Unknown';
+                    }
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Failed to fetch login location for IP {$ip}: " . $e->getMessage());
+                $location = 'Unknown';
+            }
+        }
+
         UserLoginLog::create([
             'user_id'    => $event->user->id,
             'login_at'   => now(),
-            'ip_address' => $this->request->ip(),
+            'ip_address' => $ip,
             'user_agent' => $this->request->userAgent(),
+            'location'   => $location,
         ]);
     }
 }

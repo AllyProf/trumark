@@ -74,17 +74,13 @@ Detailed profile and sales history for {{ $customer->name }}
                             </button>
                         </form>
 
-                        <div class="row no-gutters">
-                            <div class="col-6 pr-1">
-                                <button type="button" class="btn btn-outline-info btn-block btn-sm" onclick="copySurveyLink('{{ $surveyUrl }}')">
-                                    <i class="fa fa-copy mr-1"></i> Copy Link
-                                </button>
-                            </div>
-                            <div class="col-6 pl-1">
-                                <a href="{{ $whatsappUrl }}" target="_blank" class="btn btn-outline-success btn-block btn-sm">
-                                    <i class="fa fa-whatsapp mr-1"></i> WhatsApp
-                                </a>
-                            </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <button type="button" id="copyBtn" class="btn btn-outline-info btn-sm flex-grow-1 mr-1" onclick="copySurveyLink('{{ $surveyUrl }}')" title="Copy Link">
+                                <i class="fa fa-copy" id="copyIcon"></i>
+                            </button>
+                            <a href="{{ $whatsappUrl }}" target="_blank" class="btn btn-outline-success btn-sm flex-grow-1 ml-1" title="Share via WhatsApp">
+                                <i class="fa fa-whatsapp"></i>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -303,17 +299,27 @@ Detailed profile and sales history for {{ $customer->name }}
 
     function copySurveyLink(url) {
         navigator.clipboard.writeText(url).then(function() {
+            var btn = $('#copyBtn');
+            var icon = $('#copyIcon');
+            
+            // Fast feedback state
+            btn.removeClass('btn-outline-info').addClass('btn-success text-white');
+            icon.removeClass('fa-copy').addClass('fa-check');
+            
             if (typeof swal === 'function') {
                 swal({
-                    title: "Link Copied!",
-                    text: "Survey link has been copied to your clipboard.",
+                    title: "Copied!",
+                    text: "Link copied to clipboard successfully.",
                     type: "success",
-                    timer: 2000,
+                    timer: 1200,
                     showConfirmButton: false
                 });
-            } else {
-                alert("Survey link copied to clipboard successfully!");
             }
+            
+            setTimeout(function() {
+                btn.removeClass('btn-success text-white').addClass('btn-outline-info');
+                icon.removeClass('fa-check').addClass('fa-copy');
+            }, 1500);
         }).catch(function(err) {
             console.error('Could not copy text: ', err);
         });

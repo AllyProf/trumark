@@ -8,18 +8,12 @@ use Illuminate\Support\Facades\Auth;
 
 class AuditLogController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware(function ($request, $next) {
-            if (Auth::user()->role !== 'super_admin') {
-                abort(403, 'Unauthorized access. Only system administrators can view security audit logs.');
-            }
-            return $next($request);
-        });
-    }
-
     public function index(Request $request)
     {
+        if (Auth::user()->role !== 'super_admin') {
+            abort(403, 'Unauthorized access. Only system administrators can view security audit logs.');
+        }
+
         $search = $request->get('search');
         $category = $request->get('category');
         $userId = $request->get('user_id');

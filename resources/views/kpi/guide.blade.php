@@ -21,14 +21,8 @@ Official TRUMARK CRM points structure and performance rules
         vertical-align: middle !important;
     }
     
-    /* Interactive Row Slide Effect */
-    .table-hover tbody tr {
-        transition: all 0.2s ease-in-out;
-    }
-    
     .table-hover tbody tr:hover {
         background-color: rgba(148, 0, 0, 0.03) !important;
-        transform: translateX(4px);
     }
     
     /* Glassmorphism alert style */

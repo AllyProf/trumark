@@ -21,14 +21,8 @@ Register and manage company locations, team sizes and performance
         vertical-align: middle !important;
     }
     
-    /* Interactive Row Hover Slide Effect */
-    .table-hover tbody tr {
-        transition: all 0.2s ease-in-out;
-    }
-    
     .table-hover tbody tr:hover {
         background-color: rgba(148, 0, 0, 0.03) !important;
-        transform: translateX(4px);
     }
     
     /* Card list styling */

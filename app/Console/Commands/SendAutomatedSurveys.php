@@ -83,10 +83,18 @@ class SendAutomatedSurveys extends Command
         $useEmail = ($settings['survey_channels_email'] ?? '1') === '1';
         $useWhatsapp = ($settings['survey_channels_whatsapp'] ?? '0') === '1';
 
-        // Fetch customers who haven't been surveyed in the last 1 minute (Lowered for testing)
-        $customers = Customer::where(function($q) {
+        // Determine dynamic day limits based on selected schedule frequency to avoid duplicate spamming
+        $daysLimit = 7;
+        if ($frequency === 'monthly') {
+            $daysLimit = 25;
+        } elseif ($frequency === 'specific') {
+            $daysLimit = 1;
+        }
+
+        // Fetch customers who haven't been surveyed within the dynamic days limit
+        $customers = Customer::where(function($q) use ($daysLimit) {
             $q->whereNull('last_survey_sent_at')
-              ->orWhere('last_survey_sent_at', '<', now()->subMinutes(1));
+              ->orWhere('last_survey_sent_at', '<', now()->subDays($daysLimit));
         })
         ->where('is_draft', false)
         ->get();

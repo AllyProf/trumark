@@ -26,6 +26,14 @@ class SettingController extends Controller
     {
         $data = $request->except('_token');
 
+        // Explicitly handle checkboxes that do not submit a value when unchecked
+        $checkboxKeys = ['survey_channels_sms', 'survey_channels_whatsapp', 'survey_channels_email'];
+        foreach ($checkboxKeys as $key) {
+            if (!$request->has($key)) {
+                $data[$key] = '0';
+            }
+        }
+
         foreach ($data as $key => $value) {
             SystemSetting::updateOrCreate(
                 ['key' => $key],

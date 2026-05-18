@@ -45,13 +45,23 @@ class SendFollowupReminders extends Command
             return;
         }
 
-        // Fetch customers with follow-up scheduled for today
+        // Check if reminders were already sent to prevent duplicates when running every minute
+        $alreadySentIds = SmsLog::whereDate('created_at', now()->toDateString())
+            ->where(function($q) {
+                $q->where('message', 'like', '[Automated SMS Followup]%')
+                  ->orWhere('message', 'like', '[Automated WhatsApp Followup]%');
+            })
+            ->pluck('customer_id')
+            ->toArray();
+
+        // Fetch customers with follow-up scheduled for today who haven't received a reminder today
         $customers = Customer::whereDate('next_follow_up_date', now()->toDateString())
+            ->whereNotIn('id', $alreadySentIds)
             ->where('is_draft', false)
             ->get();
 
         if ($customers->isEmpty()) {
-            $this->info('No follow-ups scheduled for today.');
+            $this->info('No unsent follow-ups scheduled for today.');
             return;
         }
 

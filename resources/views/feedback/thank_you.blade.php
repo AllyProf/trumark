@@ -39,17 +39,17 @@
         }
         .footer-text {
             color: #ffffff !important;
-            font-size: 12px;
+            font-size: 13px;
             margin-top: 25px;
             text-align: center;
-            font-weight: 600;
-            background: rgba(148, 0, 0, 0.85);
-            padding: 8px 20px;
+            font-weight: 700;
+            background: #940000;
+            padding: 10px 24px;
             border-radius: 50px;
             display: inline-block;
-            box-shadow: 0 4px 15px rgba(148, 0, 0, 0.25);
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 2px solid #ffffff;
+            letter-spacing: 0.5px;
         }
     </style>
 </head>

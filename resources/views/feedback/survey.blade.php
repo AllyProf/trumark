@@ -49,12 +49,12 @@
             transform: translateY(-1px);
         }
         .footer-text {
-            color: #333;
+            color: #ffffff !important;
             font-size: 11px;
             margin-top: 20px;
             text-align: center;
             font-weight: bold;
-            text-shadow: 0 1px 1px rgba(255,255,255,0.5);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
         }
     </style>
 </head>

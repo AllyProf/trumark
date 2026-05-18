@@ -37,13 +37,22 @@
             margin-bottom: 20px;
             display: block;
         }
+        .footer-text {
+            color: #ffffff !important;
+            font-size: 11px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: bold;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            display: block;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-12 d-flex justify-content-center">
+            <div class="col-md-12 d-flex flex-column align-items-center justify-content-center">
                 <div class="tile">
                     <span class="brand-logo">TRUMARK</span>
                     <div class="mb-4">
@@ -59,8 +68,8 @@
                     </div>
                 </div>
                 
-                <div class="text-center mt-4 text-muted">
-                    <small>&copy; {{ date('Y') }} TRUMARK Performance Engine. Powered by EMCA Technologies.</small>
+                <div class="footer-text">
+                    &copy; {{ date('Y') }} TRUMARK Performance Engine. Powered by EMCA Technologies.
                 </div>
             </div>
         </div>

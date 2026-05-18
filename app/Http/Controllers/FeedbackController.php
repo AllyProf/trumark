@@ -39,6 +39,15 @@ class FeedbackController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
+        // Send a Thank You Email to the customer if they have an email address
+        if ($customer->email) {
+            try {
+                \Illuminate\Support\Facades\Mail::to($customer->email)->send(new \App\Mail\FeedbackThankYouMail($customer, $feedback));
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to send thank you email to {$customer->email}: " . $e->getMessage());
+            }
+        }
+
         // Award KPI Points based on rating
         if ($customer->sales_officer_id) {
             if ($request->rating >= 4) {

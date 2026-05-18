@@ -13,7 +13,8 @@ class UserLoginLog extends Model
         'duration_minutes',
         'ip_address',
         'user_agent',
-        'location'
+        'location',
+        'isp'
     ];
 
     protected $casts = [

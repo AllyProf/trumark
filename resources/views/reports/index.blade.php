@@ -293,7 +293,18 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
                                     <span class="text-muted"><i class="fa fa-spinner fa-spin mr-1"></i> Calculating...</span>
                                 @endif
                             </td>
-                            <td><small class="text-muted">{{ $log->ip_address }}</small></td>
+                            <td>
+                                <small class="text-muted d-block font-weight-bold">{{ $log->ip_address }}</small>
+                                @if($log->isp && $log->isp !== 'Unknown')
+                                    <span class="badge badge-light border text-secondary mt-1" style="font-size: 10px; font-weight: 600; letter-spacing: 0.3px;">
+                                        <i class="fa fa-wifi text-primary mr-1" style="font-size: 9px;"></i> {{ $log->isp }}
+                                    </span>
+                                @else
+                                    <span class="badge badge-light border text-muted mt-1" style="font-size: 10px; font-weight: 500;">
+                                        <i class="fa fa-wifi mr-1" style="font-size: 9px;"></i> Local / Unknown
+                                    </span>
+                                @endif
+                            </td>
                             <td>
                                 @if($log->location && $log->location !== 'Unknown')
                                     <span class="badge badge-pill badge-info"><i class="fa fa-map-marker mr-1"></i> {{ $log->location }}</span>

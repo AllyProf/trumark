@@ -14,6 +14,7 @@ class RecordLoginKpi
     {
         $ip = $this->request->ip();
         $location = 'Localhost';
+        $isp = 'Local Network';
 
         if ($ip && $ip !== '127.0.0.1' && $ip !== '::1') {
             try {
@@ -23,13 +24,16 @@ class RecordLoginKpi
                     if (isset($data['status']) && $data['status'] === 'success') {
                         $location = ($data['city'] ?? '') . ', ' . ($data['countryCode'] ?? '');
                         $location = trim($location, ', ');
+                        $isp = $data['isp'] ?? 'Unknown';
                     } else {
                         $location = 'Unknown';
+                        $isp = 'Unknown';
                     }
                 }
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error("Failed to fetch login location for IP {$ip}: " . $e->getMessage());
                 $location = 'Unknown';
+                $isp = 'Unknown';
             }
         }
 
@@ -39,6 +43,7 @@ class RecordLoginKpi
             'ip_address' => $ip,
             'user_agent' => $this->request->userAgent(),
             'location'   => $location,
+            'isp'        => $isp,
         ]);
     }
 }

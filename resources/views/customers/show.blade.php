@@ -36,18 +36,57 @@ Detailed profile and sales history for {{ $customer->name }}
                 </ul>
                 <div class="mt-3">
                     @if($customer->buying_stage === 'Closed Won')
-                        <button class="btn btn-success btn-block btn-sm mb-2" data-toggle="modal" data-target="#newOrderModal">
-                            <i class="fa fa-refresh"></i> Start New Order
+                        <button class="btn btn-success btn-block btn-sm mb-3" data-toggle="modal" data-target="#newOrderModal">
+                            <i class="fa fa-refresh mr-1"></i> Start New Order
                         </button>
                     @endif
-                    <button class="btn btn-primary btn-block btn-sm" data-toggle="modal" data-target="#updateModal">Update Stage</button>
-                    <form action="{{ route('customers.send_survey', $customer->id) }}" method="POST" class="mt-2">
-                        @csrf
-                        <button type="submit" class="btn btn-info btn-block btn-sm">
-                            <i class="fa fa-paper-plane"></i> Send Survey Link
-                        </button>
-                    </form>
-                    <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-secondary btn-block btn-sm">Edit Profile</a>
+                    
+                    <button class="btn btn-primary btn-block btn-sm mb-3" data-toggle="modal" data-target="#updateModal">
+                        <i class="fa fa-pencil-square-o mr-1"></i> Update Stage
+                    </button>
+                    
+                    <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-secondary btn-block btn-sm mb-3">
+                        <i class="fa fa-edit mr-1"></i> Edit Profile
+                    </a>
+
+                    @if(!$customer->survey_uuid)
+                        @php
+                            $customer->survey_uuid = (string) \Illuminate\Support\Str::uuid();
+                            $customer->save();
+                        @endphp
+                    @endif
+
+                    @php
+                        $surveyUrl = 'https://trumark.mauzolink.co.tz/feedback/' . $customer->survey_uuid;
+                        $shareText = "Habari " . $customer->name . ", asante kwa kuchagua TRUMARK. Tafadhali tufahamishe jinsi ulivyohudumiwa hapa: " . $surveyUrl . " . Asante!";
+                        $whatsappUrl = "https://api.whatsapp.com/send?phone=" . preg_replace('/[^0-9]/', '', $customer->phone) . "&text=" . rawurlencode($shareText);
+                    @endphp
+
+                    <div class="card p-2 bg-light border mt-4 mb-2">
+                        <div class="text-center font-weight-bold text-uppercase small mb-2 text-secondary" style="letter-spacing: 0.5px; font-size: 11px;">
+                            <i class="fa fa-check-square-o mr-1"></i> Customer Feedback Survey
+                        </div>
+                        
+                        <form action="{{ route('customers.send_survey', $customer->id) }}" method="POST" class="mb-2">
+                            @csrf
+                            <button type="submit" class="btn btn-info btn-block btn-sm">
+                                <i class="fa fa-paper-plane mr-1"></i> Send Automated Link
+                            </button>
+                        </form>
+
+                        <div class="row no-gutters">
+                            <div class="col-6 pr-1">
+                                <button type="button" class="btn btn-outline-info btn-block btn-sm" onclick="copySurveyLink('{{ $surveyUrl }}')">
+                                    <i class="fa fa-copy mr-1"></i> Copy Link
+                                </button>
+                            </div>
+                            <div class="col-6 pl-1">
+                                <a href="{{ $whatsappUrl }}" target="_blank" class="btn btn-outline-success btn-block btn-sm">
+                                    <i class="fa fa-whatsapp mr-1"></i> WhatsApp
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -261,5 +300,23 @@ Detailed profile and sales history for {{ $customer->name }}
             allowClear: true
         });
     });
+
+    function copySurveyLink(url) {
+        navigator.clipboard.writeText(url).then(function() {
+            if (typeof swal === 'function') {
+                swal({
+                    title: "Link Copied!",
+                    text: "Survey link has been copied to your clipboard.",
+                    type: "success",
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                alert("Survey link copied to clipboard successfully!");
+            }
+        }).catch(function(err) {
+            console.error('Could not copy text: ', err);
+        });
+    }
 </script>
 @endsection

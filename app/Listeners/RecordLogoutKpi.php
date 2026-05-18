@@ -25,5 +25,7 @@ class RecordLogoutKpi
                 'duration_minutes' => $duration
             ]);
         }
+
+        \App\Models\AuditLog::record('User logged out', 'Authentication', $event->user->id);
     }
 }

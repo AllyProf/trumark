@@ -455,12 +455,13 @@
         <li><a class="app-menu__item {{ Route::is('customers.sms_reminders') ? 'active' : '' }}" href="{{ route('customers.sms_reminders') }}"><i class="app-menu__icon fa fa-envelope"></i><span class="app-menu__label">SMS Reminders</span></a></li>
 
         @if(auth()->user()->role === 'super_admin')
-        <li class="treeview {{ Route::is('staff.*') || Route::is('branches.*') ? 'is-expanded' : '' }}">
+        <li class="treeview {{ Route::is('staff.*') || Route::is('branches.*') || Route::is('settings.index') || Route::is('audit_logs.index') ? 'is-expanded' : '' }}">
             <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-lock"></i><span class="app-menu__label">Administration</span><i class="treeview-indicator fa fa-angle-right"></i></a>
             <ul class="treeview-menu">
                 <li><a class="treeview-item {{ Route::is('staff.index') ? 'active' : '' }}" href="{{ route('staff.index') }}"><i class="fa fa-vcard-o"></i> Manage Staff</a></li>
                 <li><a class="treeview-item {{ Route::is('branches.index') ? 'active' : '' }}" href="{{ route('branches.index') }}"><i class="fa fa-map-marker"></i> Manage Branches</a></li>
                 <li><a class="treeview-item {{ Route::is('settings.index') ? 'active' : '' }}" href="{{ route('settings.index') }}"><i class="fa fa-sliders"></i> System Settings</a></li>
+                <li><a class="treeview-item {{ Route::is('audit_logs.index') ? 'active' : '' }}" href="{{ route('audit_logs.index') }}"><i class="fa fa-shield"></i> Security Audit Logs</a></li>
             </ul>
         </li>
         @endif

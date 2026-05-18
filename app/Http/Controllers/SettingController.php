@@ -41,6 +41,8 @@ class SettingController extends Controller
             );
         }
 
+        \App\Models\AuditLog::record('Updated CRM system settings', 'Settings');
+
         return back()->with('success', 'System settings updated successfully!');
     }
 }

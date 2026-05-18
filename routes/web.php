@@ -59,6 +59,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/branches/{branch}/toggle-status', [\App\Http\Controllers\BranchController::class, 'toggleStatus'])->name('branches.toggle_status');
     Route::resource('branches', \App\Http\Controllers\BranchController::class);
 
+    // Security Audit Logs
+    Route::get('/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('audit_logs.index');
+
     // KPI & Performance
     Route::group(['prefix' => 'kpi', 'as' => 'kpi.'], function() {
         Route::get('/leaderboard', [\App\Http\Controllers\KpiController::class, 'leaderboard'])->name('leaderboard');

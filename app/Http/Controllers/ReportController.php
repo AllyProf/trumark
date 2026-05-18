@@ -303,6 +303,8 @@ class ReportController extends Controller
                 'logout_at' => $logoutAt,
                 'duration_minutes' => $duration
             ]);
+
+            \App\Models\AuditLog::record("Terminated session of staff member: " . ($log->user->name ?? 'Unknown'), 'Authentication');
         }
 
         return redirect()->back()->with('success', 'User session terminated successfully.');

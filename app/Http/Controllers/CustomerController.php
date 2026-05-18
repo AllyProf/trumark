@@ -236,6 +236,8 @@ class CustomerController extends Controller
             'is_draft'         => false,
         ]));
 
+        \App\Models\AuditLog::record("Registered new customer lead: {$customer->name} (Buying Stage: {$customer->buying_stage})", 'Customers');
+
         // ── Award KPI Points ───────────────────────────────────────────
         $settings = \App\Models\SystemSetting::pluck('value', 'key');
         $closingTime = $settings['business_closing_time'] ?? '18:00';
@@ -389,6 +391,8 @@ class CustomerController extends Controller
         $oldStatus = $customer->status;
         $customer->update($data);
 
+        \App\Models\AuditLog::record("Updated details for customer lead: {$customer->name}", 'Customers');
+
         // ── Award KPI Points for Stage Changes ────────────────────────
         $settings = \App\Models\SystemSetting::pluck('value', 'key');
         $highValueThreshold = (int)($settings['kpi_high_value_threshold'] ?? 5000000);
@@ -439,6 +443,8 @@ class CustomerController extends Controller
             'next_follow_up_date' => $request->next_follow_up_date,
             'notes'               => $request->notes,
         ]);
+
+        \App\Models\AuditLog::record("Quick updated customer {$customer->name} (Stage: {$customer->buying_stage}, Status: {$customer->status})", 'Customers');
 
         // ── Award KPI Points ───────────────────────────────────────────
         $user = Auth::user();
@@ -506,6 +512,8 @@ class CustomerController extends Controller
             'detailed_requirement'    => $request->detailed_requirement,
             'notes'                   => "Repeat Order started on " . now()->format('d M Y') . ". " . $customer->notes,
         ]);
+
+        \App\Models\AuditLog::record("Started repeat sales cycle for customer: {$customer->name} (Value: {$customer->estimated_monthly_value})", 'Customers');
 
         return redirect()->route('customers.show', $customer->id)->with('success', '✅ New Sales Cycle started for this existing customer!');
     }

@@ -86,6 +86,8 @@ class StaffController extends Controller
             'avatar' => $avatarPath,
         ]);
 
+        \App\Models\AuditLog::record("Created new staff account: {$user->name} (Role: {$user->role})", 'Staff Management');
+
         // 1. Send SMS
         $roleName = ucwords(str_replace('_', ' ', $user->role));
         $branchName = $user->branch ? $user->branch->name : 'Global';
@@ -181,6 +183,8 @@ class StaffController extends Controller
             'branch_id' => $newBranchId,
         ]);
 
+        \App\Models\AuditLog::record("Updated staff account: {$user->name} (Role: {$user->role})", 'Staff Management');
+
         // If the branch changed, transfer all assigned customers to the new branch too
         if ($oldBranchId != $newBranchId && $newBranchId) {
             \App\Models\Customer::where('sales_officer_id', $user->id)
@@ -206,6 +210,9 @@ class StaffController extends Controller
         }
 
         $user->delete();
+
+        \App\Models\AuditLog::record("Deleted staff account: {$user->name}", 'Staff Management');
+
         return redirect()->route('staff.index')->with('success', 'Staff member deleted successfully!');
     }
 
@@ -218,6 +225,8 @@ class StaffController extends Controller
         // Generate a random 6-character password
         $newPassword = strtoupper(Str::random(6));
         $user->update(['password' => Hash::make($newPassword)]);
+
+        \App\Models\AuditLog::record("Reset password for staff member: {$user->name}", 'Staff Management');
 
         // 1. Send via SMS
         $message = "TruMark CRM: Your password has been reset. New Password: {$newPassword}. Login: {$user->email}. Please login and change it.";
@@ -271,6 +280,8 @@ class StaffController extends Controller
         $user->update(['is_active' => !$user->is_active]);
         $status = $user->is_active ? 'activated' : 'deactivated';
 
+        \App\Models\AuditLog::record("Toggled status of staff member: {$user->name} (New Status: " . strtoupper($status) . ")", 'Staff Management');
+
         return back()->with('success', "Staff account {$status} successfully!");
     }
 
@@ -295,6 +306,7 @@ class StaffController extends Controller
 
         if ($activity) {
             $user->notify(new \App\Notifications\KpiAdjustmentNotification($activity));
+            \App\Models\AuditLog::record("Manually adjusted KPI points for staff member: {$user->name} (Activity: {$request->activity_code}, Points: {$activity->points})", 'KPI');
         }
 
         return back()->with('success', "KPI Points adjusted for {$user->name}!");

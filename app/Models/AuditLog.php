@@ -1,24 +1,41 @@
 <?php
 
-namespace App\Listeners;
+namespace App\Models;
 
-use Illuminate\Auth\Events\Login;
-use App\Models\UserLoginLog;
-use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Model;
 
-class RecordLoginKpi
+class AuditLog extends Model
 {
-    public function __construct(protected Request $request) {}
+    protected $fillable = [
+        'user_id',
+        'action',
+        'category',
+        'ip_address',
+        'location',
+        'isp',
+        'user_agent'
+    ];
 
-    public function handle(Login $event): void
+    public function user()
     {
-        $ip = $this->request->ip();
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Helper to easily record dynamic audit logs
+     */
+    public static function record(string $action, string $category = 'General', ?int $userId = null)
+    {
+        $ip = request()->ip();
+        $userAgent = request()->userAgent();
+        $uid = $userId ?? auth()->id();
+        
         $location = 'Localhost';
         $isp = 'Local Network';
 
         if ($ip && $ip !== '127.0.0.1' && $ip !== '::1') {
             try {
-                $response = \Illuminate\Support\Facades\Http::timeout(3)->get("http://ip-api.com/json/{$ip}");
+                $response = \Illuminate\Support\Facades\Http::timeout(2)->get("http://ip-api.com/json/{$ip}");
                 if ($response->successful()) {
                     $data = $response->json();
                     if (isset($data['status']) && $data['status'] === 'success') {
@@ -31,21 +48,19 @@ class RecordLoginKpi
                     }
                 }
             } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error("Failed to fetch login location for IP {$ip}: " . $e->getMessage());
                 $location = 'Unknown';
                 $isp = 'Unknown';
             }
         }
 
-        UserLoginLog::create([
-            'user_id'    => $event->user->id,
-            'login_at'   => now(),
+        return self::create([
+            'user_id'    => $uid,
+            'action'     => $action,
+            'category'   => $category,
             'ip_address' => $ip,
-            'user_agent' => $this->request->userAgent(),
             'location'   => $location,
             'isp'        => $isp,
+            'user_agent' => $userAgent
         ]);
-
-        \App\Models\AuditLog::record('User logged in', 'Authentication', $event->user->id);
     }
 }

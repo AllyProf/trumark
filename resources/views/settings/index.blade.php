@@ -79,6 +79,78 @@ Configure global application behavior, branding, and automation settings
     .save-btn-fixed {
         margin-top: 20px;
     }
+    
+    /* ── MOBILE RESPONSIVE ─────────────────────────────────── */
+    @media (max-width: 767px) {
+        /* Convert vertical pills sidebar to horizontal scrollable native tab menu */
+        .settings-nav {
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            white-space: nowrap !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            border-bottom: 2px solid #eee !important;
+            padding-bottom: 5px !important;
+            margin-bottom: 15px !important;
+            border-radius: 0 !important;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .settings-nav .nav-link {
+            flex: 0 0 auto !important;
+            display: inline-block !important;
+            border-bottom: 0 !important;
+            border-left: 0 !important;
+            border-bottom: 3px solid transparent !important;
+            padding: 10px 15px !important;
+            font-size: 13px !important;
+            border-radius: 4px !important;
+            margin-right: 5px !important;
+        }
+        
+        .settings-nav .nav-link.active {
+            border-bottom: 3px solid #940000 !important;
+            background: #fff !important;
+            border-radius: 4px 4px 0 0 !important;
+        }
+        
+        .settings-nav::-webkit-scrollbar {
+            height: 4px;
+        }
+        .settings-nav::-webkit-scrollbar-thumb {
+            background-color: rgba(148, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        
+        /* Sticky Mobile Bottom Save Bar (Native Experience) */
+        .save-btn-fixed {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 1050 !important;
+            margin-top: 0 !important;
+            padding: 10px 15px !important;
+            background: #fff !important;
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.08) !important;
+            border-top: 1px solid #eee !important;
+        }
+        
+        .save-btn-fixed button {
+            margin: 0 !important;
+        }
+        
+        /* Prevent content from clipping under the sticky bottom bar */
+        .col-md-9 {
+            padding-bottom: 80px !important;
+        }
+        
+        /* Keep table inputs legible */
+        .table input {
+            min-width: 140px !important;
+        }
+    }
 </style>
 @endsection
 

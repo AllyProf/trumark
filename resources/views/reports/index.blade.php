@@ -46,6 +46,26 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
     }
     .conv-bar-wrap { background: #e9ecef; border-radius: 20px; height: 12px; overflow: hidden; margin-top: 5px; }
     .conv-bar { background: #940000; height: 100%; border-radius: 20px; transition: width 1.5s ease; }
+    
+    @media print {
+        .app-header, .app-sidebar, .d-print-none, .btn, form, .dataTables_filter, .dataTables_length, .dataTables_paginate {
+            display: none !important;
+        }
+        .app-content {
+            margin-left: 0 !important;
+            margin-top: 0 !important;
+            padding: 0 !important;
+        }
+        .tile {
+            box-shadow: none !important;
+            border: none !important;
+            padding: 0 !important;
+            margin-bottom: 0 !important;
+        }
+        body {
+            background-color: #fff !important;
+        }
+    }
 </style>
 @endsection
 
@@ -75,7 +95,7 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
     }
 @endphp
 
-<div class="row mb-4">
+<div class="row mb-4 d-print-none">
     <div class="col-md-12">
         <div class="tile p-3">
             <div class="d-flex align-items-center justify-content-between">
@@ -250,7 +270,7 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
                             <th>IP Address</th>
                             <th>Location</th>
                             @if(in_array(auth()->user()->role, ['super_admin', 'manager']))
-                            <th>Actions</th>
+                            <th class="d-print-none">Actions</th>
                             @endif
                         </tr>
                     </thead>
@@ -282,11 +302,11 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
                                 @endif
                             </td>
                             @if(in_array(auth()->user()->role, ['super_admin', 'manager']))
-                            <td>
+                            <td class="d-print-none">
                                 @if(!$log->logout_at)
-                                    <form action="{{ route('reports.force_logout', $log->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to end this active session?');">
+                                    <form id="force-logout-form-{{ $log->id }}" action="{{ route('reports.force_logout', $log->id) }}" method="POST" class="d-inline">
                                         @csrf
-                                        <button type="submit" class="btn btn-danger btn-sm px-2 py-1" style="font-size: 11px; border-radius: 20px;">
+                                        <button type="button" class="btn btn-danger btn-sm px-2 py-1 end-session-btn" data-id="{{ $log->id }}" data-name="{{ $log->user->name ?? 'Unknown' }}" style="font-size: 11px; border-radius: 20px;">
                                             <i class="fa fa-power-off mr-1"></i> End Session
                                         </button>
                                     </form>
@@ -326,6 +346,7 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
 $(document).ready(function() {
@@ -388,6 +409,29 @@ $(document).ready(function() {
                 backgroundColor: ['#940000', '#17a2b8', '#ffc107', '#28a745']
             }]
         }
+    });
+
+    // SweetAlert Session Termination Confirmation
+    $('.end-session-btn').on('click', function(e) {
+        e.preventDefault();
+        var form = $(this).closest('form');
+        var name = $(this).data('name');
+        
+        Swal.fire({
+            title: 'End Active Session?',
+            text: "Are you sure you want to terminate the active session for " + name + "?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, End Session',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
     });
 });
 </script>

@@ -298,11 +298,10 @@ Detailed profile and sales history for {{ $customer->name }}
     });
 
     function copySurveyLink(url) {
-        navigator.clipboard.writeText(url).then(function() {
-            var btn = $('#copyBtn');
-            var icon = $('#copyIcon');
-            
-            // Fast feedback state
+        var btn = $('#copyBtn');
+        var icon = $('#copyIcon');
+
+        function triggerSuccessFeedback() {
             btn.removeClass('btn-outline-info').addClass('btn-success text-white');
             icon.removeClass('fa-copy').addClass('fa-check');
             
@@ -320,9 +319,43 @@ Detailed profile and sales history for {{ $customer->name }}
                 btn.removeClass('btn-success text-white').addClass('btn-outline-info');
                 icon.removeClass('fa-check').addClass('fa-copy');
             }, 1500);
-        }).catch(function(err) {
-            console.error('Could not copy text: ', err);
-        });
+        }
+
+        // Use modern navigator.clipboard if available (HTTPS only)
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function() {
+                triggerSuccessFeedback();
+            }).catch(function(err) {
+                console.warn('Modern copy failed, trying fallback: ', err);
+                fallbackCopy(url);
+            });
+        } else {
+            fallbackCopy(url);
+        }
+
+        function fallbackCopy(text) {
+            var textarea = document.createElement("textarea");
+            textarea.value = text;
+            textarea.style.top = "0";
+            textarea.style.left = "0";
+            textarea.style.position = "fixed";
+            textarea.style.opacity = "0";
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            try {
+                var successful = document.execCommand('copy');
+                if (successful) {
+                    triggerSuccessFeedback();
+                } else {
+                    alert("Unable to copy survey link. Please copy manually.");
+                }
+            } catch (err) {
+                console.error('Fallback copy failed: ', err);
+                alert("Unable to copy survey link. Please copy manually.");
+            }
+            document.body.removeChild(textarea);
+        }
     }
 </script>
 @endsection

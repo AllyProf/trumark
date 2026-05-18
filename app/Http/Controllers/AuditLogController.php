@@ -40,7 +40,7 @@ class AuditLogController extends Controller
             $query->where('user_id', $userId);
         }
 
-        $logs = $query->latest()->paginate(15)->appends($request->query());
+        $logs = $query->latest()->paginate(100)->appends($request->query());
         $users = \App\Models\User::orderBy('name')->get();
         $categories = AuditLog::distinct()->pluck('category')->toArray();
 

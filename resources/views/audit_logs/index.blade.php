@@ -2,125 +2,141 @@
 
 @section('title', 'Security Audit Logs')
 @section('page_icon', 'fa-shield')
-@section('subtitle', 'Dedicated track of administrative operations, who did what, when, where, and from which internet provider.')
+@section('subtitle', 'Real-time track of administrative operations — who did what, when, where, and from which network.')
 
 @section('content')
 <div class="row">
     <div class="col-md-12">
         <div class="tile">
-            <!-- Filter & Search Toolbar -->
-            <form id="audit-filter-form" action="{{ route('audit_logs.index') }}" method="GET" class="mb-4">
-                <div class="row align-items-end">
-                    <div class="col-lg-4 col-md-6 col-12 mb-3 mb-lg-0">
-                        <label class="form-label font-weight-bold text-muted small">SEARCH ACTIONS / IP / LOCATION / ISP</label>
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text"><i class="fa fa-search text-primary"></i></span>
-                            </div>
-                            <input type="text" name="search" id="search-input" class="form-control" placeholder="Search logs..." value="{{ $search }}">
+
+            <!-- ─── Real-Time Filter Bar ─────────────────────────────────────── -->
+            <div class="row align-items-end mb-4" id="audit-filters">
+                <!-- Search -->
+                <div class="col-lg-4 col-md-6 col-12 mb-3 mb-lg-0">
+                    <label class="form-label font-weight-bold text-muted small">SEARCH ACTIONS / IP / LOCATION / ISP</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fa fa-search text-primary"></i></span>
                         </div>
-                    </div>
-
-                    <div class="col-lg-3 col-md-6 col-6 mb-3 mb-lg-0">
-                        <label class="form-label font-weight-bold text-muted small">CATEGORY</label>
-                        <select name="category" id="category-select" class="form-control">
-                            <option value="">All Categories</option>
-                            @foreach($categories as $cat)
-                                <option value="{{ $cat }}" {{ $category == $cat ? 'selected' : '' }}>{{ $cat }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="col-lg-3 col-md-6 col-6 mb-3 mb-lg-0">
-                        <label class="form-label font-weight-bold text-muted small">STAFF MEMBER</label>
-                        <select name="user_id" id="user-select" class="form-control">
-                            <option value="">All Staff</option>
-                            @foreach($users as $u)
-                                <option value="{{ $u->id }}" {{ $userId == $u->id ? 'selected' : '' }}>{{ $u->name }} ({{ ucwords(str_replace('_', ' ', $u->role)) }})</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="col-lg-2 col-md-6 col-12 text-right">
-                        <div class="btn-group w-100">
-                            <button type="submit" class="btn btn-primary"><i class="fa fa-filter mr-1"></i> Filter</button>
-                            <a href="{{ route('audit_logs.index') }}" class="btn btn-secondary" title="Reset Filters"><i class="fa fa-refresh"></i></a>
+                        <input type="text" id="filter-search" class="form-control" placeholder="Type to search in real time...">
+                        <div class="input-group-append" id="clear-search-btn" style="display:none; cursor:pointer;">
+                            <span class="input-group-text bg-white border-left-0">
+                                <i class="fa fa-times text-muted"></i>
+                            </span>
                         </div>
                     </div>
                 </div>
-            </form>
 
-            <!-- Desktop View: Elegant Responsive Table -->
+                <!-- Category -->
+                <div class="col-lg-3 col-md-6 col-6 mb-3 mb-lg-0">
+                    <label class="form-label font-weight-bold text-muted small">CATEGORY</label>
+                    <select id="filter-category" class="form-control">
+                        <option value="">All Categories</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat }}">{{ $cat }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Staff Member -->
+                <div class="col-lg-3 col-md-6 col-6 mb-3 mb-lg-0">
+                    <label class="form-label font-weight-bold text-muted small">STAFF MEMBER</label>
+                    <select id="filter-user" class="form-control">
+                        <option value="">All Staff</option>
+                        @foreach($users as $u)
+                            <option value="{{ $u->id }}">{{ $u->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Reset -->
+                <div class="col-lg-2 col-md-6 col-12 text-right">
+                    <button type="button" id="reset-filters" class="btn btn-outline-secondary w-100">
+                        <i class="fa fa-refresh mr-1"></i> Reset All
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Result Count -->
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                    <span id="visible-count" class="font-weight-bold text-dark" style="font-size: 14px;">{{ $logs->count() }}</span>
+                    <span class="text-muted" style="font-size: 13px;"> of {{ $logs->total() }} audit entries</span>
+                    <span id="filter-active-badge" class="badge badge-primary badge-pill ml-2" style="display:none; font-size: 10px;">Filtered</span>
+                </div>
+                <div id="no-results-msg" class="text-muted font-italic" style="display:none; font-size: 13px;">
+                    <i class="fa fa-search mr-1"></i> No results match your filters.
+                </div>
+            </div>
+
+            <!-- ─── Desktop Table ───────────────────────────────────────────── -->
             <div class="table-responsive d-none d-md-block">
-                <table class="table table-hover table-striped table-bordered text-center align-middle">
+                <table class="table table-hover table-striped table-bordered text-center" id="audit-table">
                     <thead class="thead-light">
                         <tr>
-                            <th style="width: 15%;">Timestamp</th>
-                            <th style="width: 18%;">Staff Member</th>
-                            <th style="width: 12%;">Category</th>
-                            <th style="width: 25%;">Action Performed</th>
-                            <th style="width: 15%;">IP / Network</th>
-                            <th style="width: 10%;">Location</th>
-                            <th style="width: 5%;" class="d-print-none">Details</th>
+                            <th style="width:14%;">Timestamp</th>
+                            <th style="width:17%;">Staff Member</th>
+                            <th style="width:12%;">Category</th>
+                            <th style="width:27%;">Action Performed</th>
+                            <th style="width:15%;">IP / Network</th>
+                            <th style="width:10%;">Location</th>
+                            <th style="width:5%;" class="d-print-none">Details</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="audit-tbody">
                         @forelse($logs as $log)
                             @php
                                 $badgeClass = 'badge-secondary';
-                                if($log->category === 'Authentication') $badgeClass = 'badge-purple';
-                                elseif($log->category === 'Customers') $badgeClass = 'badge-info';
+                                if($log->category === 'Authentication')    $badgeClass = 'badge-purple';
+                                elseif($log->category === 'Customers')     $badgeClass = 'badge-info';
                                 elseif($log->category === 'Staff Management') $badgeClass = 'badge-indigo';
-                                elseif($log->category === 'KPI') $badgeClass = 'badge-success';
-                                elseif($log->category === 'Settings') $badgeClass = 'badge-warning';
+                                elseif($log->category === 'KPI')           $badgeClass = 'badge-success';
+                                elseif($log->category === 'Settings')      $badgeClass = 'badge-warning';
                             @endphp
-                            <tr>
+                            <tr class="audit-row"
+                                data-search="{{ strtolower(($log->user ? $log->user->name : '') . ' ' . $log->action . ' ' . $log->ip_address . ' ' . $log->location . ' ' . $log->isp) }}"
+                                data-category="{{ $log->category }}"
+                                data-user="{{ $log->user_id }}">
                                 <td>
                                     <small class="d-block font-weight-bold text-dark">{{ $log->created_at->format('d M, Y') }}</small>
                                     <small class="text-muted">{{ $log->created_at->format('H:i:s') }}</small>
                                 </td>
                                 <td class="text-left">
                                     <div class="d-flex align-items-center">
-                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center border mr-2" style="width: 32px; height: 32px; overflow: hidden; flex-shrink: 0;">
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center border mr-2" style="width:32px;height:32px;overflow:hidden;flex-shrink:0;">
                                             @if($log->user && $log->user->avatar)
                                                 <img src="{{ asset('storage/' . $log->user->avatar) }}" class="img-fluid" alt="Avatar">
                                             @else
-                                                <span class="font-weight-bold text-primary" style="font-size: 11px;">{{ strtoupper(substr($log->user ? $log->user->name : 'U', 0, 2)) }}</span>
+                                                <span class="font-weight-bold text-primary" style="font-size:11px;">{{ strtoupper(substr($log->user ? $log->user->name : 'U', 0, 2)) }}</span>
                                             @endif
                                         </div>
                                         <div>
-                                            <span class="d-block font-weight-bold" style="font-size: 13px;">{{ $log->user ? $log->user->name : 'System / Deleted User' }}</span>
-                                            <span class="badge badge-light border text-muted py-0 px-1" style="font-size: 9px; font-weight: 500;">
-                                                {{ ucwords(str_replace('_', ' ', $log->user ? $log->user->role : 'system')) }}
-                                            </span>
+                                            <span class="d-block font-weight-bold" style="font-size:13px;">{{ $log->user ? $log->user->name : 'System / Deleted User' }}</span>
+                                            <span class="badge badge-light border text-muted py-0 px-1" style="font-size:9px;">{{ ucwords(str_replace('_', ' ', $log->user ? $log->user->role : 'system')) }}</span>
                                         </div>
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge badge-pill {{ $badgeClass }}" style="font-size: 10px; font-weight: 600; letter-spacing: 0.3px; padding: 4px 10px;">
-                                        {{ $log->category }}
-                                    </span>
+                                    <span class="badge badge-pill {{ $badgeClass }}" style="font-size:10px;font-weight:600;letter-spacing:0.3px;padding:4px 10px;">{{ $log->category }}</span>
                                 </td>
-                                <td class="text-left" style="font-size: 13px; font-weight: 500; color: #333;">
-                                    {{ $log->action }}
-                                </td>
+                                <td class="text-left" style="font-size:13px;font-weight:500;color:#333;">{{ $log->action }}</td>
                                 <td class="text-left">
                                     <small class="text-muted d-block font-weight-bold">{{ $log->ip_address }}</small>
                                     @if($log->isp && $log->isp !== 'Unknown')
-                                        <span class="badge badge-light border text-secondary mt-1" style="font-size: 10px; font-weight: 600; letter-spacing: 0.2px;">
-                                            <i class="fa fa-wifi text-primary mr-1" style="font-size: 9px;"></i> {{ $log->isp }}
+                                        <span class="badge badge-light border text-secondary mt-1" style="font-size:10px;font-weight:600;">
+                                            <i class="fa fa-wifi text-primary mr-1" style="font-size:9px;"></i> {{ $log->isp }}
                                         </span>
                                     @else
-                                        <span class="badge badge-light border text-muted mt-1" style="font-size: 10px; font-weight: 500;">
-                                            <i class="fa fa-wifi mr-1" style="font-size: 9px;"></i> Local / Unknown
+                                        <span class="badge badge-light border text-muted mt-1" style="font-size:10px;">
+                                            <i class="fa fa-wifi mr-1" style="font-size:9px;"></i> Local / Unknown
                                         </span>
                                     @endif
                                 </td>
                                 <td>
                                     @if($log->location && $log->location !== 'Unknown' && $log->location !== 'Localhost')
-                                        <span class="badge badge-pill badge-info"><i class="fa fa-map-marker mr-1"></i> {{ $log->location }}</span>
+                                        <span class="badge badge-pill badge-info"><i class="fa fa-map-marker mr-1"></i>{{ $log->location }}</span>
                                     @else
-                                        <span class="badge badge-pill badge-light border text-muted font-weight-bold" style="font-size: 10px;"><i class="fa fa-map-marker mr-1"></i> Local</span>
+                                        <span class="badge badge-pill badge-light border text-muted font-weight-bold" style="font-size:10px;"><i class="fa fa-map-marker mr-1"></i>Local</span>
                                     @endif
                                 </td>
                                 <td class="d-print-none">
@@ -132,54 +148,53 @@
                                             data-agent="{{ $log->user_agent }}"
                                             data-user="{{ $log->user ? $log->user->name : 'System' }}"
                                             data-time="{{ $log->created_at->format('d M, Y - H:i:s') }}"
-                                            title="View Technical Details">
-                                        <i class="fa fa-info-circle" style="font-size: 13px;"></i>
+                                            title="Technical Details">
+                                        <i class="fa fa-info-circle" style="font-size:13px;"></i>
                                     </button>
                                 </td>
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="7" class="py-5 text-muted">
-                                    <i class="fa fa-shield fa-3x d-block mb-3 text-light"></i>
-                                    No audit logs matching filters found.
-                                </td>
-                            </tr>
+                            <tr><td colspan="7" class="py-5 text-muted"><i class="fa fa-shield fa-3x d-block mb-3 text-light"></i>No audit logs found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
 
-            <!-- Mobile View: Premium Card-Based Layout -->
-            <div class="d-block d-md-none mobile-card-container">
+            <!-- ─── Mobile Cards ──────────────────────────────────────────────── -->
+            <div class="d-block d-md-none" id="audit-mobile-cards">
                 @forelse($logs as $log)
                     @php
                         $borderClass = 'border-secondary';
-                        if($log->category === 'Authentication') $borderClass = 'border-purple';
-                        elseif($log->category === 'Customers') $borderClass = 'border-info';
+                        if($log->category === 'Authentication')       $borderClass = 'border-purple';
+                        elseif($log->category === 'Customers')        $borderClass = 'border-info';
                         elseif($log->category === 'Staff Management') $borderClass = 'border-indigo';
-                        elseif($log->category === 'KPI') $borderClass = 'border-success';
-                        elseif($log->category === 'Settings') $borderClass = 'border-warning';
+                        elseif($log->category === 'KPI')              $borderClass = 'border-success';
+                        elseif($log->category === 'Settings')         $borderClass = 'border-warning';
                     @endphp
-                    <div class="card mb-3 shadow-sm border-0 border-left-highlight {{ $borderClass }}" style="border-radius: 8px;">
+                    <div class="audit-card card mb-3 shadow-sm border-0 border-left-highlight {{ $borderClass }}"
+                         style="border-radius:8px;"
+                         data-search="{{ strtolower(($log->user ? $log->user->name : '') . ' ' . $log->action . ' ' . $log->ip_address . ' ' . $log->location . ' ' . $log->isp) }}"
+                         data-category="{{ $log->category }}"
+                         data-user="{{ $log->user_id }}">
                         <div class="card-body p-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span class="badge badge-light border text-muted small font-weight-bold">{{ $log->category }}</span>
-                                <small class="text-muted font-weight-bold"><i class="fa fa-clock-o mr-1"></i> {{ $log->created_at->format('H:i:s') }}</small>
+                                <small class="text-muted font-weight-bold"><i class="fa fa-clock-o mr-1"></i>{{ $log->created_at->format('H:i:s') }}</small>
                             </div>
                             <div class="d-flex align-items-center mb-2">
-                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center border mr-2" style="width: 28px; height: 28px; overflow: hidden; flex-shrink: 0;">
+                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center border mr-2" style="width:28px;height:28px;overflow:hidden;flex-shrink:0;">
                                     @if($log->user && $log->user->avatar)
                                         <img src="{{ asset('storage/' . $log->user->avatar) }}" class="img-fluid" alt="Avatar">
                                     @else
-                                        <span class="font-weight-bold text-primary" style="font-size: 10px;">{{ strtoupper(substr($log->user ? $log->user->name : 'U', 0, 2)) }}</span>
+                                        <span class="font-weight-bold text-primary" style="font-size:10px;">{{ strtoupper(substr($log->user ? $log->user->name : 'U', 0, 2)) }}</span>
                                     @endif
                                 </div>
                                 <div>
-                                    <strong style="font-size: 13px; color: #333;">{{ $log->user ? $log->user->name : 'System' }}</strong>
-                                    <small class="text-muted d-block" style="font-size: 10px;">{{ $log->created_at->format('d M, Y') }}</small>
+                                    <strong style="font-size:13px;color:#333;">{{ $log->user ? $log->user->name : 'System' }}</strong>
+                                    <small class="text-muted d-block" style="font-size:10px;">{{ $log->created_at->format('d M, Y') }}</small>
                                 </div>
                             </div>
-                            <p class="mb-2 text-dark font-weight-bold" style="font-size: 13px; line-height: 1.4;">{{ $log->action }}</p>
+                            <p class="mb-2 text-dark font-weight-bold" style="font-size:13px;line-height:1.4;">{{ $log->action }}</p>
                             <div class="row pt-2 mt-2 border-top no-gutters">
                                 <div class="col-6 pr-1">
                                     <small class="text-muted d-block">IP Address</small>
@@ -187,11 +202,11 @@
                                 </div>
                                 <div class="col-6 pl-1">
                                     <small class="text-muted d-block">Location</small>
-                                    <strong class="text-dark small d-block"><i class="fa fa-map-marker text-danger mr-1"></i> {{ $log->location ?: 'Local' }}</strong>
+                                    <strong class="text-dark small d-block"><i class="fa fa-map-marker text-danger mr-1"></i>{{ $log->location ?: 'Local' }}</strong>
                                 </div>
                                 <div class="col-12 mt-2">
                                     <small class="text-muted d-block">Network Operator (ISP)</small>
-                                    <strong class="text-secondary small d-block"><i class="fa fa-wifi text-primary mr-1"></i> {{ $log->isp ?: 'Local Network' }}</strong>
+                                    <strong class="text-secondary small d-block"><i class="fa fa-wifi text-primary mr-1"></i>{{ $log->isp ?: 'Local Network' }}</strong>
                                 </div>
                             </div>
                             <button type="button" class="btn btn-block btn-sm btn-light border text-muted mt-3 py-1 btn-detail"
@@ -207,133 +222,201 @@
                         </div>
                     </div>
                 @empty
-                    <div class="card p-4 text-center border text-muted">
-                        <i class="fa fa-shield fa-2x mb-2 text-light"></i>
-                        No audit logs available.
-                    </div>
+                    <div class="card p-4 text-center border text-muted"><i class="fa fa-shield fa-2x mb-2 text-light"></i>No audit logs available.</div>
                 @endforelse
             </div>
 
-            <!-- Pagination -->
-            <div class="d-flex justify-content-between align-items-center flex-wrap mt-4">
+            <!-- Pagination (for loading next 100 pages from server) -->
+            @if($logs->hasPages())
+            <div class="d-flex justify-content-between align-items-center flex-wrap mt-4 pt-3 border-top">
                 <small class="text-muted font-weight-bold mb-2 mb-md-0">
-                    Showing {{ $logs->firstItem() ?: 0 }} to {{ $logs->lastItem() ?: 0 }} of {{ $logs->total() }} audit transactions.
+                    Page {{ $logs->currentPage() }} of {{ $logs->lastPage() }} &nbsp;·&nbsp; {{ $logs->total() }} total entries
                 </small>
                 <div>{{ $logs->links() }}</div>
             </div>
+            @endif
+
         </div>
     </div>
 </div>
 
-<!-- Technical Specifications Modal (Bootstrap — no transparency issues) -->
-<div class="modal fade" id="auditDetailModal" tabindex="-1" role="dialog" aria-labelledby="auditDetailModalLabel" aria-hidden="true">
+<!-- ─── Technical Specifications Modal ──────────────────────────────────── -->
+<div class="modal fade" id="auditDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #fff;">
-                <h5 class="modal-title" id="auditDetailModalLabel">
-                    <i class="fa fa-shield mr-2"></i> Technical Specifications — Security Log Entry
-                </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+        <div class="modal-content" style="border:none;border-radius:10px;overflow:hidden;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;">
+                <h5 class="modal-title"><i class="fa fa-shield mr-2"></i> Technical Specifications — Security Log Entry</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
             </div>
             <div class="modal-body p-0">
-                <div style="background-color: #1e1e2e; color: #cdd6f4; font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.8; padding: 24px; border-radius: 0;">
-                    <div class="mb-2">
-                        <span style="color: #89dceb;">$</span>
-                        <span style="color: #a6e3a1; font-weight: bold;"> TIMESTAMP</span>
-                        <span style="color: #cdd6f4;">  : </span>
-                        <span id="modal-time" style="color: #f9e2af;"></span>
-                    </div>
-                    <div class="mb-2">
-                        <span style="color: #89dceb;">$</span>
-                        <span style="color: #a6e3a1; font-weight: bold;"> OPERATOR</span>
-                        <span style="color: #cdd6f4;">   : </span>
-                        <span id="modal-user" style="color: #cba6f7;"></span>
-                    </div>
-                    <div class="mb-2">
-                        <span style="color: #89dceb;">$</span>
-                        <span style="color: #a6e3a1; font-weight: bold;"> ACTION</span>
-                        <span style="color: #cdd6f4;">     : </span>
-                        <span id="modal-action" style="color: #ffffff;"></span>
-                    </div>
-                    <div class="mb-2">
-                        <span style="color: #89dceb;">$</span>
-                        <span style="color: #a6e3a1; font-weight: bold;"> IP_ADDRESS</span>
-                        <span style="color: #cdd6f4;"> : </span>
-                        <span id="modal-ip" style="color: #89b4fa;"></span>
-                    </div>
-                    <div class="mb-2">
-                        <span style="color: #89dceb;">$</span>
-                        <span style="color: #a6e3a1; font-weight: bold;"> LOCATION</span>
-                        <span style="color: #cdd6f4;">   : </span>
-                        <span id="modal-location" style="color: #fab387;"></span>
-                    </div>
-                    <div class="mb-3">
-                        <span style="color: #89dceb;">$</span>
-                        <span style="color: #a6e3a1; font-weight: bold;"> PROVIDER</span>
-                        <span style="color: #cdd6f4;">   : </span>
-                        <span id="modal-isp" style="color: #a6e3a1;"></span>
-                    </div>
-                    <hr style="border-color: #45475a; margin: 12px 0;">
-                    <div>
-                        <span style="color: #f38ba8; font-weight: bold;">[ USER AGENT SIGNATURE ]</span><br>
-                        <span id="modal-agent" style="color: #9399b2; font-size: 11px; word-break: break-all; line-height: 1.6;"></span>
-                    </div>
+                <div id="audit-terminal" style="background:#1e1e2e;color:#cdd6f4;font-family:'Courier New',Courier,monospace;font-size:13px;line-height:1.9;padding:24px;">
+                    <div class="mb-1"><span style="color:#89dceb;">$</span> <span style="color:#a6e3a1;font-weight:bold;">TIMESTAMP</span><span style="color:#585b70;">  ──</span> <span id="m-time"  style="color:#f9e2af;"></span></div>
+                    <div class="mb-1"><span style="color:#89dceb;">$</span> <span style="color:#a6e3a1;font-weight:bold;">OPERATOR</span><span style="color:#585b70;">   ──</span> <span id="m-user"  style="color:#cba6f7;"></span></div>
+                    <div class="mb-1"><span style="color:#89dceb;">$</span> <span style="color:#a6e3a1;font-weight:bold;">ACTION</span><span style="color:#585b70;">     ──</span> <span id="m-action" style="color:#fff;"></span></div>
+                    <div class="mb-1"><span style="color:#89dceb;">$</span> <span style="color:#a6e3a1;font-weight:bold;">IP_ADDRESS</span><span style="color:#585b70;"> ──</span> <span id="m-ip"    style="color:#89b4fa;"></span></div>
+                    <div class="mb-1"><span style="color:#89dceb;">$</span> <span style="color:#a6e3a1;font-weight:bold;">LOCATION</span><span style="color:#585b70;">   ──</span> <span id="m-loc"   style="color:#fab387;"></span></div>
+                    <div class="mb-3"><span style="color:#89dceb;">$</span> <span style="color:#a6e3a1;font-weight:bold;">PROVIDER</span><span style="color:#585b70;">   ──</span> <span id="m-isp"   style="color:#a6e3a1;"></span></div>
+                    <hr style="border-color:#45475a;margin:12px 0;">
+                    <div><span style="color:#f38ba8;font-weight:bold;">[ DEVICE / USER AGENT ]</span><br><span id="m-agent" style="color:#9399b2;font-size:11px;word-break:break-all;line-height:1.6;"></span></div>
                 </div>
             </div>
-            <div class="modal-footer" style="background-color: #f8f9fa;">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fa fa-times mr-1"></i> Close
-                </button>
+            <div class="modal-footer" style="background:#f8f9fa;">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fa fa-times mr-1"></i> Close</button>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    .badge-purple { background-color: #6f42c1; color: #ffffff; }
-    .badge-indigo { background-color: #3f51b5; color: #ffffff; }
+    .badge-purple  { background-color: #6f42c1; color: #fff; }
+    .badge-indigo  { background-color: #3f51b5; color: #fff; }
     .border-left-highlight { border-left: 4px solid !important; }
-    .border-purple  { border-left-color: #6f42c1 !important; }
-    .border-info    { border-left-color: #17a2b8 !important; }
-    .border-indigo  { border-left-color: #3f51b5 !important; }
-    .border-success { border-left-color: #28a745 !important; }
-    .border-warning { border-left-color: #ffc107 !important; }
-    .border-secondary { border-left-color: #6c757d !important; }
-    #auditDetailModal .modal-content { border: none; border-radius: 8px; overflow: hidden; }
+    .border-purple   { border-left-color: #6f42c1 !important; }
+    .border-info     { border-left-color: #17a2b8 !important; }
+    .border-indigo   { border-left-color: #3f51b5 !important; }
+    .border-success  { border-left-color: #28a745 !important; }
+    .border-warning  { border-left-color: #ffc107 !important; }
+    .border-secondary{ border-left-color: #6c757d !important; }
+
+    /* Smooth row fade-in/out on filter */
+    .audit-row, .audit-card {
+        transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+    .audit-row.hidden-row, .audit-card.hidden-row {
+        display: none !important;
+    }
+
+    /* Highlight matched search text */
+    .hl { background: #fff176; border-radius: 2px; padding: 0 2px; }
+
+    /* Search input active state */
+    #filter-search:focus { border-color: #4e73df; box-shadow: 0 0 0 0.15rem rgba(78,115,223,0.2); }
+
+    /* Filter bar labels */
+    #audit-filters label { letter-spacing: 0.5px; font-size: 10px; margin-bottom: 4px; }
 </style>
 @endsection
 
 @section('scripts')
 <script>
-$(document).ready(function() {
-    // ─── Details Button → Bootstrap Modal ──────────────────────────────────────
-    $(document).on('click', '.btn-detail', function() {
-        var btn = $(this);
-        $('#modal-time').text(btn.data('time') || 'N/A');
-        $('#modal-user').text(btn.data('user') || 'System');
-        $('#modal-action').text(btn.data('action') || 'N/A');
-        $('#modal-ip').text(btn.data('ip') || 'N/A');
-        $('#modal-location').text(btn.data('location') || 'Local / Unknown');
-        $('#modal-isp').text(btn.data('isp') || 'Local Network');
-        $('#modal-agent').text(btn.data('agent') || 'No device signature available');
+(function () {
+    // ─── State ──────────────────────────────────────────────────────────
+    var searchVal    = '';
+    var categoryVal  = '';
+    var userVal      = '';
+
+    var $rows         = $('.audit-row');
+    var $cards        = $('.audit-card');
+    var $countBadge   = $('#visible-count');
+    var $filterBadge  = $('#filter-active-badge');
+    var $noResultsMsg = $('#no-results-msg');
+    var $clearBtn     = $('#clear-search-btn');
+
+    // ─── Filter Engine ──────────────────────────────────────────────────
+    function applyFilters() {
+        var matchCount = 0;
+        var hasFilter  = (searchVal !== '' || categoryVal !== '' || userVal !== '');
+
+        // Desktop rows
+        $rows.each(function() {
+            var $el      = $(this);
+            var rowSearch   = $el.data('search')    || '';
+            var rowCategory = $el.data('category')  || '';
+            var rowUser     = String($el.data('user') || '');
+
+            var show = true;
+            if (searchVal   && rowSearch.indexOf(searchVal)         === -1) show = false;
+            if (categoryVal && rowCategory !== categoryVal)                  show = false;
+            if (userVal     && rowUser     !== userVal)                      show = false;
+
+            if (show) {
+                $el.removeClass('hidden-row');
+                matchCount++;
+            } else {
+                $el.addClass('hidden-row');
+            }
+        });
+
+        // Mobile cards
+        $cards.each(function() {
+            var $el      = $(this);
+            var rowSearch   = $el.data('search')    || '';
+            var rowCategory = $el.data('category')  || '';
+            var rowUser     = String($el.data('user') || '');
+
+            var show = true;
+            if (searchVal   && rowSearch.indexOf(searchVal)         === -1) show = false;
+            if (categoryVal && rowCategory !== categoryVal)                  show = false;
+            if (userVal     && rowUser     !== userVal)                      show = false;
+
+            if (show) {
+                $el.removeClass('hidden-row');
+            } else {
+                $el.addClass('hidden-row');
+            }
+        });
+
+        // Update UI
+        $countBadge.text(matchCount);
+        $filterBadge.toggle(hasFilter);
+        $noResultsMsg.toggle(matchCount === 0);
+        $clearBtn.toggle(searchVal !== '');
+    }
+
+    // ─── Debounce Helper ────────────────────────────────────────────────
+    function debounce(fn, delay) {
+        var timer;
+        return function () {
+            clearTimeout(timer);
+            timer = setTimeout(fn, delay);
+        };
+    }
+
+    // ─── Event Listeners ────────────────────────────────────────────────
+    $('#filter-search').on('input', debounce(function () {
+        searchVal = $(this).val().toLowerCase().trim();
+        applyFilters();
+    }, 180));
+
+    $('#filter-category').on('change', function () {
+        categoryVal = $(this).val();
+        applyFilters();
+    });
+
+    $('#filter-user').on('change', function () {
+        userVal = $(this).val();
+        applyFilters();
+    });
+
+    // Clear X button inside search input
+    $('#clear-search-btn').on('click', function () {
+        $('#filter-search').val('').trigger('input').focus();
+    });
+
+    // Reset all filters
+    $('#reset-filters').on('click', function () {
+        searchVal = categoryVal = userVal = '';
+        $('#filter-search').val('');
+        $('#filter-category').val('');
+        $('#filter-user').val('');
+        applyFilters();
+    });
+
+    // ─── Details Modal ──────────────────────────────────────────────────
+    $(document).on('click', '.btn-detail', function () {
+        var b = $(this);
+        $('#m-time').text(b.data('time')     || 'N/A');
+        $('#m-user').text(b.data('user')     || 'System');
+        $('#m-action').text(b.data('action') || 'N/A');
+        $('#m-ip').text(b.data('ip')         || 'N/A');
+        $('#m-loc').text(b.data('location')  || 'Local / Unknown');
+        $('#m-isp').text(b.data('isp')       || 'Local Network');
+        $('#m-agent').text(b.data('agent')   || 'No device signature available');
         $('#auditDetailModal').modal('show');
     });
 
-    // ─── Filter Form: ensure native <select> values are submitted ──────────────
-    // Do NOT init select2 on these — plain selects submit reliably
-    // Only run select2 if explicitly needed elsewhere; keep audit filters as native
-    $('#audit-filter-form').on('submit', function(e) {
-        // Remove empty params from URL to keep it clean
-        var $form = $(this);
-        $form.find('select, input').each(function() {
-            if ($(this).val() === '' || $(this).val() === null) {
-                $(this).prop('disabled', true);
-            }
-        });
-        return true;
-    });
-});
+    // Initialise count
+    $countBadge.text($rows.length || $cards.length);
+}());
 </script>
 @endsection

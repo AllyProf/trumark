@@ -200,15 +200,23 @@ class ReportController extends Controller
             ->pluck('total', 'type')
             ->toArray();
 
-        // Status Breakdown
+        // Status Breakdown — exclude numeric-only or junk values
         $statusData = (clone $baseQuery)->select('status', DB::raw('count(*) as total'))
+            ->whereNotNull('status')
+            ->where('status', '!=', '')
+            ->whereRaw("status REGEXP '[A-Za-z]'")
             ->groupBy('status')
+            ->orderByDesc('total')
             ->pluck('total', 'status')
             ->toArray();
 
-        // Stage Breakdown
+        // Stage Breakdown — exclude numeric-only or junk values
         $stageData = (clone $baseQuery)->select('buying_stage', DB::raw('count(*) as total'))
+            ->whereNotNull('buying_stage')
+            ->where('buying_stage', '!=', '')
+            ->whereRaw("buying_stage REGEXP '[A-Za-z]'")
             ->groupBy('buying_stage')
+            ->orderByDesc('total')
             ->pluck('total', 'buying_stage')
             ->toArray();
 

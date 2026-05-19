@@ -127,7 +127,7 @@
                     {{-- Branch --}}
                     <div class="col-12 col-md-3 mb-3 mb-md-0">
                         <label class="font-weight-bold small"><i class="fa fa-filter text-primary mr-1"></i> Branch</label>
-                        <select name="branch_id" class="form-control select2-branch w-100" onchange="this.form.submit()">
+                        <select name="branch_id" class="form-control" onchange="this.form.submit()">
                             <option value="">🌍 Global (All Branches)</option>
                             @foreach($branches as $branch)
                                 <option value="{{ $branch->id }}" {{ ($branchId ?? null) == $branch->id ? 'selected' : '' }}>
@@ -140,10 +140,16 @@
                     {{-- Date Range --}}
                     <div class="col-12 col-md-5 mb-3 mb-md-0">
                         <label class="font-weight-bold small"><i class="fa fa-calendar text-primary mr-1"></i> Date Range</label>
-                        <div class="d-flex align-items-center">
-                            <input type="date" name="start_date" class="form-control form-control-sm" value="{{ $startDate ?? '' }}" onchange="this.form.submit()">
-                            <span class="mx-2 small text-muted">to</span>
-                            <input type="date" name="end_date" class="form-control form-control-sm" value="{{ $endDate ?? '' }}" onchange="this.form.submit()">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col">
+                                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ $startDate ?? '' }}" onchange="this.form.submit()">
+                            </div>
+                            <div class="col-auto px-2">
+                                <small class="text-muted">to</small>
+                            </div>
+                            <div class="col">
+                                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ $endDate ?? '' }}" onchange="this.form.submit()">
+                            </div>
                         </div>
                     </div>
 
@@ -656,10 +662,6 @@ function clearAllFilters(redraw) {
 }
 
 $(document).ready(function() {
-    $('.select2-branch').select2({
-        minimumResultsForSearch: Infinity,
-        dropdownAutoWidth: true
-    });
     statsDataTable = $('#statsTable').DataTable({
         "order": [[0, "asc"]],
         "pageLength": 25,

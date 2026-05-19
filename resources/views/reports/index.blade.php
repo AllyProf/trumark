@@ -131,32 +131,27 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
     }
 @endphp
 
-{{-- ── Scope & Print Toolbar (Responsive Stack) ────────────────────── --}}
+{{-- ── Scope Toolbar (Responsive) ────────────────────────────────── --}}
 <div class="row mb-4 d-print-none">
     <div class="col-12">
         <div class="tile p-3 shadow-sm mb-0">
-            <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
-                <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center w-100 mb-2 mb-md-0">
-                    <div class="d-flex align-items-center mb-2 mb-md-0 mr-md-3">
-                        <i class="fa fa-filter text-primary mr-2"></i>
-                        <span class="font-weight-bold">Report Scope:</span>
-                    </div>
-                    @if(auth()->user()->role === 'super_admin')
-                    <form action="{{ route('reports.index') }}" method="GET" class="w-100 w-md-auto d-inline-block">
-                        <select name="branch_id" class="form-control select2-branch w-100" onchange="this.form.submit()" style="min-width: 240px;">
-                            <option value="">🌍 All Branches (Global)</option>
-                            @foreach($branches as $branch)
-                                <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
-                                    📍 {{ $branch->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </form>
-                    @endif
+            <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center">
+                <div class="d-flex align-items-center mb-2 mb-md-0 mr-md-3">
+                    <i class="fa fa-filter text-primary mr-2"></i>
+                    <span class="font-weight-bold">Report Scope:</span>
                 </div>
-                <button onclick="window.print();" class="btn btn-primary btn-sm w-100 w-md-auto mt-2 mt-md-0">
-                    <i class="fa fa-print mr-1"></i> Print / Export PDF
-                </button>
+                @if(auth()->user()->role === 'super_admin')
+                <form action="{{ route('reports.index') }}" method="GET" class="w-100 w-md-auto d-inline-block">
+                    <select name="branch_id" class="form-control select2-branch w-100" onchange="this.form.submit()" style="min-width: 240px;">
+                        <option value="">🌍 All Branches (Global)</option>
+                        @foreach($branches as $branch)
+                            <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
+                                📍 {{ $branch->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </form>
+                @endif
             </div>
         </div>
     </div>

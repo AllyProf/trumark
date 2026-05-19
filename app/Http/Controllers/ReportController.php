@@ -212,9 +212,12 @@ class ReportController extends Controller
             ->pluck('total', 'buying_stage')
             ->toArray();
 
-        // Region Breakdown
+        // Region Breakdown — exclude purely numeric values, blank, or single-char junk entries
         $regionData = (clone $baseQuery)->select('region', DB::raw('count(*) as total'))
             ->whereNotNull('region')
+            ->where('region', '!=', '')
+            ->whereRaw("region REGEXP '[A-Za-z]'")
+            ->where(DB::raw('LENGTH(TRIM(region))'), '>', 2)
             ->groupBy('region')
             ->orderByDesc('total')
             ->limit(10)
@@ -228,10 +231,14 @@ class ReportController extends Controller
             ->pluck('total', 'branches.name')
             ->toArray();
 
-        // Source Breakdown
+        // Source Breakdown — exclude numeric-only or too-short junk values
         $sourceData = (clone $baseQuery)->select('source', DB::raw('count(*) as total'))
             ->whereNotNull('source')
+            ->where('source', '!=', '')
+            ->whereRaw("source REGEXP '[A-Za-z]'")
+            ->where(DB::raw('LENGTH(TRIM(source))'), '>', 1)
             ->groupBy('source')
+            ->orderByDesc('total')
             ->pluck('total', 'source')
             ->toArray();
 

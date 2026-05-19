@@ -142,7 +142,7 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
                 </div>
                 @if(auth()->user()->role === 'super_admin')
                 <form action="{{ route('reports.index') }}" method="GET" class="w-100 w-md-auto d-inline-block">
-                    <select name="branch_id" class="form-control select2-branch w-100" onchange="this.form.submit()" style="min-width: 240px;">
+                    <select name="branch_id" class="form-control w-100" onchange="this.form.submit()" style="min-width: 240px;">
                         <option value="">🌍 All Branches (Global)</option>
                         @foreach($branches as $branch)
                             <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
@@ -515,15 +515,12 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+
 $(document).ready(function() {
-    $('.select2-branch').select2({
-        minimumResultsForSearch: Infinity,
-        dropdownAutoWidth: true
-    });
 
     $('#performanceTable').DataTable({
         "retrieve": true,

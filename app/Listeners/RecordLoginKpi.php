@@ -37,6 +37,24 @@ class RecordLoginKpi
             }
         }
 
+        // Close any previously unclosed sessions for this user before starting a new one
+        $openSessions = UserLoginLog::where('user_id', $event->user->id)
+            ->whereNull('logout_at')
+            ->get();
+
+        foreach ($openSessions as $session) {
+            $loginTime = \Carbon\Carbon::parse($session->login_at);
+            // If the old session is less than 8 hours old, cap its duration to now.
+            // If it's over 8 hours old, cap duration at 480 mins (8 hours).
+            $diff = $loginTime->diffInMinutes(now());
+            $duration = min($diff, 480);
+            
+            $session->update([
+                'logout_at' => $loginTime->addMinutes($duration),
+                'duration_minutes' => $duration
+            ]);
+        }
+
         UserLoginLog::create([
             'user_id'    => $event->user->id,
             'login_at'   => now(),

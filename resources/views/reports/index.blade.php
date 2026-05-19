@@ -381,17 +381,13 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
                                     <span class="badge badge-light border text-secondary mt-1" style="font-size: 10px; font-weight: 600; letter-spacing: 0.3px;">
                                         <i class="fa fa-wifi text-primary mr-1" style="font-size: 9px;"></i> {{ $log->isp }}
                                     </span>
-                                @else
-                                    <span class="badge badge-light border text-muted mt-1" style="font-size: 10px; font-weight: 500;">
-                                        <i class="fa fa-wifi mr-1" style="font-size: 9px;"></i> Local / Unknown
-                                    </span>
                                 @endif
                             </td>
                             <td>
                                 @if($log->location && $log->location !== 'Unknown')
                                     <span class="badge badge-pill badge-info"><i class="fa fa-map-marker mr-1"></i> {{ $log->location }}</span>
                                 @else
-                                    <span class="text-muted"><i class="fa fa-map-marker mr-1"></i> Local / Unknown</span>
+                                    <span class="text-muted"><i class="fa fa-map-marker mr-1"></i> -</span>
                                 @endif
                             </td>
                             @if(in_array(auth()->user()->role, ['super_admin', 'manager']))
@@ -466,7 +462,7 @@ Detailed breakdown of sales performance, lead conversion and pipeline trends
                             @endif
                             <div class="d-flex justify-content-between">
                                 <span class="text-muted"><i class="fa fa-map-marker mr-1"></i> Location:</span>
-                                <span class="font-weight-bold text-dark">{{ $log->location ?: 'Local/Unknown' }}</span>
+                                <span class="font-weight-bold text-dark">{{ $log->location && $log->location !== 'Unknown' ? $log->location : '-' }}</span>
                             </div>
                         </div>
 

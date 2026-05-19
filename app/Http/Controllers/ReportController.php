@@ -114,6 +114,14 @@ class ReportController extends Controller
         }
 
         // ── Attendance & System Usage ────────────────────────────────
+        // Auto-close stale active sessions (older than 16 hours)
+        \App\Models\UserLoginLog::whereNull('logout_at')
+            ->where('login_at', '<', now()->subHours(16))
+            ->update([
+                'logout_at' => DB::raw('DATE_ADD(login_at, INTERVAL 8 HOUR)'),
+                'duration_minutes' => 480
+            ]);
+
         $usageLogs = \App\Models\UserLoginLog::with('user')
             ->when($branchId, function($q) use ($branchId) {
                 return $q->whereHas('user', fn($uq) => $uq->where('branch_id', $branchId));

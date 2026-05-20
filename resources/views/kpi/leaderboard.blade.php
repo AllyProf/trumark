@@ -224,12 +224,18 @@ Monthly and all-time staff performance rankings
                                     <span class="rank-number rank-{{ $i + 1 }}">#{{ $i + 1 }}</span>
                                 </td>
                                 <td class="align-middle">
+                                    @php
+                                        $roleColor = 'badge-secondary';
+                                        if($s->role == 'super_admin') $roleColor = 'badge-danger';
+                                        elseif($s->role == 'manager') $roleColor = 'badge-info';
+                                        elseif($s->role == 'sales_officer') $roleColor = 'badge-primary';
+                                    @endphp
                                     <div class="d-flex align-items-center">
-                                        <div class="staff-avatar mr-3 shadow-sm" style="width: 45px; height: 45px; border: 2px solid #940000; overflow: hidden; border-radius: 50%;">
+                                        <div class="staff-avatar mr-3 shadow-sm" style="width: 45px; height: 45px; min-width: 45px; border: 2px solid #940000; overflow: hidden; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                                             @if($s->avatar)
-                                                <img src="{{ asset('storage/'.$s->avatar) }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                                <img src="{{ asset('storage/'.$s->avatar) }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
                                             @else
-                                                <div class="bg-primary text-white d-flex align-items-center justify-content-center w-100 h-100 font-weight-bold" style="font-size: 14px;">
+                                                <div class="bg-primary text-white d-flex align-items-center justify-content-center w-100 h-100 font-weight-bold" style="font-size: 14px; border-radius: 50%;">
                                                     {{ strtoupper(substr($s->name, 0, 1)) }}
                                                 </div>
                                             @endif
@@ -237,7 +243,7 @@ Monthly and all-time staff performance rankings
                                         <div>
                                             <b class="d-block" style="font-size: 16px; color: #333;">
                                                 {{ strtoupper($s->name) }}
-                                                <span class="badge badge-light border text-muted ml-1" style="font-size: 10px; font-weight: normal; vertical-align: middle;">{{ ucwords(str_replace('_', ' ', $s->role)) }}</span>
+                                                <span class="badge {{ $roleColor }} ml-1" style="font-size: 10px; font-weight: normal; vertical-align: middle;">{{ ucwords(str_replace('_', ' ', $s->role)) }}</span>
                                             </b>
                                             <small class="text-muted"><i class="fa fa-map-marker mr-1 text-primary"></i> {{ $s->branch->name ?? 'Global' }}</small>
                                         </div>
@@ -294,11 +300,17 @@ Monthly and all-time staff performance rankings
                                 <div class="rank-number rank-{{ $i + 1 }} mr-2 text-center" style="min-width: 30px;">
                                     #{{ $i + 1 }}
                                 </div>
-                                <div class="staff-avatar mr-3 shadow-sm" style="width: 40px; height: 40px; border: 2px solid #940000; overflow: hidden; border-radius: 50%;">
+                                @php
+                                    $roleColor = 'badge-secondary';
+                                    if($s->role == 'super_admin') $roleColor = 'badge-danger';
+                                    elseif($s->role == 'manager') $roleColor = 'badge-info';
+                                    elseif($s->role == 'sales_officer') $roleColor = 'badge-primary';
+                                @endphp
+                                <div class="staff-avatar mr-3 shadow-sm" style="width: 40px; height: 40px; min-width: 40px; border: 2px solid #940000; overflow: hidden; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                                     @if($s->avatar)
-                                        <img src="{{ asset('storage/'.$s->avatar) }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="{{ asset('storage/'.$s->avatar) }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
                                     @else
-                                        <div class="bg-primary text-white d-flex align-items-center justify-content-center w-100 h-100 font-weight-bold" style="font-size: 13px;">
+                                        <div class="bg-primary text-white d-flex align-items-center justify-content-center w-100 h-100 font-weight-bold" style="font-size: 13px; border-radius: 50%;">
                                             {{ strtoupper(substr($s->name, 0, 1)) }}
                                         </div>
                                     @endif
@@ -306,7 +318,7 @@ Monthly and all-time staff performance rankings
                                 <div>
                                     <b class="d-block text-dark" style="font-size: 14px; line-height: 1.2;">
                                         {{ strtoupper($s->name) }}
-                                        <span class="badge badge-light border text-muted ml-1" style="font-size: 9px; font-weight: normal; vertical-align: middle;">{{ ucwords(str_replace('_', ' ', $s->role)) }}</span>
+                                        <span class="badge {{ $roleColor }} ml-1" style="font-size: 9px; font-weight: normal; vertical-align: middle;">{{ ucwords(str_replace('_', ' ', $s->role)) }}</span>
                                     </b>
                                     <small class="text-muted"><i class="fa fa-map-marker text-primary mr-1"></i> {{ $s->branch->name ?? 'Global' }}</small>
                                 </div>

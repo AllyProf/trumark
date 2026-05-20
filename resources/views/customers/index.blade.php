@@ -127,20 +127,28 @@ Manage registered customers, leads, and sales pipeline progress
                                 @endif
                             </td>
                             <td class="text-center">
-                                <div class="btn-group">
-                                    <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-primary btn-sm" title="View"><i class="fa fa-eye"></i></a>
-                                    @if($customer->service === 'Bookshop')
-                                        <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#updateModal-{{ $customer->id }}" title="Quick Update"><i class="fa fa-bolt"></i></button>
-                                    @endif
-                                    <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#smsModal-{{ $customer->id }}" title="Direct Broadcast"><i class="fa fa-paper-plane"></i></button>
-                                    <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-secondary btn-sm" title="Edit Full Profile"><i class="fa fa-edit"></i></a>
-                                    @if(Auth::user()->role === 'super_admin')
-                                        <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#delegateModal-{{ $customer->id }}" title="Quick Delegate"><i class="fa fa-exchange"></i></button>
-                                        <form action="{{ route('customers.destroy', $customer->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to completely delete this lead?');">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-sm" style="border-radius: 0 4px 4px 0;" title="Delete Lead"><i class="fa fa-trash"></i></button>
-                                        </form>
-                                    @endif
+                                <div class="dropdown">
+                                    <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class="fa fa-cogs mr-1"></i> Actions
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-right shadow-sm">
+                                        <a class="dropdown-item" href="{{ route('customers.show', $customer->id) }}"><i class="fa fa-eye mr-2 text-primary"></i> View Profile</a>
+                                        <a class="dropdown-item" href="{{ route('customers.edit', $customer->id) }}"><i class="fa fa-edit mr-2 text-secondary"></i> Edit Full Profile</a>
+                                        <div class="dropdown-divider"></div>
+                                        @if($customer->service === 'Bookshop')
+                                            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#updateModal-{{ $customer->id }}"><i class="fa fa-bolt mr-2 text-warning"></i> Quick Update Stage</a>
+                                        @endif
+                                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#smsModal-{{ $customer->id }}"><i class="fa fa-paper-plane mr-2 text-success"></i> Direct Broadcast</a>
+                                        
+                                        @if(Auth::user()->role === 'super_admin')
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#delegateModal-{{ $customer->id }}"><i class="fa fa-exchange mr-2 text-info"></i> Delegate Lead</a>
+                                            <a class="dropdown-item text-danger delete-lead-btn" href="#" data-id="{{ $customer->id }}"><i class="fa fa-trash mr-2"></i> Delete Lead</a>
+                                            <form id="delete-form-{{ $customer->id }}" action="{{ route('customers.destroy', $customer->id) }}" method="POST" style="display: none;">
+                                                @csrf @method('DELETE')
+                                            </form>
+                                        @endif
+                                    </div>
                                 </div>
                             </td>
                             <td style="display:none;">{{ $customer->service }}</td>
@@ -319,6 +327,7 @@ Manage registered customers, leads, and sales pipeline progress
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
 $(document).ready(function() {
@@ -361,6 +370,26 @@ $(document).ready(function() {
         const len = $(this).val().length;
         const id = $(this).attr('id').replace('sms-msg-', '');
         $('.char-count-' + id).text(len + ' / 160').css('color', len > 160 ? '#940000' : '');
+    });
+
+    // SweetAlert for Delete
+    $('.delete-lead-btn').on('click', function(e) {
+        e.preventDefault();
+        const id = $(this).data('id');
+        Swal.fire({
+            title: 'Are you absolutely sure?',
+            text: "This action cannot be undone. The lead and all associated history will be permanently deleted!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fa fa-trash"></i> Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#delete-form-' + id).submit();
+            }
+        });
     });
 });
 </script>

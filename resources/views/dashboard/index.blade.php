@@ -177,7 +177,10 @@ Real-time analytics and performance metrics for your business
                             </td>
                             <td>
                                 <span class="d-block font-weight-bold" style="font-size: 13px;">{{ $log->description }}</span>
-                                <span class="badge badge-success mt-1">+{{ $log->points }} pts</span>
+                                <div class="mt-1">
+                                    <span class="badge {{ $log->points >= 0 ? 'badge-success' : 'badge-danger' }}">{{ $log->points > 0 ? '+' : '' }}{{ $log->points }} pts</span>
+                                    <span class="small text-muted ml-2"><i class="fa fa-pencil text-primary mr-1"></i> By: <b class="text-dark">{{ $log->performer->name ?? 'System' }}</b></span>
+                                </div>
                             </td>
                             <td class="text-muted small align-middle">{{ $log->created_at->diffForHumans() }}</td>
                         </tr>

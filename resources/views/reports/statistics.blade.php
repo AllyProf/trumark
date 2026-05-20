@@ -463,13 +463,13 @@
                     </thead>
                     <tbody>
                         @foreach($customers as $customer)
-                        <tr data-region="{{ $customer->region ?? '' }}" data-stage="{{ $customer->buying_stage ?? '' }}" data-status="{{ $customer->status ?? '' }}" data-type="{{ $customer->school_level ?: ($customer->type ?? '') }}">
+                        <tr data-region="{{ $customer->region ?? '' }}" data-stage="{{ $customer->buying_stage ?? '' }}" data-status="{{ $customer->status ?? '' }}" data-type="{{ (is_array($customer->school_level) ? implode(', ', $customer->school_level) : $customer->school_level) ?: ($customer->type ?? '') }}">
                             <td>
                                 <span class="d-inline-block d-md-none text-muted font-weight-bold mr-1" style="width: 110px;">Company Name:</span>
                                 <div class="d-inline-block align-middle">
                                     <b class="text-dark">{{ strtoupper($customer->name) }}</b><br>
                                     @if($customer->school_level)
-                                        <span class="badge badge-light text-primary border px-2 py-0"><i class="fa fa-graduation-cap"></i> {{ $customer->school_level }}</span><br>
+                                        <span class="badge badge-light text-primary border px-2 py-0"><i class="fa fa-graduation-cap"></i> {{ is_array($customer->school_level) ? implode(', ', $customer->school_level) : $customer->school_level }}</span><br>
                                     @endif
                                     <small class="text-muted"><i class="fa fa-phone mr-1"></i> {{ $customer->phone }}</small>
                                 </div>

@@ -67,7 +67,7 @@ Updating record for {{ $customer->name }}
                             <label class="font-weight-bold small">SCHOOL LEVEL</label>
                             <select name="school_level" class="form-control select2">
                                 <option value="">Select Level</option>
-                                @foreach(['Nursery','Primary','O-level Secondary','A-level Secondary','Others'] as $lvl)
+                                @foreach(['Pre Primary','Nursey and Primary','O-level','A-Level','O and A level','VTC','others'] as $lvl)
                                     <option value="{{ $lvl }}" {{ $customer->school_level == $lvl ? 'selected' : '' }}>{{ $lvl }}</option>
                                 @endforeach
                             </select>
@@ -78,7 +78,7 @@ Updating record for {{ $customer->name }}
                             <label class="font-weight-bold small">CUSTOMER SOURCE</label>
                             <select name="source" class="form-control select2">
                                 <option value="">Select Source</option>
-                                @foreach(['Walk-in','Referral','WhatsApp','Instagram','Facebook','Website','Phone Call','Seminar','Conference','Exhibitions'] as $src)
+                                @foreach(['Walk-in','Sales Visit','Referral','WhatsApp','Instagram','Facebook','Website','Phone Call','Seminar','Conference','Exhibitions'] as $src)
                                     <option value="{{ $src }}" {{ $customer->source == $src ? 'selected' : '' }}>{{ $src }}</option>
                                 @endforeach
                             </select>

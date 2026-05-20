@@ -181,11 +181,13 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                 <label class="font-weight-bold small mandatory-label">SCHOOL LEVEL</label>
                                 <select name="school_level" class="form-control select2" data-preview="School Level">
                                     <option value="">Select Level</option>
-                                    <option value="Nursery">Nursery</option>
-                                    <option value="Primary">Primary</option>
-                                    <option value="O-level Secondary">O-level Secondary</option>
-                                    <option value="A-level Secondary">A-level Secondary</option>
-                                    <option value="Others">Others</option>
+                                    <option value="Pre Primary">Pre Primary</option>
+                                    <option value="Nursey and Primary">Nursey and Primary</option>
+                                    <option value="O-level">O-level</option>
+                                    <option value="A-Level">A-Level</option>
+                                    <option value="O and A level">O and A level</option>
+                                    <option value="VTC">VTC</option>
+                                    <option value="others">others</option>
                                 </select>
                             </div>
                         </div>
@@ -195,6 +197,7 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                 <select name="source" class="form-control select2" data-preview="Source" required>
                                     <option value="">Select Source</option>
                                     <option value="Walk-in">Walk-in Customer</option>
+                                    <option value="Sales Visit">Sales Visit</option>
                                     <option value="Referral">Referral</option>
                                     <option value="WhatsApp">WhatsApp</option>
                                     <option value="Instagram">Instagram</option>

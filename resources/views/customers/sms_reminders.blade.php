@@ -27,9 +27,36 @@ Select multiple recipients and broadcast bulk SMS notifications
         <div class="tile">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3 class="tile-title mb-0">Recipient Selection</h3>
-                <div class="d-flex align-items-center">
-                    <select id="stageFilter" class="form-control select2 mr-3" style="width: 200px;">
-                        <option value="">All Buying Stages</option>
+            </div>
+            
+            <!-- Filter Controls -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <label class="small font-weight-bold">SERVICE</label>
+                    <select id="serviceFilter" class="form-control select2">
+                        <option value="">All Services</option>
+                        <option value="Bookshop">Bookshop</option>
+                        <option value="Wakala">Wakala</option>
+                        <option value="Stationery">Stationery</option>
+                        <option value="Others">Others</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="small font-weight-bold">LOCATION</label>
+                    <select id="locationFilter" class="form-control select2">
+                        <option value="">All Locations</option>
+                        @php
+                            $regions = \App\Models\Customer::whereNotNull('region')->where('region', '!=', '')->distinct()->pluck('region');
+                        @endphp
+                        @foreach($regions as $region)
+                            <option value="{{ $region }}">{{ $region }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="small font-weight-bold">BUYING STAGE</label>
+                    <select id="stageFilter" class="form-control select2">
+                        <option value="">All Stages</option>
                         <option value="Inquiry">Inquiry</option>
                         <option value="Quotation Sent">Quotation Sent</option>
                         <option value="Negotiation">Negotiation</option>
@@ -59,6 +86,8 @@ Select multiple recipients and broadcast bulk SMS notifications
                             <th>Phone</th>
                             <th>Stage</th>
                             <th>Status</th>
+                            <th style="display:none;">Service</th>
+                            <th style="display:none;">Location</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -79,6 +108,8 @@ Select multiple recipients and broadcast bulk SMS notifications
                             <td><b class="text-primary">{{ $customer->phone }}</b></td>
                             <td><span class="badge badge-info">{{ $customer->buying_stage }}</span></td>
                             <td><span class="badge badge-secondary">{{ $customer->status }}</span></td>
+                            <td style="display:none;">{{ $customer->service }}</td>
+                            <td style="display:none;">{{ $customer->region }} {{ $customer->district }}</td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -215,8 +246,15 @@ $(document).ready(function() {
         $('#sendBtn').prop('disabled', selected.length === 0 && $('#selectAllInDbInput').val() == 0);
     });
 
+    // Filters
     $('#stageFilter').on('change', function() {
-        table.column(3).search($(this).val()).draw();
+        table.column(3).search(this.value).draw();
+    });
+    $('#serviceFilter').on('change', function() {
+        table.column(5).search(this.value).draw();
+    });
+    $('#locationFilter').on('change', function() {
+        table.column(6).search(this.value).draw();
     });
 
     $('.template-btn').on('click', function() {

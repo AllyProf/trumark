@@ -78,7 +78,7 @@ Updating record for {{ $customer->name }}
                             <label class="font-weight-bold small">SCHOOL LEVEL</label>
                             <select name="school_level" class="form-control select2">
                                 <option value="">Select Level</option>
-                                @foreach(['Pre Primary','Nursey and Primary','O-level','A-Level','O and A level','VTC','others'] as $lvl)
+                                @foreach(['Pre Primary','Nursery and Primary','O-Level','A-Level','O-Level and A-Level','VTC','others'] as $lvl)
                                     <option value="{{ $lvl }}" {{ $customer->school_level == $lvl ? 'selected' : '' }}>{{ $lvl }}</option>
                                 @endforeach
                             </select>

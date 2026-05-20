@@ -34,7 +34,17 @@ Manage registered customers, leads, and sales pipeline progress
 
             <!-- Filter Controls -->
             <div class="row mb-4">
-                <div class="col-md-3">
+                <div class="col-md-2">
+                    <label class="small font-weight-bold">SERVICE</label>
+                    <select id="serviceFilter" class="form-control select2">
+                        <option value="">All Services</option>
+                        <option value="Bookshop">Bookshop</option>
+                        <option value="Wakala">Wakala</option>
+                        <option value="Stationery">Stationery</option>
+                        <option value="Others">Others</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="small font-weight-bold">STATUS</label>
                     <select id="statusFilter" class="form-control select2">
                         <option value="">All Statuses</option>
@@ -45,7 +55,7 @@ Manage registered customers, leads, and sales pipeline progress
                         <option value="VIP Customer">VIP Customer</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="small font-weight-bold">CUSTOMER TYPE</label>
                     <select id="typeFilter" class="form-control select2">
                         <option value="">All Types</option>
@@ -56,7 +66,7 @@ Manage registered customers, leads, and sales pipeline progress
                         <option value="Walk in">Walk in</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="small font-weight-bold">BUYING STAGE</label>
                     <select id="stageFilter" class="form-control select2">
                         <option value="">All Stages</option>
@@ -69,7 +79,7 @@ Manage registered customers, leads, and sales pipeline progress
                         <option value="Closed Lost">Closed Lost</option>
                     </select>
                 </div>
-                <div class="col-md-3 pt-4">
+                <div class="col-md-4 pt-4">
                     <div class="input-group">
                         <div class="input-group-prepend"><span class="input-group-text"><i class="fa fa-search"></i></span></div>
                         <input type="text" id="customSearch" class="form-control" placeholder="Search customers...">
@@ -87,6 +97,7 @@ Manage registered customers, leads, and sales pipeline progress
                             <th>Status</th>
                             <th>Buying Stage</th>
                             <th class="text-center">Actions</th>
+                            <th style="display:none;">Service</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -125,6 +136,7 @@ Manage registered customers, leads, and sales pipeline progress
                                     <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-secondary btn-sm" title="Edit Full Profile"><i class="fa fa-edit"></i></a>
                                 </div>
                             </td>
+                            <td style="display:none;">{{ $customer->service }}</td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -277,6 +289,7 @@ $(document).ready(function() {
 
     // Filters
     $('#customSearch').on('keyup', function() { table.search(this.value).draw(); });
+    $('#serviceFilter').on('change', function() { table.column(6).search(this.value).draw(); });
     $('#statusFilter').on('change', function() { table.column(3).search(this.value).draw(); });
     $('#typeFilter').on('change', function() { table.column(2).search(this.value).draw(); });
     $('#stageFilter').on('change', function() { table.column(4).search(this.value).draw(); });

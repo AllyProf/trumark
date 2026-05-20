@@ -194,9 +194,9 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                     <option value="">Select Level</option>
                                     <option value="Pre Primary">Pre Primary</option>
                                     <option value="Nursey and Primary">Nursey and Primary</option>
-                                    <option value="O-level">O-level</option>
+                                    <option value="O-Level">O-Level</option>
                                     <option value="A-Level">A-Level</option>
-                                    <option value="O and A level">O and A level</option>
+                                    <option value="O-Level and A-Level">O-Level and A-Level</option>
                                     <option value="VTC">VTC</option>
                                     <option value="others">others</option>
                                 </select>

@@ -55,6 +55,11 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('customers', \App\Http\Controllers\CustomerController::class);
     Route::resource('staff', \App\Http\Controllers\StaffController::class);
     
+    // Campaigns
+    Route::get('/campaigns/calendar', [\App\Http\Controllers\CampaignController::class, 'calendar'])->name('campaigns.calendar');
+    Route::get('/campaigns/events', [\App\Http\Controllers\CampaignController::class, 'events'])->name('campaigns.events');
+    Route::resource('campaigns', \App\Http\Controllers\CampaignController::class);
+    
     // Branch Management
     Route::post('/branches/{branch}/toggle-status', [\App\Http\Controllers\BranchController::class, 'toggleStatus'])->name('branches.toggle_status');
     Route::resource('branches', \App\Http\Controllers\BranchController::class);

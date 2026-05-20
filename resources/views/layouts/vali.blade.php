@@ -454,6 +454,14 @@
         
         <li><a class="app-menu__item {{ Route::is('customers.sms_reminders') ? 'active' : '' }}" href="{{ route('customers.sms_reminders') }}"><i class="app-menu__icon fa fa-envelope"></i><span class="app-menu__label">SMS Reminders</span></a></li>
 
+        <li class="treeview {{ Route::is('campaigns.*') ? 'is-expanded' : '' }}">
+            <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-calendar-check-o"></i><span class="app-menu__label">Automated Campaigns</span><i class="treeview-indicator fa fa-angle-right"></i></a>
+            <ul class="treeview-menu">
+                <li><a class="treeview-item {{ Route::is('campaigns.index') ? 'active' : '' }}" href="{{ route('campaigns.index') }}"><i class="fa fa-list"></i> All Campaigns</a></li>
+                <li><a class="treeview-item {{ Route::is('campaigns.calendar') ? 'active' : '' }}" href="{{ route('campaigns.calendar') }}"><i class="fa fa-calendar"></i> Campaign Calendar</a></li>
+                <li><a class="treeview-item {{ Route::is('campaigns.create') ? 'active' : '' }}" href="{{ route('campaigns.create') }}"><i class="fa fa-plus"></i> New Campaign</a></li>
+            </ul>
+        </li>
         @if(auth()->user()->role === 'super_admin')
         <li class="treeview {{ Route::is('staff.*') || Route::is('branches.*') || Route::is('settings.index') || Route::is('audit_logs.index') ? 'is-expanded' : '' }}">
             <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-lock"></i><span class="app-menu__label">Administration</span><i class="treeview-indicator fa fa-angle-right"></i></a>

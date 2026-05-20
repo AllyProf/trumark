@@ -190,8 +190,7 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                         <div id="schoolTypeRow" class="col-md-4 bookshop-only" style="display:none;">
                             <div class="form-group">
                                 <label class="font-weight-bold small mandatory-label">SCHOOL LEVEL</label>
-                                <select name="school_level" class="form-control select2" data-preview="School Level">
-                                    <option value="">Select Level</option>
+                                <select name="school_level[]" class="form-control select2" data-preview="School Level" multiple="multiple">
                                     <option value="Pre Primary">Pre Primary</option>
                                     <option value="Nursey and Primary">Nursey and Primary</option>
                                     <option value="O-Level">O-Level</option>
@@ -207,6 +206,9 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                 <label class="font-weight-bold small mandatory-label">CUSTOMER SOURCE</label>
                                 <select name="source" class="form-control select2" data-preview="Source" required>
                                     <option value="">Select Source</option>
+                                    <option value="Seminar">Seminar</option>
+                                    <option value="Exhibitions">Exhibitions</option>
+                                    <option value="Conference">Conference</option>
                                     <option value="Walk-in">Walk-in Customer</option>
                                     <option value="Sales Visit">Sales Visit</option>
                                     <option value="Referral">Referral</option>
@@ -215,9 +217,6 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                     <option value="Facebook">Facebook</option>
                                     <option value="Website">Website</option>
                                     <option value="Phone Call">Phone Call</option>
-                                    <option value="Seminar">Seminar</option>
-                                    <option value="Conference">Conference</option>
-                                    <option value="Exhibitions">Exhibitions</option>
                                 </select>
                             </div>
                         </div>
@@ -406,7 +405,7 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label class="font-weight-bold small">EST MONTHLY VALUE (TZS)</label>
-                                <input type="number" name="estimated_monthly_value" class="form-control" data-preview="Est Value" placeholder="0.00">
+                                <input type="number" name="estimated_monthly_value" class="form-control" data-preview="Est Value" placeholder="0.00" min="0">
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -461,6 +460,7 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                     <option value="Bank Transfer">Bank Transfer</option>
                                     <option value="Credit">Credit</option>
                                     <option value="Mobile Money">Mobile Money</option>
+                                    <option value="Unknown yet">Unknown yet</option>
                                 </select>
                             </div>
                         </div>

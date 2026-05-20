@@ -10,6 +10,7 @@ class Customer extends Model
 
     protected $casts = [
         'requirements' => 'array',
+        'school_level' => 'array',
         'expected_purchase_date' => 'date',
         'last_contacted_at' => 'date',
         'next_follow_up_date' => 'date',

@@ -162,6 +162,8 @@ class CustomerController extends Controller
             'email'        => 'nullable|email|max:255',
             'status'       => 'nullable|string',
             'buying_stage' => 'nullable|string',
+            'estimated_monthly_value' => 'nullable|numeric|min:0',
+            'school_level' => 'nullable|array',
         ]);
 
         $data = $request->except(['phone_number', 'alternative_phone_number']);
@@ -353,10 +355,12 @@ class CustomerController extends Controller
     {
         $request->validate([
             'name'         => 'required|string|max:255',
-            'phone'        => 'nullable|string|max:20',
+            'phone'        => 'required|string|max:20',
             'email'        => 'nullable|email|max:255',
             'status'       => 'nullable|string',
             'buying_stage' => 'nullable|string',
+            'estimated_monthly_value' => 'nullable|numeric|min:0',
+            'school_level' => 'nullable|array',
         ]);
 
         $data = $request->except(['_token', '_method', 'phone_number', 'alternative_phone_number']);

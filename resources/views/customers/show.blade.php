@@ -17,7 +17,17 @@ Detailed profile and sales history for {{ $customer->name }}
                     {{ strtoupper(substr($customer->name, 0, 1)) }}
                 </div>
                 <h4 class="mb-1">{{ $customer->name }}</h4>
-                <p class="mb-0 small text-white-50">{{ $customer->type }}</p>
+                <p class="mb-0 small text-white-50">
+                    {{ $customer->type }}
+                    @if($customer->type === 'School' && !empty($customer->school_level))
+                        @php
+                            $levels = is_array($customer->school_level) ? $customer->school_level : json_decode($customer->school_level, true);
+                        @endphp
+                        @if(!empty($levels))
+                            <br><span style="font-size: 0.85em;">({{ implode(', ', $levels) }})</span>
+                        @endif
+                    @endif
+                </p>
             </div>
             <div class="p-3">
                 <ul class="list-group list-group-flush">

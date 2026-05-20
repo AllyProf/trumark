@@ -76,10 +76,12 @@ Updating record for {{ $customer->name }}
                     <div class="col-md-4 bookshop-only" id="schoolTypeRow" style="{{ $customer->type == 'School' ? '' : 'display:none;' }}">
                         <div class="form-group">
                             <label class="font-weight-bold small">SCHOOL LEVEL</label>
-                            <select name="school_level" class="form-control select2">
-                                <option value="">Select Level</option>
+                            @php
+                                $savedLevels = is_array($customer->school_level) ? $customer->school_level : json_decode($customer->school_level ?? '[]', true) ?? [];
+                            @endphp
+                            <select name="school_level[]" class="form-control select2" multiple="multiple">
                                 @foreach(['Pre Primary','Nursery and Primary','O-Level','A-Level','O-Level and A-Level','VTC','others'] as $lvl)
-                                    <option value="{{ $lvl }}" {{ $customer->school_level == $lvl ? 'selected' : '' }}>{{ $lvl }}</option>
+                                    <option value="{{ $lvl }}" {{ in_array($lvl, $savedLevels) ? 'selected' : '' }}>{{ $lvl }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -89,7 +91,7 @@ Updating record for {{ $customer->name }}
                             <label class="font-weight-bold small">CUSTOMER SOURCE</label>
                             <select name="source" class="form-control select2">
                                 <option value="">Select Source</option>
-                                @foreach(['Walk-in','Sales Visit','Referral','WhatsApp','Instagram','Facebook','Website','Phone Call','Seminar','Conference','Exhibitions'] as $src)
+                                @foreach(['Seminar','Conference','Exhibitions','Walk-in','Sales Visit','Referral','WhatsApp','Instagram','Facebook','Website','Phone Call'] as $src)
                                     <option value="{{ $src }}" {{ $customer->source == $src ? 'selected' : '' }}>{{ $src }}</option>
                                 @endforeach
                             </select>
@@ -274,7 +276,7 @@ Updating record for {{ $customer->name }}
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="font-weight-bold small">EST MONTHLY VALUE (TZS)</label>
-                            <input type="number" name="estimated_monthly_value" class="form-control" value="{{ old('estimated_monthly_value', $customer->estimated_monthly_value) }}">
+                            <input type="number" name="estimated_monthly_value" class="form-control" value="{{ old('estimated_monthly_value', $customer->estimated_monthly_value) }}" min="0">
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -317,9 +319,11 @@ Updating record for {{ $customer->name }}
                             <label class="font-weight-bold small">PAYMENT TERMS</label>
                             <select name="payment_terms" class="form-control select2">
                                 <option value="">Select Payment Terms</option>
-                                @foreach(['Cash','Bank Transfer','Credit','Mobile Money'] as $pt)
-                                    <option value="{{ $pt }}" {{ $customer->payment_terms == $pt ? 'selected' : '' }}>{{ $pt }}</option>
-                                @endforeach
+                                    <option value="Cash" {{ $customer->payment_terms == 'Cash' ? 'selected' : '' }}>Cash</option>
+                                    <option value="Bank Transfer" {{ $customer->payment_terms == 'Bank Transfer' ? 'selected' : '' }}>Bank Transfer</option>
+                                    <option value="Credit" {{ $customer->payment_terms == 'Credit' ? 'selected' : '' }}>Credit</option>
+                                    <option value="Mobile Money" {{ $customer->payment_terms == 'Mobile Money' ? 'selected' : '' }}>Mobile Money</option>
+                                    <option value="Unknown yet" {{ $customer->payment_terms == 'Unknown yet' ? 'selected' : '' }}>Unknown yet</option>
                             </select>
                         </div>
                     </div>

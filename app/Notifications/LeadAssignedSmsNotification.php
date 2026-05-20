@@ -85,8 +85,15 @@ class LeadAssignedSmsNotification extends Notification implements ShouldQueue
     {
         try {
             $waService = new WhatsAppService();
-            $message = "*TRUMARK CRM ALERT*\n\nHabari *{$notifiable->name}*,\n\nUmepangiwa mteja mpya: *{$this->customer->name}*.\n\nFuatilia hapa: " . route('customers.show', $this->customer->id);
-            $waService->sendMessage($notifiable->phone, $message);
+            
+            // Build the alert message content
+            $alertContent = "Umepangiwa mteja mpya: {$this->customer->name}. Fuatilia kupitia CRM mfumo.";
+            
+            // Send using the verified Meta template to ensure delivery
+            $waService->sendTemplateMessage($notifiable->phone, 'general_broadcast', 'en', [
+                'customer_name' => $notifiable->name,
+                'message_content' => $alertContent
+            ]);
         } catch (\Exception $e) {
             Log::error("Failed to send assignment WhatsApp: " . $e->getMessage());
         }

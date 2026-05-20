@@ -34,6 +34,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/customers/bulk-delegate', [CustomerController::class, 'processBulkDelegate'])->name('customers.process_bulk_delegate');
     Route::post('/customers/sms-reminders/send', [CustomerController::class, 'sendBulkSms'])->name('customers.send_bulk_sms');
     Route::patch('/customers/{customer}/quick-update', [CustomerController::class, 'quickUpdate'])->name('customers.quick_update');
+    Route::patch('/customers/{customer}/delegate', [CustomerController::class, 'delegate'])->name('customers.delegate');
     Route::post('/customers/send-all-reminders', [CustomerController::class, 'sendAllReminders'])->name('customers.send_all_reminders');
     Route::post('/customers/{customer}/send-sms', [CustomerController::class, 'sendSms'])->name('customers.send_sms');
     Route::post('/customers/{customer}/send-survey', [CustomerController::class, 'sendSurvey'])->name('customers.send_survey');

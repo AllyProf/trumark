@@ -35,7 +35,17 @@ class CustomerController extends Controller
         }
 
         $customers = $query->latest()->paginate(10);
-        return view('customers.index', compact('customers'));
+        
+        $officers = collect();
+        if ($user->role === 'super_admin' || $user->role === 'manager') {
+            $officers = \App\Models\User::with('branch')->whereIn('role', ['sales_officer', 'manager', 'super_admin'])
+                ->when($user->role === 'manager', function($q) use ($user) {
+                    return $q->where('branch_id', $user->branch_id);
+                })
+                ->get();
+        }
+
+        return view('customers.index', compact('customers', 'officers'));
     }
 
     public function create()
@@ -1064,5 +1074,46 @@ class CustomerController extends Controller
             \Illuminate\Support\Facades\DB::rollBack();
             return back()->with('error', 'Error during import: ' . $e->getMessage());
         }
+    }
+
+    public function destroy(Customer $customer)
+    {
+        $user = Auth::user();
+        if ($user->role !== 'super_admin') {
+            return redirect()->route('customers.index')->with('error', 'Unauthorized access. Only Super Admin can delete leads.');
+        }
+
+        $name = $customer->name;
+        $customer->delete();
+        \App\Models\AuditLog::record("Deleted customer lead: {$name}", 'Customers');
+
+        return redirect()->route('customers.index')->with('success', "✅ Lead '{$name}' has been completely deleted.");
+    }
+
+    public function delegate(Request $request, Customer $customer)
+    {
+        $user = Auth::user();
+        if ($user->role !== 'super_admin' && $user->role !== 'manager') {
+            return redirect()->route('customers.index')->with('error', 'Unauthorized access.');
+        }
+
+        $request->validate([
+            'sales_officer_id' => 'required|exists:users,id'
+        ]);
+
+        $newOfficerId = $request->sales_officer_id;
+        if ($newOfficerId != $customer->sales_officer_id) {
+            $newOfficer = \App\Models\User::find($newOfficerId);
+            if ($newOfficer) {
+                $customer->update([
+                    'sales_officer_id' => $newOfficer->id,
+                    'branch_id' => $newOfficer->branch_id
+                ]);
+                $newOfficer->notify(new \App\Notifications\LeadAssignedSmsNotification($customer));
+                \App\Models\AuditLog::record("Delegated customer {$customer->name} to {$newOfficer->name}", 'Customers');
+            }
+        }
+
+        return redirect()->route('customers.index')->with('success', "✅ Lead successfully delegated to {$newOfficer->name}!");
     }
 }

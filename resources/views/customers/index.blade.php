@@ -134,6 +134,13 @@ Manage registered customers, leads, and sales pipeline progress
                                     @endif
                                     <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#smsModal-{{ $customer->id }}" title="Direct Broadcast"><i class="fa fa-paper-plane"></i></button>
                                     <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-secondary btn-sm" title="Edit Full Profile"><i class="fa fa-edit"></i></a>
+                                    @if(Auth::user()->role === 'super_admin')
+                                        <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#delegateModal-{{ $customer->id }}" title="Quick Delegate"><i class="fa fa-exchange"></i></button>
+                                        <form action="{{ route('customers.destroy', $customer->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to completely delete this lead?');">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-danger btn-sm" style="border-radius: 0 4px 4px 0;" title="Delete Lead"><i class="fa fa-trash"></i></button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                             <td style="display:none;">{{ $customer->service }}</td>
@@ -151,6 +158,40 @@ Manage registered customers, leads, and sales pipeline progress
 </div>
 
 @foreach($customers as $customer)
+
+@if(Auth::user()->role === 'super_admin' || Auth::user()->role === 'manager')
+{{-- ── DELEGATE MODAL ──────────────────────────────────────────── --}}
+<div class="modal fade" id="delegateModal-{{ $customer->id }}" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#17a2b8;">
+                <h5 class="modal-title text-white"><i class="fa fa-exchange mr-2"></i> Delegate Lead: {{ $customer->name }}</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <form action="{{ route('customers.delegate', $customer->id) }}" method="POST">
+                @csrf @method('PATCH')
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="font-weight-bold small">SELECT NEW SALES OFFICER</label>
+                        <select name="sales_officer_id" class="form-control select2-modal" required style="width: 100%;">
+                            <option value="">Choose an officer...</option>
+                            @foreach($officers as $officer)
+                                <option value="{{ $officer->id }}" {{ $customer->sales_officer_id == $officer->id ? 'selected' : '' }}>
+                                    {{ $officer->name }} [{{ $officer->branch->name ?? 'HQ' }}]
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info"><i class="fa fa-save mr-1"></i> Confirm Delegation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
 
 {{-- ── QUICK UPDATE MODAL ──────────────────────────────────────────── --}}
 <div class="modal fade" id="updateModal-{{ $customer->id }}" tabindex="-1" role="dialog">

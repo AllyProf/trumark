@@ -251,7 +251,7 @@ Detailed performance analysis for {{ $officer->name }}
         {{-- Assigned Leads --}}
         <div class="tile shadow-sm border-0 p-0" style="overflow: hidden;">
             <div class="p-3 bg-light border-bottom">
-                <h5 class="mb-0 font-weight-bold"><i class="fa fa-users text-primary mr-2"></i> ASSIGNED PORTFOLIO ({{ $officer->leads->count() }})</h5>
+                <h5 class="mb-0 font-weight-bold"><i class="fa fa-users text-primary mr-2"></i> ASSIGNED PORTFOLIO ({{ $assignedPortfolio->total() }})</h5>
             </div>
             <div class="p-4">
                 <div class="table-responsive">
@@ -265,7 +265,7 @@ Detailed performance analysis for {{ $officer->name }}
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($officer->leads as $cust)
+                            @foreach($assignedPortfolio as $cust)
                             <tr>
                                 <td><a href="{{ route('customers.show', $cust->id) }}" class="font-weight-bold text-dark">{{ $cust->name }}</a></td>
                                 <td><span class="badge badge-pill badge-light border">{{ $cust->status }}</span></td>
@@ -275,6 +275,9 @@ Detailed performance analysis for {{ $officer->name }}
                             @endforeach
                         </tbody>
                     </table>
+                </div>
+                <div class="mt-3 d-flex justify-content-center">
+                    {{ $assignedPortfolio->appends(['portfolio_page' => request('portfolio_page')])->links('pagination::bootstrap-4') }}
                 </div>
             </div>
         </div>
@@ -330,12 +333,7 @@ Detailed performance analysis for {{ $officer->name }}
             dropdownParent: $('#adjustModal')
         });
 
-        $('#customersTable').DataTable({
-            "pageLength": 10,
-            "info": false,
-            "searching": true,
-            "lengthChange": false
-        });        // Trend Chart Implementation (Using Chart.js - Native to Vali)
+        // Trend Chart Implementation (Using Chart.js - Native to Vali)
         var chartData = {!! json_encode($chartData) !!};
         
         var ctx = document.getElementById('trendChart').getContext('2d');

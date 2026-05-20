@@ -1084,8 +1084,12 @@ class CustomerController extends Controller
         }
 
         $name = $customer->name;
+        
+        // Remove associated KPI points
+        \App\Models\KpiActivity::where('customer_id', $customer->id)->delete();
+        
         $customer->delete();
-        \App\Models\AuditLog::record("Deleted customer lead: {$name}", 'Customers');
+        \App\Models\AuditLog::record("Deleted customer lead and removed its KPI points: {$name}", 'Customers');
 
         return redirect()->route('customers.index')->with('success', "✅ Lead '{$name}' has been completely deleted.");
     }

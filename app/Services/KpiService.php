@@ -126,10 +126,16 @@ class KpiService
      */
     public static function getLevel($totalPoints)
     {
-        if ($totalPoints >= 35000) return ['name' => 'Sales Champion', 'color' => '#d4af37', 'icon' => 'fa-trophy'];
-        if ($totalPoints >= 25100) return ['name' => 'Excellent Performer', 'color' => '#28a745', 'icon' => 'fa-star'];
-        if ($totalPoints >= 15100) return ['name' => 'Good Performer', 'color' => '#007bff', 'icon' => 'fa-thumbs-up'];
-        if ($totalPoints >= 8100)  return ['name' => 'Fair Performance', 'color' => '#17a2b8', 'icon' => 'fa-smile-o'];
+        $settings = \App\Models\SystemSetting::pluck('value', 'key');
+        $champion = (int)($settings['kpi_level_champion'] ?? 35000);
+        $excellent = (int)($settings['kpi_level_excellent'] ?? 25100);
+        $good = (int)($settings['kpi_level_good'] ?? 15100);
+        $fair = (int)($settings['kpi_level_fair'] ?? 8100);
+
+        if ($totalPoints >= $champion) return ['name' => 'Sales Champion', 'color' => '#d4af37', 'icon' => 'fa-trophy'];
+        if ($totalPoints >= $excellent) return ['name' => 'Excellent Performer', 'color' => '#28a745', 'icon' => 'fa-star'];
+        if ($totalPoints >= $good) return ['name' => 'Good Performer', 'color' => '#007bff', 'icon' => 'fa-thumbs-up'];
+        if ($totalPoints >= $fair)  return ['name' => 'Fair Performance', 'color' => '#17a2b8', 'icon' => 'fa-smile-o'];
         return ['name' => 'Needs Improvement', 'color' => '#dc3545', 'icon' => 'fa-exclamation-triangle'];
     }
 

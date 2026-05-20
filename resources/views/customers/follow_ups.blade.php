@@ -89,13 +89,15 @@ Track and manage scheduled follow-ups with potential leads and customers
                     <tbody>
                         @foreach($customers as $customer)
                         @php
-                            $isPastDue = \Carbon\Carbon::parse($customer->next_follow_up_date)->isPast();
+                            $isPastDue = \Carbon\Carbon::parse($customer->next_follow_up_date)->endOfDay()->isPast();
                         @endphp
                         <tr class="{{ $isPastDue ? 'overdue-row' : '' }}">
                             <td>
                                 <b>{{ \Carbon\Carbon::parse($customer->next_follow_up_date)->format('d M, Y') }}</b>
                                 @if($isPastDue)
                                     <span class="badge badge-danger ml-2">OVERDUE</span>
+                                @elseif(\Carbon\Carbon::parse($customer->next_follow_up_date)->isToday())
+                                    <span class="badge badge-warning ml-2">TODAY</span>
                                 @endif
                             </td>
                             <td>

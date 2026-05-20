@@ -293,20 +293,22 @@ class StaffController extends Controller
         }
 
         $request->validate([
-            'activity_code' => 'required|string',
-            'notes'         => 'nullable|string'
+            'points' => 'required|numeric',
+            'notes'  => 'nullable|string'
         ]);
 
-        $activity = \App\Services\KpiService::recordActivity(
-            $request->activity_code, 
-            $user->id, 
-            null, 
-            $request->notes
-        );
+        $activity = \App\Models\KpiActivity::create([
+            'user_id'       => $user->id,
+            'performed_by'  => Auth::id(),
+            'activity_type' => $request->points >= 0 ? 'achievement' : 'discipline',
+            'activity_code' => 'MANUAL_ADJUSTMENT',
+            'points'        => $request->points,
+            'description'   => $request->notes ?? 'Manual Point Adjustment'
+        ]);
 
         if ($activity) {
             $user->notify(new \App\Notifications\KpiAdjustmentNotification($activity));
-            \App\Models\AuditLog::record("Manually adjusted KPI points for staff member: {$user->name} (Activity: {$request->activity_code}, Points: {$activity->points})", 'KPI');
+            \App\Models\AuditLog::record("Manually adjusted KPI points for staff member: {$user->name} (Points: {$activity->points})", 'KPI');
         }
 
         return back()->with('success', "KPI Points adjusted for {$user->name}!");

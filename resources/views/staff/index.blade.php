@@ -277,23 +277,9 @@ Register and manage system users, access roles, and branch assignments
                 @csrf
                 <div class="modal-body">
                     <div class="form-group">
-                        <label class="font-weight-bold">Select Activity</label>
-                        <select name="activity_code" class="form-control" required>
-                            <optgroup label="Positive Achievements">
-                                <option value="PHYSICAL_VISIT">Physical Customer Visit (+5)</option>
-                                <option value="POSITIVE_FEEDBACK">Positive Customer Feedback (+5)</option>
-                                <option value="MEETING_ON_TIME">Attend Sales Meeting on Time (+2)</option>
-                                <option value="WEEKLY_REPORT">Submit Weekly Sales Report (+5)</option>
-                                <option value="RECOVER_INACTIVE">Recover Inactive Customer (+12)</option>
-                                <option value="UPSELLING">Up-selling Additional Products (+6)</option>
-                                <option value="REFERRAL_EXISTING">Referral from Existing Customer (+8)</option>
-                            </optgroup>
-                            <optgroup label="Discipline (Deductions)">
-                                <option value="MISSED_MEETING">Missing Sales Meeting (-5)</option>
-                                <option value="CUSTOMER_COMPLAINT">Customer Complaint (-10)</option>
-                                <option value="FAKE_DATA">Fake or Incomplete Data (-15)</option>
-                            </optgroup>
-                        </select>
+                        <label class="font-weight-bold">Points to Add/Deduct</label>
+                        <input type="number" name="points" class="form-control" required placeholder="e.g. 10 or -5" step="1">
+                        <small class="text-muted">Use a negative number to deduct points (e.g. -10)</small>
                     </div>
                     <div class="form-group">
                         <label class="font-weight-bold">Additional Notes</label>

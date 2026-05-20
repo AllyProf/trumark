@@ -197,10 +197,14 @@ class KpiController extends Controller
             ->orderByDesc('login_at')
             ->limit(10)
             ->get();
+            
+        $assignedPortfolio = \App\Models\Customer::where('sales_officer_id', $officer->id)
+            ->orderByDesc('updated_at')
+            ->paginate(10, ['*'], 'portfolio_page');
 
         return view('kpi.officer_profile', compact(
             'officer', 'totalPoints', 'monthlyPoints', 'level', 
-            'activities', 'attendance', 'chartData', 'branchAvg', 'notes'
+            'activities', 'attendance', 'chartData', 'branchAvg', 'notes', 'assignedPortfolio'
         ));
     }
 

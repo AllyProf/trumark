@@ -634,6 +634,38 @@ Configure global application behavior, branding, and automation settings
                                             </div>
                                         </div>
                                     </div>
+                                    <hr>
+                                    <div class="section-header">
+                                        <i class="fa fa-trophy"></i>
+                                        <h4>KPI Performance Levels (Thresholds)</h4>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label>Sales Champion (Min Points)</label>
+                                                <input type="number" name="kpi_level_champion" class="form-control form-control-lg-custom" value="{{ $settings['kpi_level_champion'] ?? '35000' }}">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label>Excellent Performer (Min Points)</label>
+                                                <input type="number" name="kpi_level_excellent" class="form-control form-control-lg-custom" value="{{ $settings['kpi_level_excellent'] ?? '25100' }}">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label>Good Performer (Min Points)</label>
+                                                <input type="number" name="kpi_level_good" class="form-control form-control-lg-custom" value="{{ $settings['kpi_level_good'] ?? '15100' }}">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label>Fair Performance (Min Points)</label>
+                                                <input type="number" name="kpi_level_fair" class="form-control form-control-lg-custom" value="{{ $settings['kpi_level_fair'] ?? '8100' }}">
+                                                <small class="text-muted">Below this is "Needs Improvement"</small>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <!-- Operations & Goals -->

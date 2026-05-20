@@ -26,12 +26,10 @@ class KpiController extends Controller
         $userId = $request->user_id;
         
         $branches = \App\Models\Branch::where('is_active', true)->get();
-        $allStaff = User::where('role', '!=', 'super_admin')
-            ->when($user->role === 'manager', fn($q) => $q->where('branch_id', $user->branch_id))
+        $allStaff = User::when($user->role === 'manager', fn($q) => $q->where('branch_id', $user->branch_id))
             ->get();
 
         $staff = User::with('branch')
-            ->where('role', '!=', 'super_admin')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->when($userId, fn($q) => $q->where('id', $userId))
             ->when($user->role === 'sales_officer', fn($q) => $q->where('id', $user->id))
@@ -56,8 +54,7 @@ class KpiController extends Controller
 
         // Calculate Last Month's Champion
         $lastMonth = now()->subMonth();
-        $lastMonthWinner = User::where('role', '!=', 'super_admin')
-            ->get()
+        $lastMonthWinner = User::get()
             ->map(function($u) use ($lastMonth) {
                 $u->last_month_points = KpiActivity::where('user_id', $u->id)
                     ->whereMonth('created_at', $lastMonth->month)
@@ -104,8 +101,7 @@ class KpiController extends Controller
 
         // Staff dropdown scoped to active branch
         $staff = ($user->role === 'super_admin' || $user->role === 'manager')
-            ? User::where('role', '!=', 'super_admin')
-                ->when($branchId && $user->role === 'super_admin', fn($q) => $q->where('branch_id', $branchId))
+            ? User::when($branchId && $user->role === 'super_admin', fn($q) => $q->where('branch_id', $branchId))
                 ->when($user->role === 'manager', fn($q) => $q->where('branch_id', $user->branch_id))
                 ->get()
             : [];

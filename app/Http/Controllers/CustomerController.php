@@ -578,7 +578,7 @@ class CustomerController extends Controller
             $query->where('sales_officer_id', Auth::id());
         }
 
-        $customers = $query->orderBy('name', 'asc')->paginate(10);
+        $customers = $query->orderBy('name', 'asc')->get();
         return view('customers.sms_reminders', compact('customers'));
     }
 

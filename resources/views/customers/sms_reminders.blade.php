@@ -31,7 +31,7 @@ Select multiple recipients and broadcast bulk SMS notifications
             
             <!-- Filter Controls -->
             <div class="row mb-4">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="small font-weight-bold">SERVICE</label>
                     <select id="serviceFilter" class="form-control select2">
                         <option value="">All Services</option>
@@ -41,19 +41,25 @@ Select multiple recipients and broadcast bulk SMS notifications
                         <option value="Others">Others</option>
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="small font-weight-bold">LOCATION</label>
                     <select id="locationFilter" class="form-control select2">
                         <option value="">All Locations</option>
                         @php
-                            $regions = \App\Models\Customer::whereNotNull('region')->where('region', '!=', '')->distinct()->pluck('region');
+                            $regions = [
+                                'Arusha', 'Dar es Salaam', 'Dodoma', 'Geita', 'Iringa', 'Kagera', 'Katavi', 'Kigoma', 
+                                'Kilimanjaro', 'Lindi', 'Manyara', 'Mara', 'Mbeya', 'Morogoro', 'Mtwara', 'Mwanza', 
+                                'Njombe', 'Pemba North', 'Pemba South', 'Pwani', 'Rukwa', 'Ruvuma', 'Shinyanga', 
+                                'Simiyu', 'Singida', 'Songwe', 'Tabora', 'Tanga', 'Zanzibar Central/South', 
+                                'Zanzibar North', 'Zanzibar Urban/West'
+                            ];
                         @endphp
                         @foreach($regions as $region)
                             <option value="{{ $region }}">{{ $region }}</option>
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="small font-weight-bold">BUYING STAGE</label>
                     <select id="stageFilter" class="form-control select2">
                         <option value="">All Stages</option>
@@ -62,6 +68,11 @@ Select multiple recipients and broadcast bulk SMS notifications
                         <option value="Negotiation">Negotiation</option>
                         <option value="Order Confirmed">Order Confirmed</option>
                     </select>
+                </div>
+                <div class="col-md-3 pt-4">
+                    <button type="button" class="btn btn-outline-danger btn-block" id="clearFiltersBtn">
+                        <i class="fa fa-times"></i> Clear Filters
+                    </button>
                 </div>
             </div>
             <div id="selectAllNotice" class="alert alert-info py-2 mb-3 d-none" style="border-left: 5px solid #940000;">
@@ -86,8 +97,8 @@ Select multiple recipients and broadcast bulk SMS notifications
                             <th>Phone</th>
                             <th>Stage</th>
                             <th>Status</th>
-                            <th style="display:none;">Service</th>
-                            <th style="display:none;">Location</th>
+                            <th>Service</th>
+                            <th>Location</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -108,15 +119,12 @@ Select multiple recipients and broadcast bulk SMS notifications
                             <td><b class="text-primary">{{ $customer->phone }}</b></td>
                             <td><span class="badge badge-info">{{ $customer->buying_stage }}</span></td>
                             <td><span class="badge badge-secondary">{{ $customer->status }}</span></td>
-                            <td style="display:none;">{{ $customer->service }}</td>
-                            <td style="display:none;">{{ $customer->region }} {{ $customer->district }}</td>
+                            <td>{{ $customer->service }}</td>
+                            <td>{{ $customer->region }} {{ $customer->district }}</td>
                         </tr>
                         @endforeach
                     </tbody>
                 </table>
-            </div>
-            <div class="mt-4">
-                {{ $customers->links('pagination::bootstrap-4') }}
             </div>
         </div>
     </div>
@@ -196,11 +204,15 @@ $(document).ready(function() {
     $('.select2').select2({ width: '100%' });
 
     var table = $('#recipientTable').DataTable({
-        "paging": false,
-        "info": false,
-        "dom": 't',
+        "paging": true,
+        "pageLength": 25,
+        "info": true,
+        "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
         "retrieve": true,
-        "destroy": true
+        "destroy": true,
+        "columnDefs": [
+            { "visible": false, "targets": [5, 6] }
+        ]
     });
 
     $('#selectAll').on('change', function() {
@@ -248,13 +260,19 @@ $(document).ready(function() {
 
     // Filters
     $('#stageFilter').on('change', function() {
-        table.column(3).search(this.value).draw();
+        table.column(3).search($(this).val()).draw();
     });
     $('#serviceFilter').on('change', function() {
-        table.column(5).search(this.value).draw();
+        table.column(5).search($(this).val()).draw();
     });
     $('#locationFilter').on('change', function() {
-        table.column(6).search(this.value).draw();
+        table.column(6).search($(this).val()).draw();
+    });
+
+    $('#clearFiltersBtn').on('click', function() {
+        $('#serviceFilter').val('').trigger('change');
+        $('#locationFilter').val('').trigger('change');
+        $('#stageFilter').val('').trigger('change');
     });
 
     $('.template-btn').on('click', function() {

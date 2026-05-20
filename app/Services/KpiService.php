@@ -41,6 +41,31 @@ class KpiService
     ];
 
     /**
+     * Get the current points mapping, merging defaults with database settings.
+     */
+    public static function getPointsMap()
+    {
+        $settings = \App\Models\SystemSetting::pluck('value', 'key');
+        $map = self::POINTS;
+
+        foreach ($map as $key => $default) {
+            $settingKey = 'kpi_pt_' . strtolower($key);
+            if (isset($settings[$settingKey])) {
+                $map[$key] = (int) $settings[$settingKey];
+            }
+        }
+
+        // Handle legacy keys if they exist in DB
+        if (isset($settings['kpi_sale_new'])) $map['SALE_CLOSED_NEW'] = (int) $settings['kpi_sale_new'];
+        if (isset($settings['kpi_sale_repeat'])) $map['SALE_CLOSED_REPEAT'] = (int) $settings['kpi_sale_repeat'];
+        if (isset($settings['kpi_late_update'])) $map['LATE_UPDATE'] = (int) $settings['kpi_late_update'];
+        if (isset($settings['kpi_high_value_points'])) $map['SALE_HIGH_VALUE'] = (int) $settings['kpi_high_value_points'];
+        if (isset($settings['survey_kpi_points'])) $map['POSITIVE_FEEDBACK'] = (int) $settings['survey_kpi_points'];
+
+        return $map;
+    }
+
+    /**
      * Award or Deduct points for a user
      */
     public static function recordActivity($code, $userId = null, $customerId = null, $customDescription = null)
@@ -82,16 +107,7 @@ class KpiService
         }
         // ───────────────────────────────────────────────────────────────
 
-        $settings = \App\Models\SystemSetting::pluck('value', 'key');
-        
-        // Map dynamic points from settings
-        $pointMap = self::POINTS;
-        if ($code === 'SALE_CLOSED_NEW') $pointMap[$code] = (int)($settings['kpi_sale_new'] ?? self::POINTS[$code]);
-        if ($code === 'SALE_CLOSED_REPEAT') $pointMap[$code] = (int)($settings['kpi_sale_repeat'] ?? self::POINTS[$code]);
-        if ($code === 'LATE_UPDATE') $pointMap[$code] = (int)($settings['kpi_late_update'] ?? self::POINTS[$code]);
-        if ($code === 'SALE_HIGH_VALUE') $pointMap[$code] = (int)($settings['kpi_high_value_points'] ?? self::POINTS[$code]);
-        if ($code === 'POSITIVE_FEEDBACK') $pointMap[$code] = (int)($settings['survey_kpi_points'] ?? self::POINTS[$code]);
-
+        $pointMap = self::getPointsMap();
         $points = $pointMap[$code] ?? 0;
         $description = $customDescription ?? self::getActivityName($code);
 

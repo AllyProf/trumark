@@ -634,6 +634,31 @@ Configure global application behavior, branding, and automation settings
                                             </div>
                                         </div>
                                     </div>
+
+                                    <hr>
+                                    <div class="section-header mt-4">
+                                        <i class="fa fa-list"></i>
+                                        <h4>Specific Activity Points (Earning & Deductions)</h4>
+                                    </div>
+                                    <div class="row">
+                                        @foreach(\App\Services\KpiService::POINTS as $key => $defaultVal)
+                                            @php 
+                                                $settingKey = 'kpi_pt_' . strtolower($key); 
+                                                // Prettify label
+                                                $label = ucwords(str_replace('_', ' ', $key));
+                                                // We skip the legacy ones which already have dedicated inputs above
+                                                $skip = ['SALE_CLOSED_NEW', 'SALE_CLOSED_REPEAT', 'LATE_UPDATE', 'SALE_HIGH_VALUE', 'POSITIVE_FEEDBACK'];
+                                            @endphp
+                                            @if(!in_array($key, $skip))
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label style="font-size: 11px;" class="font-weight-bold text-uppercase">{{ $label }}</label>
+                                                    <input type="number" name="{{ $settingKey }}" class="form-control form-control-sm" value="{{ $settings[$settingKey] ?? $defaultVal }}">
+                                                </div>
+                                            </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
                                     <hr>
                                     <div class="section-header">
                                         <i class="fa fa-trophy"></i>

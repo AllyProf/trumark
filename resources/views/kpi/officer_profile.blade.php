@@ -149,7 +149,11 @@ Detailed performance analysis for {{ $officer->name }}
                 <div class="modal-body">
                     <div class="form-group">
                         <label class="font-weight-bold">Activity / Reason</label>
-                        <select name="activity_code" class="form-control select2-modal" style="width: 100%" required>
+                        <select name="activity_code" class="form-control select2-modal" style="width: 100%" onchange="toggleCustomPointsProfile(this)" required>
+                            <option value="">-- Select Activity --</option>
+                            <optgroup label="Custom">
+                                <option value="CUSTOM">Custom Point Adjustment (Type Points)</option>
+                            </optgroup>
                             <optgroup label="Positive Achievements">
                                 <option value="PHYSICAL_VISIT">Physical Visit (+5)</option>
                                 <option value="POSITIVE_FEEDBACK">Positive Customer Feedback (+5)</option>
@@ -167,6 +171,11 @@ Detailed performance analysis for {{ $officer->name }}
                                 <option value="FAKE_DATA">Reporting Fake Data (-15)</option>
                             </optgroup>
                         </select>
+                    </div>
+                    <div class="form-group custom-points-div-profile" style="display: none;">
+                        <label class="font-weight-bold">Custom Points</label>
+                        <input type="number" name="points" id="points-profile" class="form-control" placeholder="e.g. 10 or -5" step="1">
+                        <small class="text-muted">Use a negative number to deduct points (e.g. -10)</small>
                     </div>
                     <div class="form-group">
                         <label class="font-weight-bold">Memo / Internal Note</label>
@@ -328,6 +337,16 @@ Detailed performance analysis for {{ $officer->name }}
 <script type="text/javascript" src="{{ asset('vali/js/plugins/dataTables.bootstrap.min.js') }}"></script>
 <script type="text/javascript" src="{{ asset('vali/js/plugins/chart.js') }}"></script>
 <script>
+    function toggleCustomPointsProfile(select) {
+        if (select.value === 'CUSTOM') {
+            $('.custom-points-div-profile').slideDown();
+            $('#points-profile').prop('required', true);
+        } else {
+            $('.custom-points-div-profile').slideUp();
+            $('#points-profile').prop('required', false).val('');
+        }
+    }
+
     $(document).ready(function() {
         $('.select2-modal').select2({
             dropdownParent: $('#adjustModal')

@@ -144,24 +144,31 @@ Official TRUMARK CRM points structure and performance rules
                                 </tr>
                             </thead>
                             <tbody>
+                                @php
+                                    $settings = \App\Models\SystemSetting::pluck('value', 'key');
+                                    $champion = (int)($settings['kpi_level_champion'] ?? 35000);
+                                    $excellent = (int)($settings['kpi_level_excellent'] ?? 25100);
+                                    $good = (int)($settings['kpi_level_good'] ?? 15100);
+                                    $fair = (int)($settings['kpi_level_fair'] ?? 8100);
+                                @endphp
                                 <tr>
-                                    <td><span class="badge badge-pill shadow-xs" style="background: #dc3545; color: white; padding: 6px 12px; font-size: 11px;"><i class="fa fa-exclamation-triangle mr-1"></i> 0 – 8,000</span></td>
+                                    <td><span class="badge badge-pill shadow-xs" style="background: #dc3545; color: white; padding: 6px 12px; font-size: 11px;"><i class="fa fa-exclamation-triangle mr-1"></i> 0 – {{ number_format($fair - 1) }}</span></td>
                                     <td><b class="text-danger" style="font-size: 13px;">Needs Improvement</b></td>
                                 </tr>
                                 <tr>
-                                    <td><span class="badge badge-pill shadow-xs" style="background: #17a2b8; color: white; padding: 6px 12px; font-size: 11px;"><i class="fa fa-smile-o mr-1"></i> 8,100 – 15,000</span></td>
+                                    <td><span class="badge badge-pill shadow-xs" style="background: #17a2b8; color: white; padding: 6px 12px; font-size: 11px;"><i class="fa fa-smile-o mr-1"></i> {{ number_format($fair) }} – {{ number_format($good - 1) }}</span></td>
                                     <td><b class="text-info" style="font-size: 13px;">Fair Performance</b></td>
                                 </tr>
                                 <tr>
-                                    <td><span class="badge badge-pill shadow-xs" style="background: #007bff; color: white; padding: 6px 12px; font-size: 11px;"><i class="fa fa-thumbs-up mr-1"></i> 15,100 – 25,000</span></td>
+                                    <td><span class="badge badge-pill shadow-xs" style="background: #007bff; color: white; padding: 6px 12px; font-size: 11px;"><i class="fa fa-thumbs-up mr-1"></i> {{ number_format($good) }} – {{ number_format($excellent - 1) }}</span></td>
                                     <td><b class="text-primary" style="font-size: 13px;">Good Performer</b></td>
                                 </tr>
                                 <tr>
-                                    <td><span class="badge badge-pill shadow-xs" style="background: #28a745; color: white; padding: 6px 12px; font-size: 11px;"><i class="fa fa-star mr-1"></i> 25,100 – 35,000</span></td>
+                                    <td><span class="badge badge-pill shadow-xs" style="background: #28a745; color: white; padding: 6px 12px; font-size: 11px;"><i class="fa fa-star mr-1"></i> {{ number_format($excellent) }} – {{ number_format($champion - 1) }}</span></td>
                                     <td><b class="text-success" style="font-size: 13px;">Excellent Performer</b></td>
                                 </tr>
                                 <tr>
-                                    <td><span class="badge badge-pill shadow-xs" style="background: #d4af37; color: white; padding: 6px 12px; font-size: 11px;"><i class="fa fa-trophy mr-1"></i> 35,000+</span></td>
+                                    <td><span class="badge badge-pill shadow-xs" style="background: #d4af37; color: white; padding: 6px 12px; font-size: 11px;"><i class="fa fa-trophy mr-1"></i> {{ number_format($champion) }}+</span></td>
                                     <td><b style="color:#d4af37; font-size: 13px;">Sales Champion</b></td>
                                 </tr>
                             </tbody>

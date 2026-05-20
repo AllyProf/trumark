@@ -195,12 +195,19 @@ Monthly and all-time staff performance rankings
                     <h4 class="font-weight-bold text-uppercase"><i class="fa fa-line-chart text-primary mr-2"></i> {{ auth()->user()->role === 'sales_officer' ? 'My KPI Ranking Status' : 'Staff Performance Ranking' }}: {{ date('F', mktime(0, 0, 0, request('month', now()->month), 1)) }} {{ request('year', now()->year) }}</h4>
                     <hr style="width: 100px; border-top: 3px solid #940000; margin-top: 5px;">
                     
+                    @php
+                        $settings = \App\Models\SystemSetting::pluck('value', 'key');
+                        $champion = (int)($settings['kpi_level_champion'] ?? 35000);
+                        $excellent = (int)($settings['kpi_level_excellent'] ?? 25100);
+                        $good = (int)($settings['kpi_level_good'] ?? 15100);
+                        $fair = (int)($settings['kpi_level_fair'] ?? 8100);
+                    @endphp
                     <div class="d-flex align-items-center justify-content-center flex-wrap mt-3">
-                        <span class="badge badge-pill mr-2 mb-1 shadow-sm" style="background: #dc3545; color: white; padding: 6px 12px; font-size: 11px;">0-8000: Imp.</span>
-                        <span class="badge badge-pill mr-2 mb-1 shadow-sm" style="background: #17a2b8; color: white; padding: 6px 12px; font-size: 11px;">8100-15000: Fair</span>
-                        <span class="badge badge-pill mr-2 mb-1 shadow-sm" style="background: #007bff; color: white; padding: 6px 12px; font-size: 11px;">15100-25000: Good</span>
-                        <span class="badge badge-pill mr-2 mb-1 shadow-sm" style="background: #28a745; color: white; padding: 6px 12px; font-size: 11px;">25100-35000: Exc.</span>
-                        <span class="badge badge-pill mb-1 shadow-sm" style="background: #d4af37; color: white; padding: 6px 12px; font-size: 11px;">35000+: Champ</span>
+                        <span class="badge badge-pill mr-2 mb-1 shadow-sm" style="background: #dc3545; color: white; padding: 6px 12px; font-size: 11px;">0-{{ $fair - 1 }}: Imp.</span>
+                        <span class="badge badge-pill mr-2 mb-1 shadow-sm" style="background: #17a2b8; color: white; padding: 6px 12px; font-size: 11px;">{{ $fair }}-{{ $good - 1 }}: Fair</span>
+                        <span class="badge badge-pill mr-2 mb-1 shadow-sm" style="background: #007bff; color: white; padding: 6px 12px; font-size: 11px;">{{ $good }}-{{ $excellent - 1 }}: Good</span>
+                        <span class="badge badge-pill mr-2 mb-1 shadow-sm" style="background: #28a745; color: white; padding: 6px 12px; font-size: 11px;">{{ $excellent }}-{{ $champion - 1 }}: Exc.</span>
+                        <span class="badge badge-pill mb-1 shadow-sm" style="background: #d4af37; color: white; padding: 6px 12px; font-size: 11px;">{{ $champion }}+: Champ</span>
                     </div>
                 </div>
 
@@ -211,7 +218,7 @@ Monthly and all-time staff performance rankings
                             <tr>
                                 <th class="text-center" style="width: 80px;">Rank</th>
                                 <th>Sales Officer & Branch</th>
-                                <th style="width: 35%;">Monthly Progress (Target: 35,000)</th>
+                                <th style="width: 35%;">Monthly Progress (Target: {{ number_format((int)($settings['kpi_level_champion'] ?? 35000)) }})</th>
                                 <th class="text-center" style="width: 120px;">This Month's Points</th>
                                 <th class="text-center" style="width: 120px;">Lifetime</th>
                                 <th class="text-center" style="width: 100px;">Actions</th>
@@ -251,7 +258,7 @@ Monthly and all-time staff performance rankings
                                 </td>
                                 <td class="align-middle">
                                     @php 
-                                        $target = 35000;
+                                        $target = (int)($settings['kpi_level_champion'] ?? 35000);
                                         $rawPercent = ($s->monthly_points / $target) * 100;
                                         $percent = min(100, ($rawPercent > 0 && $rawPercent < 0.1) ? number_format($rawPercent, 2) : number_format($rawPercent, 1));
                                         $barColor = $s->kpi_level['color'];
@@ -332,7 +339,7 @@ Monthly and all-time staff performance rankings
                             {{-- Monthly Progress Bar --}}
                             <div class="mb-3">
                                 @php 
-                                    $target = 35000;
+                                    $target = (int)($settings['kpi_level_champion'] ?? 35000);
                                     $rawPercent = ($s->monthly_points / $target) * 100;
                                     $percent = min(100, ($rawPercent > 0 && $rawPercent < 0.1) ? number_format($rawPercent, 2) : number_format($rawPercent, 1));
                                     $barColor = $s->kpi_level['color'];

@@ -324,7 +324,7 @@ class KpiController extends Controller
 
     public function guide()
     {
-        $points = \App\Services\KpiService::POINTS;
+        $points = \App\Services\KpiService::getPointsMap();
         return view('kpi.guide', compact('points'));
     }
 }

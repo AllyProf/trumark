@@ -321,16 +321,19 @@
             <div class="table-responsive">
                 <table class="table table-sm table-hover" style="font-size: 13px;">
                     <tbody>
-                        @foreach($stageData as $stage => $count)
+                        @foreach($stageData as $stage => $data)
                         <tr>
-                            <td style="width: 35%;"><b>{{ $stage }}</b></td>
-                            <td class="align-middle">
-                                @php $pct = $stats['total'] > 0 ? ($count / $stats['total']) * 100 : 0; @endphp
+                            <td style="width: 30%;">
+                                <b>{{ $stage }}</b><br>
+                                <small class="text-muted">TZS {{ number_format($data['value'] ?? 0) }}</small>
+                            </td>
+                            <td class="align-middle" style="width: 40%;">
+                                @php $pct = $stats['total'] > 0 ? ($data['total'] / $stats['total']) * 100 : 0; @endphp
                                 <div class="progress" style="height: 6px;">
                                     <div class="progress-bar bg-info" style="width: {{ $pct }}%"></div>
                                 </div>
                             </td>
-                            <td style="width: 15%;" class="text-right"><b>{{ $count }}</b></td>
+                            <td style="width: 15%;" class="text-right"><b>{{ $data['total'] }}</b></td>
                             <td style="width: 15%;" class="text-right">
                                 <button class="btn btn-xs btn-outline-info stage-filter-btn" data-stage="{{ $stage }}" onclick="filterByStage(this, '{{ $stage }}')">
                                     <i class="fa fa-eye"></i> View

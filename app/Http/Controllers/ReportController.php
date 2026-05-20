@@ -219,14 +219,21 @@ class ReportController extends Controller
             ->toArray();
 
         // Stage Breakdown — exclude numeric-only or junk values
-        $stageData = (clone $baseQuery)->select('buying_stage', DB::raw('count(*) as total'))
+        $stageDataRaw = (clone $baseQuery)->select('buying_stage', DB::raw('count(*) as total'), DB::raw('SUM(estimated_monthly_value) as value'))
             ->whereNotNull('buying_stage')
             ->where('buying_stage', '!=', '')
             ->whereRaw("buying_stage REGEXP '[A-Za-z]'")
             ->groupBy('buying_stage')
             ->orderByDesc('total')
-            ->pluck('total', 'buying_stage')
-            ->toArray();
+            ->get();
+            
+        $stageData = [];
+        foreach ($stageDataRaw as $row) {
+            $stageData[$row->buying_stage] = [
+                'total' => $row->total,
+                'value' => $row->value
+            ];
+        }
 
         // Region Breakdown — exclude purely numeric values, blank, or single-char junk entries
         $regionData = (clone $baseQuery)->select('region', DB::raw('count(*) as total'))

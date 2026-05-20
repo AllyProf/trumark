@@ -235,7 +235,10 @@ Monthly and all-time staff performance rankings
                                             @endif
                                         </div>
                                         <div>
-                                            <b class="d-block" style="font-size: 16px; color: #333;">{{ strtoupper($s->name) }}</b>
+                                            <b class="d-block" style="font-size: 16px; color: #333;">
+                                                {{ strtoupper($s->name) }}
+                                                <span class="badge badge-light border text-muted ml-1" style="font-size: 10px; font-weight: normal; vertical-align: middle;">{{ ucwords(str_replace('_', ' ', $s->role)) }}</span>
+                                            </b>
                                             <small class="text-muted"><i class="fa fa-map-marker mr-1 text-primary"></i> {{ $s->branch->name ?? 'Global' }}</small>
                                         </div>
                                     </div>
@@ -301,7 +304,10 @@ Monthly and all-time staff performance rankings
                                     @endif
                                 </div>
                                 <div>
-                                    <b class="d-block text-dark" style="font-size: 14px; line-height: 1.2;">{{ strtoupper($s->name) }}</b>
+                                    <b class="d-block text-dark" style="font-size: 14px; line-height: 1.2;">
+                                        {{ strtoupper($s->name) }}
+                                        <span class="badge badge-light border text-muted ml-1" style="font-size: 9px; font-weight: normal; vertical-align: middle;">{{ ucwords(str_replace('_', ' ', $s->role)) }}</span>
+                                    </b>
                                     <small class="text-muted"><i class="fa fa-map-marker text-primary mr-1"></i> {{ $s->branch->name ?? 'Global' }}</small>
                                 </div>
                                 <div class="ml-auto text-right">

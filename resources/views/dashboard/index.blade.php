@@ -153,29 +153,33 @@ Real-time analytics and performance metrics for your business
     </div>
     <div class="col-md-6">
         <div class="tile">
-            <h3 class="tile-title">Recent Communication Log</h3>
+            <h3 class="tile-title">Recent Actions Done</h3>
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Customer</th>
-                            <th>Status</th>
+                            <th>User / Customer</th>
+                            <th>Action</th>
                             <th>Time</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($recent_logs as $sms)
+                        @forelse($recent_logs as $log)
                         <tr>
                             <td>
-                                @if($sms->customer)
-                                    <b class="text-dark">{{ $sms->customer->name }}</b><br>
-                                    <small class="text-muted">{{ $sms->customer->phone }}</small>
+                                @if($log->customer)
+                                    <b class="text-dark">{{ $log->customer->name }}</b><br>
+                                    <small class="text-muted"><i class="fa fa-user mr-1"></i> {{ $log->user->name ?? 'System' }}</small>
                                 @else
-                                    <i class="text-muted">Deleted Customer</i>
+                                    <b class="text-dark">{{ $log->user->name ?? 'System' }}</b><br>
+                                    <small class="text-muted">General Action</small>
                                 @endif
                             </td>
-                            <td><span class="badge badge-success">Sent</span></td>
-                            <td>{{ $sms->created_at->diffForHumans() }}</td>
+                            <td>
+                                <span class="d-block font-weight-bold" style="font-size: 13px;">{{ $log->description }}</span>
+                                <span class="badge badge-success mt-1">+{{ $log->points }} pts</span>
+                            </td>
+                            <td class="text-muted small align-middle">{{ $log->created_at->diffForHumans() }}</td>
                         </tr>
                         @empty
                         <tr>

@@ -108,20 +108,18 @@ class DashboardController extends Controller
             $funnel_percentages[$key] = $total_funnel > 0 ? round(($count / $total_funnel) * 100) : 0;
         }
 
-        // Recent SMS Activity (Isolated by Officer and Branch)
-        $recent_logs = \App\Models\SmsLog::with('customer', 'sender')
+        // Recent Actions Done (Isolated by Officer and Branch)
+        $recent_logs = \App\Models\KpiActivity::with(['customer', 'user', 'performer'])
             ->when($branchId, function($q) use ($branchId) {
-                return $q->whereHas('customer', function($cq) use ($branchId) {
-                    $cq->where('branch_id', $branchId);
+                return $q->whereHas('user', function($uq) use ($branchId) {
+                    $uq->where('branch_id', $branchId);
                 });
             })
             ->when($isOfficer, function($q) use ($user) {
-                return $q->whereHas('customer', function($cq) use ($user) {
-                    $cq->where('sales_officer_id', $user->id);
-                });
+                return $q->where('user_id', $user->id);
             })
             ->latest()
-            ->paginate(4, ['*'], 'comms_page');
+            ->simplePaginate(3, ['*'], 'comms_page');
 
         // Monthly Leads Trend (Last 6 Months)
         $leads_by_month = [];

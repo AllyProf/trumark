@@ -295,7 +295,7 @@ class ReportController extends Controller
             $staffId = $user->id;
         }
 
-        $feedbacks = $query->latest()->paginate(15)->appends($request->query());
+        $feedbacks = (clone $query)->latest()->paginate(15)->appends($request->query());
         
         $avgRating = (clone $query)->avg('rating');
         $totalFeedbacks = (clone $query)->count();

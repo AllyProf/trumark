@@ -41,7 +41,18 @@ Updating record for {{ $customer->name }}
                     <h4><i class="fa fa-id-card mr-2"></i> Section 1: Identity & Classification</h4>
                 </div>
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-12 mb-3">
+                        <div class="form-group" style="background: var(--brand-light); padding: 15px; border-radius: 8px; border: 1px solid rgba(148,0,0,0.2);">
+                            <label class="font-weight-bold" style="color: var(--primary-brand); font-size: 13px;">SERVICE CATEGORY</label>
+                            <select name="service" id="serviceCategory" class="form-control select2" data-preview="Service Category" required>
+                                <option value="Bookshop" {{ ($customer->service ?? 'Bookshop') == 'Bookshop' ? 'selected' : '' }}>📚 Bookshop (Full Form)</option>
+                                <option value="Stationery" {{ $customer->service == 'Stationery' ? 'selected' : '' }}>✏️ Stationery (Simplified)</option>
+                                <option value="Wakala" {{ $customer->service == 'Wakala' ? 'selected' : '' }}>📱 Wakala (Simplified)</option>
+                                <option value="Others" {{ $customer->service == 'Others' ? 'selected' : '' }}>🏢 Others (Simplified)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4 bookshop-only">
                         <div class="form-group">
                             <label class="font-weight-bold small">CUSTOMER STATUS</label>
                             <select name="status" class="form-control select2">
@@ -51,7 +62,7 @@ Updating record for {{ $customer->name }}
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-4 bookshop-only">
                         <div class="form-group">
                             <label class="font-weight-bold small">CUSTOMER TYPE</label>
                             <select name="type" id="customerType" class="form-control select2">
@@ -62,7 +73,7 @@ Updating record for {{ $customer->name }}
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-4" id="schoolTypeRow" style="{{ $customer->type == 'School' ? '' : 'display:none;' }}">
+                    <div class="col-md-4 bookshop-only" id="schoolTypeRow" style="{{ $customer->type == 'School' ? '' : 'display:none;' }}">
                         <div class="form-group">
                             <label class="font-weight-bold small">SCHOOL LEVEL</label>
                             <select name="school_level" class="form-control select2">
@@ -73,7 +84,7 @@ Updating record for {{ $customer->name }}
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-4 bookshop-only">
                         <div class="form-group">
                             <label class="font-weight-bold small">CUSTOMER SOURCE</label>
                             <select name="source" class="form-control select2">
@@ -90,19 +101,19 @@ Updating record for {{ $customer->name }}
                             <input type="text" name="name" class="form-control" value="{{ old('name', $customer->name) }}" required>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-4 bookshop-only">
                         <div class="form-group">
                             <label class="font-weight-bold small">CONTACT PERSON</label>
                             <input type="text" name="contact_person" class="form-control" value="{{ old('contact_person', $customer->contact_person) }}">
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-4 bookshop-only">
                         <div class="form-group">
                             <label class="font-weight-bold small">POSITION</label>
                             <input type="text" name="position" class="form-control" value="{{ old('position', $customer->position) }}">
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-4 bookshop-only">
                         <div class="form-group">
                             <label class="font-weight-bold small">TIN / REG NO.</label>
                             <input type="text" name="tin_no" class="form-control" value="{{ old('tin_no', $customer->tin_no) }}">
@@ -158,7 +169,7 @@ Updating record for {{ $customer->name }}
                             <div id="phone-edit-feedback" class="mt-1" style="display:none;"></div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-4 bookshop-only">
                         <div class="form-group">
                             <label class="font-weight-bold small">ALT PHONE</label>
                             @php
@@ -185,7 +196,7 @@ Updating record for {{ $customer->name }}
                             <div id="email-edit-feedback" class="mt-1" style="display:none;"></div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6 bookshop-only">
                         <div class="form-group">
                             <label class="font-weight-bold small">REGION</label>
                             <select name="region" id="regionSelect" class="form-control select2">
@@ -193,7 +204,7 @@ Updating record for {{ $customer->name }}
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6 bookshop-only">
                         <div class="form-group">
                             <label class="font-weight-bold small">DISTRICT</label>
                             <select name="district" id="districtSelect" class="form-control select2">
@@ -201,23 +212,29 @@ Updating record for {{ $customer->name }}
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-4 bookshop-only">
                         <div class="form-group">
                             <label class="font-weight-bold small">WARD / AREA</label>
                             <input type="text" name="ward" class="form-control" value="{{ old('ward', $customer->ward) }}">
                         </div>
                     </div>
-                    <div class="col-md-8">
+                    <div class="col-md-8 bookshop-only">
                         <div class="form-group">
                             <label class="font-weight-bold small">PHYSICAL ADDRESS & LANDMARK</label>
                             <input type="text" name="address" class="form-control" value="{{ old('address', $customer->address) }}">
+                        </div>
+                    </div>
+                    <div class="col-md-12 simplified-only" style="display:none;">
+                        <div class="form-group">
+                            <label class="font-weight-bold small mandatory-label">SERVICE DESCRIPTION</label>
+                            <textarea name="service_description" class="form-control" data-preview="Service Description" rows="4" placeholder="Briefly describe the service required...">{{ old('service_description', $customer->service_description) }}</textarea>
                         </div>
                     </div>
                 </div>
             </div>
 
             {{-- SECTION 3: REQUIREMENTS --}}
-            <div class="tile">
+            <div class="tile bookshop-only">
                 <div class="section-header">
                     <h4><i class="fa fa-shopping-basket mr-2"></i> Section 3: Requirements & Value</h4>
                 </div>
@@ -280,7 +297,7 @@ Updating record for {{ $customer->name }}
             </div>
 
             {{-- SECTION 4: TRACKING --}}
-            <div class="tile">
+            <div class="tile bookshop-only">
                 <div class="section-header">
                     <h4><i class="fa fa-clipboard-check mr-2"></i> Section 4: Tracking & Pipeline</h4>
                 </div>
@@ -337,9 +354,7 @@ Updating record for {{ $customer->name }}
                     <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-secondary px-4">
                         <i class="fa fa-times mr-2"></i> Cancel
                     </a>
-                    <button type="submit" class="btn btn-primary px-5 py-2" style="font-weight:700;">
-                        <i class="fa fa-save mr-2"></i> SAVE CHANGES
-                    </button>
+                    <button type="button" id="confirmUpdateBtn" class="btn btn-success px-5 shadow-lg py-2" style="font-weight: 700; letter-spacing: 1px;"><i class="fa fa-save mr-2"></i> UPDATE LEAD INFORMATION</button>
                 </div>
             </div>
 
@@ -418,6 +433,27 @@ $(document).ready(function() {
         districtSelect.trigger('change');
     });
 
+    // Dynamic Service Type Switcher
+    function toggleServiceFields() {
+        let service = $('#serviceCategory').val();
+        if (service !== 'Bookshop') {
+            $('.bookshop-only').slideUp();
+            $('.bookshop-only [required]').removeAttr('required').attr('data-was-required', 'true');
+            $('.simplified-only').slideDown();
+            $('.simplified-only textarea').attr('required', 'required');
+        } else {
+            $('.bookshop-only').slideDown();
+            $('.bookshop-only [data-was-required="true"]').attr('required', 'required');
+            $('.simplified-only').slideUp();
+            $('.simplified-only textarea').removeAttr('required');
+        }
+    }
+    
+    $('#serviceCategory').on('change', toggleServiceFields);
+    
+    // Run on load
+    toggleServiceFields();
+
     // Country & Phone Logic
     $('#countrySelect').on('change', function() {
         const code = $(this).find(':selected').data('code');
@@ -452,7 +488,7 @@ $(document).ready(function() {
     });
 
     // Form validation before submit
-    $('form').on('submit', function(e) {
+    $('#confirmUpdateBtn').on('click', function(e) {
         let valid = true;
         const phoneLen = $('#phoneEdit').val().length;
         if (phoneLen > 0 && phoneLen !== 9) {
@@ -468,9 +504,34 @@ $(document).ready(function() {
         }
 
         if (!valid) {
-            e.preventDefault();
             window.scrollTo({top: $('#phoneEdit').offset().top - 100, behavior: 'smooth'});
+            return;
         }
+        
+        Swal.fire({
+            title: 'Confirm Update',
+            text: "Are you sure you want to update this lead?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#d33',
+            confirmButtonText: '<i class="fa fa-check-circle mr-1"></i> Yes, update!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Updating...',
+                    text: 'Please wait while we save the changes.',
+                    icon: 'info',
+                    showConfirmButton: false,
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading()
+                    }
+                });
+                $(this).closest('form').submit();
+            }
+        });
     });
 
     // Requirement tiles

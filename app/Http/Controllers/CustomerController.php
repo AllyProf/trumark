@@ -160,12 +160,14 @@ class CustomerController extends Controller
             'name'         => 'required|string|max:255',
             'phone'        => 'required|string|max:20',
             'email'        => 'nullable|email|max:255',
-            'status'       => 'required|string',
-            'buying_stage' => 'required|string',
+            'status'       => 'nullable|string',
+            'buying_stage' => 'nullable|string',
         ]);
 
         $data = $request->except(['phone_number', 'alternative_phone_number']);
         $data['estimated_monthly_value'] = $request->estimated_monthly_value ?? 0;
+        $data['status'] = $request->status ?: 'New Customer';
+        $data['buying_stage'] = $request->buying_stage ?: 'Inquiry';
 
         // ─── HARD UNIQUENESS: Phone & Email ──────────────────────────────────
         $cleanPhone = preg_replace('/[\s\-\(\)\+]/', '', $request->phone);

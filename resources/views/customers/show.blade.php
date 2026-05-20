@@ -93,49 +93,65 @@ Detailed profile and sales history for {{ $customer->name }}
             <h3 class="tile-title">Contact Information</h3>
             <div class="row">
                 <div class="col-md-6">
-                    <p><b>Contact Person:</b> {{ $customer->contact_person ?? 'N/A' }}</p>
-                    <p><b>Position:</b> {{ $customer->position ?? 'N/A' }}</p>
+                    @if($customer->service === 'Bookshop')
+                        <p><b>Contact Person:</b> {{ $customer->contact_person ?? 'N/A' }}</p>
+                        <p><b>Position:</b> {{ $customer->position ?? 'N/A' }}</p>
+                    @endif
                     <p><b>Phone:</b> {{ $customer->phone }}</p>
+                    @if($customer->service === 'Bookshop')
+                        <p><b>Alt. Phone:</b> {{ $customer->alternative_phone ?? 'N/A' }}</p>
+                    @endif
                 </div>
                 <div class="col-md-6">
-                    <p><b>Alt. Phone:</b> {{ $customer->alternative_phone ?? 'N/A' }}</p>
                     <p><b>Email:</b> {{ $customer->email ?? 'N/A' }}</p>
-                    <p><b>Source:</b> {{ $customer->source ?? 'N/A' }}</p>
+                    <p><b>Country:</b> {{ $customer->country ?? 'Tanzania (+255)' }}</p>
+                    @if($customer->service === 'Bookshop')
+                        <p><b>Source:</b> {{ $customer->source ?? 'N/A' }}</p>
+                    @endif
                 </div>
             </div>
             <hr>
-            <h3 class="tile-title">Location Details</h3>
-            <div class="row">
-                <div class="col-md-6">
-                    <p><b>Region/District:</b> {{ $customer->region ?? 'N/A' }}, {{ $customer->district ?? 'N/A' }}</p>
-                    <p><b>Ward/Area:</b> {{ $customer->ward ?? 'N/A' }}</p>
+            @if($customer->service === 'Bookshop')
+                <h3 class="tile-title">Location Details</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><b>Region/District:</b> {{ $customer->region ?? 'N/A' }}, {{ $customer->district ?? 'N/A' }}</p>
+                        <p><b>Ward/Area:</b> {{ $customer->ward ?? 'N/A' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><b>Physical Address:</b> {{ $customer->address ?? 'N/A' }}</p>
+                        <p><b>Landmark:</b> {{ $customer->landmark ?? 'N/A' }}</p>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <p><b>Physical Address:</b> {{ $customer->address ?? 'N/A' }}</p>
-                    <p><b>Landmark:</b> {{ $customer->landmark ?? 'N/A' }}</p>
-                </div>
-            </div>
+            @endif
         </div>
 
         <div class="tile">
-            <h3 class="tile-title">Internal Notes & Requirements</h3>
+            <h3 class="tile-title">Requirements & Notes</h3>
             <div class="row">
                 <div class="col-md-12">
-                    <p><b>Products / Services Required:</b></p>
-                    <div class="mb-3">
-                        @if(!empty($customer->requirements) && is_array($customer->requirements))
-                            @foreach($customer->requirements as $req)
-                                <span class="badge badge-info p-2 mr-1 mb-1" style="font-size: 12px;"><i class="fa fa-check mr-1"></i> {{ $req }}</span>
-                            @endforeach
-                        @else
-                            <span class="text-muted small">No specific products selected.</span>
-                        @endif
-                    </div>
-                    
-                    <p><b>Additional Details:</b></p>
-                    <div class="p-3 bg-light rounded border mb-3">
-                        {{ $customer->detailed_requirement ?? 'No specific details provided.' }}
-                    </div>
+                    @if($customer->service === 'Bookshop')
+                        <p><b>Products / Services Required:</b></p>
+                        <div class="mb-3">
+                            @if(!empty($customer->requirements) && is_array($customer->requirements))
+                                @foreach($customer->requirements as $req)
+                                    <span class="badge badge-info p-2 mr-1 mb-1" style="font-size: 12px;"><i class="fa fa-check mr-1"></i> {{ $req }}</span>
+                                @endforeach
+                            @else
+                                <span class="text-muted small">No specific products selected.</span>
+                            @endif
+                        </div>
+                        
+                        <p><b>Additional Details:</b></p>
+                        <div class="p-3 bg-light rounded border mb-3">
+                            {{ $customer->detailed_requirement ?? 'No specific details provided.' }}
+                        </div>
+                    @else
+                        <p><b>Service Description:</b></p>
+                        <div class="p-3 bg-light rounded border mb-3">
+                            {{ $customer->service_description ?? 'No service description provided.' }}
+                        </div>
+                    @endif
                     
                     <p><b>Internal Remarks:</b></p>
                     <div class="p-3 bg-light rounded border" style="border-left: 4px solid #940000 !important;">

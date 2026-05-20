@@ -491,34 +491,31 @@
     <script src="{{ asset('vali/js/main.js') }}"></script>
     <!-- The javascript plugin to display page loading on top-->
     <script src="{{ asset('vali/js/plugins/pace.min.js') }}"></script>
-    <script type="text/javascript" src="{{ asset('vali/js/plugins/bootstrap-notify.min.js') }}"></script>
-    <script type="text/javascript" src="{{ asset('vali/js/plugins/sweetalert.min.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+
         @if(session('success'))
-            $.notify({
-                title: "Success : ",
-                message: "{{ session('success') }}",
-                icon: 'fa fa-check' 
-            },{
-                type: "success",
-                placement: {
-                    from: "top",
-                    align: "right"
-                }
+            Toast.fire({
+                icon: 'success',
+                title: "{{ session('success') }}"
             });
         @endif
 
         @if(session('error'))
-            $.notify({
-                title: "Error : ",
-                message: "{{ session('error') }}",
-                icon: 'fa fa-times' 
-            },{
-                type: "danger",
-                placement: {
-                    from: "top",
-                    align: "right"
-                }
+            Toast.fire({
+                icon: 'error',
+                title: "{{ session('error') }}"
             });
         @endif
     </script>

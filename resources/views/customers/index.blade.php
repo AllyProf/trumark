@@ -100,13 +100,27 @@ Manage registered customers, leads, and sales pipeline progress
                                 <b class="text-primary">{{ $customer->phone }}</b><br>
                                 <small class="text-muted">{{ $customer->email }}</small>
                             </td>
-                            <td>{{ $customer->type }}</td>
-                            <td><span class="badge badge-info">{{ $customer->status }}</span></td>
-                            <td><span class="badge badge-secondary">{{ $customer->buying_stage }}</span></td>
+                            <td>{{ $customer->service === 'Bookshop' ? ($customer->type ?: 'N/A') : $customer->service }}</td>
+                            <td>
+                                @if($customer->service === 'Bookshop')
+                                    <span class="badge badge-info">{{ $customer->status }}</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($customer->service === 'Bookshop')
+                                    <span class="badge badge-secondary">{{ $customer->buying_stage }}</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
                             <td class="text-center">
                                 <div class="btn-group">
                                     <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-primary btn-sm" title="View"><i class="fa fa-eye"></i></a>
-                                    <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#updateModal-{{ $customer->id }}" title="Quick Update"><i class="fa fa-bolt"></i></button>
+                                    @if($customer->service === 'Bookshop')
+                                        <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#updateModal-{{ $customer->id }}" title="Quick Update"><i class="fa fa-bolt"></i></button>
+                                    @endif
                                     <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#smsModal-{{ $customer->id }}" title="Direct Broadcast"><i class="fa fa-paper-plane"></i></button>
                                     <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-secondary btn-sm" title="Edit Full Profile"><i class="fa fa-edit"></i></a>
                                 </div>
@@ -137,22 +151,24 @@ Manage registered customers, leads, and sales pipeline progress
             <form action="{{ route('customers.quick_update', $customer->id) }}" method="POST">
                 @csrf @method('PATCH')
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label class="font-weight-bold small">BUYING STAGE</label>
-                        <select name="buying_stage" class="form-control select2-modal" required>
-                            @foreach(['Inquiry','Quotation Sent','Negotiation','Order Confirmed','Delivered','Payment Pending','Closed Won','Closed Lost'] as $stage)
-                                <option value="{{ $stage }}" {{ $customer->buying_stage == $stage ? 'selected' : '' }}>{{ $stage }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="font-weight-bold small">CUSTOMER STATUS</label>
-                        <select name="status" class="form-control select2-modal" required>
-                            @foreach(['New Customer','Potential Customer','Existing Customer','Inactive Customer','VIP Customer'] as $s)
-                                <option value="{{ $s }}" {{ $customer->status == $s ? 'selected' : '' }}>{{ $s }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                    @if($customer->service === 'Bookshop')
+                        <div class="form-group">
+                            <label class="font-weight-bold small">BUYING STAGE</label>
+                            <select name="buying_stage" class="form-control select2-modal" required>
+                                @foreach(['Inquiry','Quotation Sent','Negotiation','Order Confirmed','Delivered','Payment Pending','Closed Won','Closed Lost'] as $stage)
+                                    <option value="{{ $stage }}" {{ $customer->buying_stage == $stage ? 'selected' : '' }}>{{ $stage }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="font-weight-bold small">CUSTOMER STATUS</label>
+                            <select name="status" class="form-control select2-modal" required>
+                                @foreach(['New Customer','Potential Customer','Existing Customer','Inactive Customer','VIP Customer'] as $s)
+                                    <option value="{{ $s }}" {{ $customer->status == $s ? 'selected' : '' }}>{{ $s }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
                     <div class="form-group">
                         <label class="font-weight-bold small">NEXT FOLLOW-UP DATE</label>
                         <input type="date" name="next_follow_up_date" class="form-control"
@@ -206,20 +222,22 @@ Manage registered customers, leads, and sales pipeline progress
                                 <small class="text-muted">Check-in with existing lead</small>
                             </div>
                         </div>
-                        <div class="col-md-6 mt-2">
-                            <div class="sms-template-btn" data-target="sms-msg-{{ $customer->id }}" data-template-id="wa-template-{{ $customer->id }}" data-template="quote_ready"
-                                data-msg="Dear {{ $customer->name }}, your quotation from TruMark Co. LTD is now ready! . Please check your email for the details or let us know if you have any questions. 🤝">
-                                <i class="fa fa-file-text mr-1 text-success"></i> <b>Quotation Ready</b><br>
-                                <small class="text-muted">Notify quotation is ready</small>
+                        @if($customer->service === 'Bookshop')
+                            <div class="col-md-6 mt-2">
+                                <div class="sms-template-btn" data-target="sms-msg-{{ $customer->id }}" data-template-id="wa-template-{{ $customer->id }}" data-template="quote_ready"
+                                    data-msg="Dear {{ $customer->name }}, your quotation from TruMark Co. LTD is now ready! . Please check your email for the details or let us know if you have any questions. 🤝">
+                                    <i class="fa fa-file-text mr-1 text-success"></i> <b>Quotation Ready</b><br>
+                                    <small class="text-muted">Notify quotation is ready</small>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-6 mt-2">
-                            <div class="sms-template-btn" data-target="sms-msg-{{ $customer->id }}" data-template-id="wa-template-{{ $customer->id }}" data-template="payment_reminder"
-                                data-msg="Dear {{ $customer->name }}, this is a friendly reminder regarding your pending payment with TruMark Co. LTD. Please reach out if you have any questions or need assistance. We appreciate your business! 😊">
-                                <i class="fa fa-money mr-1 text-danger"></i> <b>Payment Reminder</b><br>
-                                <small class="text-muted">Friendly payment nudge</small>
+                            <div class="col-md-6 mt-2">
+                                <div class="sms-template-btn" data-target="sms-msg-{{ $customer->id }}" data-template-id="wa-template-{{ $customer->id }}" data-template="payment_reminder"
+                                    data-msg="Dear {{ $customer->name }}, this is a friendly reminder regarding your pending payment with TruMark Co. LTD. Please reach out if you have any questions or need assistance. We appreciate your business! 😊">
+                                    <i class="fa fa-money mr-1 text-danger"></i> <b>Payment Reminder</b><br>
+                                    <small class="text-muted">Friendly payment nudge</small>
+                                </div>
                             </div>
-                        </div>
+                        @endif
                     </div>
 
                     <div class="form-group">
@@ -253,7 +271,8 @@ Manage registered customers, leads, and sales pipeline progress
 $(document).ready(function() {
     var table = $('#customerTable').DataTable({
         "paging": false, "info": false, "dom": 't',
-        "retrieve": true, "destroy": true
+        "retrieve": true, "destroy": true,
+        "order": [] // Disable initial sorting to keep server-side latest() order
     });
 
     // Filters

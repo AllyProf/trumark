@@ -150,7 +150,18 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                 <div class="form-section active" id="step1">
                     <h3 class="tile-title" style="color: var(--primary-brand)"><i class="fa fa-id-card mr-2"></i> Section 1: Identity & Classification</h3>
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-12 mb-3">
+                            <div class="form-group" style="background: var(--brand-light); padding: 15px; border-radius: 8px; border: 1px solid rgba(148,0,0,0.2);">
+                                <label class="font-weight-bold" style="color: var(--primary-brand); font-size: 13px;">SERVICE CATEGORY</label>
+                                <select name="service" id="serviceCategory" class="form-control select2" data-preview="Service Category" required>
+                                    <option value="Bookshop" selected>📚 Bookshop (Full Form)</option>
+                                    <option value="Stationery">✏️ Stationery (Simplified)</option>
+                                    <option value="Wakala">📱 Wakala (Simplified)</option>
+                                    <option value="Others">🏢 Others (Simplified)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4 bookshop-only">
                             <div class="form-group">
                                 <label class="font-weight-bold small mandatory-label">CUSTOMER STATUS</label>
                                 <select name="status" class="form-control select2" data-preview="Status" required>
@@ -163,7 +174,7 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 bookshop-only">
                             <div class="form-group">
                                 <label class="font-weight-bold small mandatory-label">CUSTOMER TYPE</label>
                                 <select name="type" id="customerType" class="form-control select2" data-preview="Customer Type" required>
@@ -176,7 +187,7 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                 </select>
                             </div>
                         </div>
-                        <div id="schoolTypeRow" class="col-md-4" style="display:none;">
+                        <div id="schoolTypeRow" class="col-md-4 bookshop-only" style="display:none;">
                             <div class="form-group">
                                 <label class="font-weight-bold small mandatory-label">SCHOOL LEVEL</label>
                                 <select name="school_level" class="form-control select2" data-preview="School Level">
@@ -191,7 +202,7 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 bookshop-only">
                             <div class="form-group">
                                 <label class="font-weight-bold small mandatory-label">CUSTOMER SOURCE</label>
                                 <select name="source" class="form-control select2" data-preview="Source" required>
@@ -216,19 +227,19 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                 <input type="text" name="name" class="form-control" data-preview="Name" placeholder="Full official name" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 bookshop-only">
                             <div class="form-group">
                                 <label class="font-weight-bold small mandatory-label">CONTACT PERSON</label>
                                 <input type="text" name="contact_person" class="form-control" data-preview="Contact Person" placeholder="Full name" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 bookshop-only">
                             <div class="form-group">
                                 <label class="font-weight-bold small mandatory-label">POSITION</label>
                                 <input type="text" name="position" class="form-control" data-preview="Position" placeholder="Job title" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 bookshop-only">
                             <div class="form-group">
                                 <label class="font-weight-bold small">TIN / REG NO.</label>
                                 <input type="text" name="tin_no" class="form-control" data-preview="TIN No" placeholder="TIN Number">
@@ -260,13 +271,13 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                         <span class="input-group-text font-weight-bold" id="countryCodeDisplay" style="background: #f8f9fa;">+255</span>
                                     </div>
                                     <input type="text" id="phoneInput" name="phone_number" class="form-control" placeholder="e.g. 712345678" maxlength="9" required>
-                                    <input type="hidden" name="phone" id="fullPhone">
+                                    <input type="hidden" name="phone" id="fullPhone" data-preview="Primary Phone">
                                 </div>
                                 <small class="text-muted">Enter 9 digits after country code.</small>
                                 <div id="phone-feedback" class="mt-1" style="display:none;"></div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 bookshop-only">
                             <div class="form-group">
                                 <label class="font-weight-bold small">ALT PHONE</label>
                                 <div class="input-group">
@@ -274,7 +285,7 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                         <span class="input-group-text font-weight-bold altCountryCodeDisplay" style="background: #f8f9fa;">+255</span>
                                     </div>
                                     <input type="text" id="altPhoneInput" name="alternative_phone_number" class="form-control" placeholder="Optional phone" maxlength="9">
-                                    <input type="hidden" name="alternative_phone" id="fullAltPhone">
+                                    <input type="hidden" name="alternative_phone" id="fullAltPhone" data-preview="Alt Phone">
                                 </div>
                                 <small class="text-muted">Enter 9 digits after country code.</small>
                                 <div id="alt-phone-feedback" class="mt-1" style="display:none;"></div>
@@ -287,7 +298,7 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                 <div id="email-feedback" class="mt-1" style="display:none;"></div>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 bookshop-only">
                             <div class="form-group">
                                 <label class="font-weight-bold small mandatory-label">REGION</label>
                                 <select name="region" id="regionSelect" class="form-control select2" data-preview="Region" required>
@@ -295,7 +306,7 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 bookshop-only">
                             <div class="form-group">
                                 <label class="font-weight-bold small mandatory-label">DISTRICT</label>
                                 <select name="district" id="districtSelect" class="form-control select2" data-preview="District" required disabled>
@@ -303,22 +314,28 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 bookshop-only">
                             <div class="form-group">
                                 <label class="font-weight-bold small">WARD / AREA</label>
                                 <input type="text" name="ward" class="form-control" data-preview="Ward">
                             </div>
                         </div>
-                        <div class="col-md-8">
+                        <div class="col-md-8 bookshop-only">
                             <div class="form-group">
                                 <label class="font-weight-bold small">PHYSICAL ADDRESS & LANDMARK</label>
                                 <input type="text" name="address" class="form-control" data-preview="Address" placeholder="Physical Address">
                             </div>
                         </div>
+                        <div class="col-md-12 simplified-only" style="display:none;">
+                            <div class="form-group">
+                                <label class="font-weight-bold small mandatory-label">SERVICE DESCRIPTION</label>
+                                <textarea name="service_description" class="form-control" data-preview="Service Description" rows="4" placeholder="Briefly describe the service required..."></textarea>
+                            </div>
+                        </div>
                     </div>
                     <div class="d-flex justify-content-between mt-4">
                         <button type="button" class="btn btn-secondary prev-step px-4"><i class="fa fa-arrow-left mr-2"></i> Back</button>
-                        <button type="button" class="btn btn-primary next-step px-5">Next: Requirements <i class="fa fa-arrow-right ml-2"></i></button>
+                        <button type="button" id="btnNextLocation" class="btn btn-primary next-step px-5">Next: Requirements <i class="fa fa-arrow-right ml-2"></i></button>
                     </div>
                 </div>
 
@@ -504,7 +521,7 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
 
                     <div class="d-flex justify-content-between mt-5">
                         <button type="button" class="btn btn-secondary prev-step px-4"><i class="fa fa-arrow-left mr-2"></i> Edit Information</button>
-                        <button type="submit" class="btn btn-success px-5 shadow-lg py-2" style="font-weight: 700; letter-spacing: 1px;"><i class="fa fa-check-circle mr-2"></i> CONFIRM & REGISTER LEAD</button>
+                        <button type="button" id="confirmRegisterBtn" class="btn btn-success px-5 shadow-lg py-2" style="font-weight: 700; letter-spacing: 1px;"><i class="fa fa-check-circle mr-2"></i> CONFIRM & REGISTER LEAD</button>
                     </div>
                 </div>
 
@@ -621,6 +638,29 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
 
         // Wizard Logic
         let currentStep = 1;
+        
+        // Dynamic Service Type Switcher
+        $('#serviceCategory').on('change', function() {
+            let service = $(this).val();
+            
+            // Handle Bookshop vs Simplified forms
+            if (service !== 'Bookshop') {
+                $('.bookshop-only').slideUp();
+                $('.bookshop-only [required]').removeAttr('required').attr('data-was-required', 'true');
+                $('.simplified-only').slideDown();
+                $('.simplified-only textarea').attr('required', 'required');
+                $('.step[data-step="3"], .step[data-step="4"]').hide(); 
+                $('#btnNextLocation').html('Review & Submit <i class="fa fa-check ml-2"></i>').removeClass('btn-primary').addClass('btn-success');
+            } else {
+                $('.bookshop-only').slideDown();
+                $('.bookshop-only [data-was-required="true"]').attr('required', 'required');
+                $('.simplified-only').slideUp();
+                $('.simplified-only textarea').removeAttr('required');
+                $('.step[data-step="3"], .step[data-step="4"]').show(); 
+                $('#btnNextLocation').html('Next: Opportunity <i class="fa fa-arrow-right ml-2"></i>').removeClass('btn-success').addClass('btn-primary');
+            }
+        });
+
         $('.next-step').on('click', function() {
             let valid = true;
             $(`#step${currentStep} [required]`).each(function() {
@@ -659,10 +699,20 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
             }
 
             if (valid) {
-                if (currentStep == 4) generatePreview();
+                let service = $('#serviceCategory').val();
+                
                 $(`#step${currentStep}`).removeClass('active');
                 $(`.step[data-step="${currentStep}"]`).addClass('completed').removeClass('active');
-                currentStep++;
+                
+                if (currentStep === 2 && service !== 'Bookshop') {
+                    // Skip steps 3 and 4 directly to Review (5)
+                    currentStep = 5;
+                } else {
+                    currentStep++;
+                }
+                
+                if (currentStep == 5) generatePreview();
+                
                 $(`#step${currentStep}`).addClass('active');
                 $(`.step[data-step="${currentStep}"]`).addClass('active');
                 window.scrollTo({top:0, behavior:'smooth'});
@@ -670,9 +720,16 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
         });
 
         $('.prev-step').on('click', function() {
+            let service = $('#serviceCategory').val();
             $(`#step${currentStep}`).removeClass('active');
             $(`.step[data-step="${currentStep}"]`).removeClass('active');
-            currentStep--;
+            
+            if (currentStep === 5 && service !== 'Bookshop') {
+                currentStep = 2; // Jump back from Review to Location
+            } else {
+                currentStep--;
+            }
+            
             $(`#step${currentStep}`).addClass('active');
             $(`.step[data-step="${currentStep}"]`).addClass('active').removeClass('completed');
             window.scrollTo({top:0, behavior:'smooth'});
@@ -680,32 +737,72 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
 
         function generatePreview() {
             let sAll = '';
+            let service = $('#serviceCategory').val();
             
             for(let i=1; i<=4; i++) {
+                // Skip sections 3 & 4 if not Bookshop
+                if (service !== 'Bookshop' && (i === 3 || i === 4)) continue;
+                
                 let sectionTitle = ['Identity & Classification', 'Contact & Location', 'Opportunity & Requirements', 'Tracking & Assignments'][i-1];
-                sAll += `<tr><td colspan="2" class="text-center font-weight-bold text-uppercase" style="background: #fdfdfd; color: var(--primary-brand); letter-spacing: 1px;">${sectionTitle}</td></tr>`;
+                let innerHtml = '';
                 
                 $(`#step${i} [data-preview]`).each(function() {
+                    // Skip fields that are conceptually hidden based on the service category
+                    if (service !== 'Bookshop' && $(this).closest('.bookshop-only').length > 0) return;
+                    if (service === 'Bookshop' && $(this).closest('.simplified-only').length > 0) return;
+
                     let val = $(this).is('select') ? $(this).find('option:selected').text() : ($(this).val() || 'N/A');
                     if(val && !val.includes('Select') && val !== '') {
-                        sAll += `<tr><td class="font-weight-bold" style="color: #666;">${$(this).data('preview')}</td><td class="font-weight-bold text-dark">${val}</td></tr>`;
+                        innerHtml += `<tr><td class="font-weight-bold" style="color: #666;">${$(this).data('preview')}</td><td class="font-weight-bold text-dark">${val}</td></tr>`;
                     }
                 });
                 
-                if (i === 3) {
+                if (i === 3 && service === 'Bookshop') {
                     let reqs = [];
                     $('.requirement-cb:checked').each(function() { reqs.push($(this).val()); });
-                    sAll += `<tr><td class="font-weight-bold" style="color: #666;">Requirements</td><td class="font-weight-bold text-dark">${reqs.join(', ') || 'None'}</td></tr>`;
+                    if (reqs.length > 0) {
+                        innerHtml += `<tr><td class="font-weight-bold" style="color: #666;">Requirements</td><td class="font-weight-bold text-dark">${reqs.join(', ')}</td></tr>`;
+                    }
+                }
+
+                if (innerHtml !== '') {
+                    sAll += `<tr><td colspan="2" class="text-center font-weight-bold text-uppercase" style="background: #fdfdfd; color: var(--primary-brand); letter-spacing: 1px;">${sectionTitle}</td></tr>` + innerHtml;
                 }
             }
 
             $('#preview-tbody').html(sAll);
         }
 
-        // ── Real-time AJAX duplicate check ──────────────────────────────────
         const checkDuplicateUrl = '{{ route("customers.check_duplicate") }}';
         const csrfToken = '{{ csrf_token() }}';
         let phoneOk = true, emailOk = true;
+        
+        $('#confirmRegisterBtn').on('click', function() {
+            Swal.fire({
+                title: 'Confirm Registration',
+                text: "Are you sure you want to register this lead?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#d33',
+                confirmButtonText: '<i class="fa fa-check-circle mr-1"></i> Yes, register!',
+                cancelButtonText: 'Review again'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Registering...',
+                        text: 'Please wait while we save the customer data.',
+                        icon: 'info',
+                        showConfirmButton: false,
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading()
+                        }
+                    });
+                    $(this).closest('form').submit();
+                }
+            });
+        });
 
         function showFieldFeedback(feedbackId, inputId, data) {
             const $fb = $(`#${feedbackId}`);

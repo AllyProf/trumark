@@ -206,7 +206,6 @@ TRUMARK Official Customer Registration - Advanced Tile Selection & Categorized R
                                 <label class="font-weight-bold small mandatory-label">CUSTOMER SOURCE</label>
                                 <select name="source" class="form-control select2" data-preview="Source" required>
                                     <option value="">Select Source</option>
-                                    <option value="Seminar">Seminar</option>
                                     <option value="Exhibitions">Exhibitions</option>
                                     <option value="Conference">Conference</option>
                                     <option value="Walk-in">Walk-in Customer</option>

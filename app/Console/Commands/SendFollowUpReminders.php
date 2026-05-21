@@ -111,6 +111,12 @@ class SendFollowupReminders extends Command
                 }
             }
 
+            // 4. Send SMS Reminder to the Assigned Sales Officer
+            if ($customer->salesOfficer && $customer->salesOfficer->phone) {
+                $officerMessage = "TRUMARK Reminder: You have a scheduled follow-up with {$customer->name} today. Please contact them.";
+                $sms->sendSms($customer->salesOfficer->phone, $officerMessage);
+            }
+
             $this->info("Successfully dispatched follow-up to: {$customer->name}");
         }
 

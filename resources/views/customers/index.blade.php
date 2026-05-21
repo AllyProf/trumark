@@ -158,8 +158,7 @@ Manage registered customers, leads, and sales pipeline progress
                 </table>
             </div>
 
-            <div class="mt-4">
-                {{ $customers->links('pagination::bootstrap-4') }}
+            <div class="p-3 bg-white border-top">
             </div>
         </div>
     </div>
@@ -332,7 +331,7 @@ Manage registered customers, leads, and sales pipeline progress
 <script>
 $(document).ready(function() {
     var table = $('#customerTable').DataTable({
-        "paging": false, "info": false, "dom": 't',
+        "paging": true, "info": true, "pageLength": 20,
         "retrieve": true, "destroy": true,
         "order": [] // Disable initial sorting to keep server-side latest() order
     });

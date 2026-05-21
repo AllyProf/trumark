@@ -67,15 +67,7 @@
                     </table>
                 </div>
 
-                <!-- Pagination Bar -->
-                <div class="d-flex justify-content-between align-items-center px-4 py-3 bg-light border-top">
-                    <div class="text-muted small">
-                        Showing {{ $customers->firstItem() }} to {{ $customers->lastItem() }} of {{ $customers->total() }} results
-                    </div>
-                    <div class="pagination-wrapper">
-                        {{ $customers->links('pagination::bootstrap-4') }}
-                    </div>
-                </div>
+                <!-- Pagination Bar Removed in favor of DataTables pagination -->
 
                 <!-- SMS Modals -->
                 @foreach($customers as $customer)
@@ -144,10 +136,11 @@
 <script>
     $(document).ready(function() {
         var table = $('.custom-data-table').DataTable({
-            "paging": false,
-            "info": false,
+            "paging": true,
+            "info": true,
+            "pageLength": 20,
             "ordering": true,
-            "dom": "Bf",
+            "dom": "lBfrtip",
             "buttons": [
                 {
                     extend: 'excelHtml5',

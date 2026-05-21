@@ -121,8 +121,6 @@ Track and manage scheduled follow-ups with potential leads and customers
                 </table>
             </div>
 
-            <div class="mt-4">
-                {{ $customers->links('pagination::bootstrap-4') }}
             </div>
         </div>
     </div>
@@ -234,11 +232,8 @@ Track and manage scheduled follow-ups with potential leads and customers
 <script>
     $(document).ready(function() {
         var table = $('#followUpTable').DataTable({
-            "paging": false,
-            "info": false,
-            "dom": 't',
-            "retrieve": true,
-            "destroy": true
+            "paging": true, "info": true, "pageLength": 20,
+            "retrieve": true, "destroy": true
         });
 
         $('#customSearch').on('keyup', function() { table.search(this.value).draw(); });

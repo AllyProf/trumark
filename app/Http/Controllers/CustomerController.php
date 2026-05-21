@@ -34,7 +34,7 @@ class CustomerController extends Controller
             $query->where('sales_officer_id', Auth::id());
         }
 
-        $customers = $query->latest()->paginate(10);
+        $customers = $query->latest()->get();
         
         $officers = collect();
         if ($user->role === 'super_admin' || $user->role === 'manager') {
@@ -551,7 +551,7 @@ class CustomerController extends Controller
         $settings = \App\Models\SystemSetting::pluck('value', 'key');
         $template = $settings['followup_reminder_template'] ?? 'Habari {name}, TRUMARK tunapenda kukukumbusha kuhusu huduma tulizozungumzia. Je, una maswali yoyote? Karibu!';
 
-        $customers = $query->orderBy('next_follow_up_date', 'asc')->paginate(10);
+        $customers = $query->orderBy('next_follow_up_date', 'asc')->get();
         
         $dueCount = Customer::where('next_follow_up_date', '<=', now()->toDateString())
             ->whereNotIn('buying_stage', ['Closed Won', 'Closed Lost'])
@@ -576,7 +576,7 @@ class CustomerController extends Controller
             $query->where('sales_officer_id', Auth::id());
         }
 
-        $customers = $query->orderBy('updated_at', 'desc')->paginate(10);
+        $customers = $query->orderBy('updated_at', 'desc')->get();
         return view('customers.sales_records', compact('customers'));
     }
 

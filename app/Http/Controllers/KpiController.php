@@ -45,6 +45,12 @@ class KpiController extends Controller
             // Total points
             $s->total_points = KpiActivity::where('user_id', $s->id)->sum('points');
             $s->kpi_level = KpiService::getLevel($s->total_points);
+
+            // Total leads registered in this month
+            $s->total_leads = \App\Models\Customer::where('sales_officer_id', $s->id)
+                ->whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
+                ->count();
         }
 
         // Sort by filtered points desc (ensure it's treated as a number)
@@ -204,10 +210,12 @@ class KpiController extends Controller
         $assignedPortfolio = \App\Models\Customer::where('sales_officer_id', $officer->id)
             ->orderByDesc('updated_at')
             ->paginate(10, ['*'], 'portfolio_page');
+            
+        $totalLeads = \App\Models\Customer::where('sales_officer_id', $officer->id)->count();
 
         return view('kpi.officer_profile', compact(
             'officer', 'totalPoints', 'monthlyPoints', 'level', 
-            'activities', 'attendance', 'chartData', 'branchAvg', 'notes', 'assignedPortfolio'
+            'activities', 'attendance', 'chartData', 'branchAvg', 'notes', 'assignedPortfolio', 'totalLeads'
         ));
     }
 

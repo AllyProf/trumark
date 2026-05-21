@@ -66,13 +66,17 @@ Detailed performance analysis for {{ $officer->name }}
                 </div>
 
                 <div class="row text-center mb-4 border-top pt-3">
-                    <div class="col-6 border-right">
-                        <h3 class="mb-0 font-weight-bold text-primary">{{ number_format($monthlyPoints) }}</h3>
-                        <small class="text-muted text-uppercase font-weight-bold" style="font-size: 10px;">Current Month</small>
+                    <div class="col-4 border-right">
+                        <h3 class="mb-0 font-weight-bold text-success">{{ number_format($totalLeads) }}</h3>
+                        <small class="text-muted text-uppercase font-weight-bold" style="font-size: 9px;">Total Leads</small>
                     </div>
-                    <div class="col-6">
+                    <div class="col-4 border-right">
+                        <h3 class="mb-0 font-weight-bold text-primary">{{ number_format($monthlyPoints) }}</h3>
+                        <small class="text-muted text-uppercase font-weight-bold" style="font-size: 9px;">Month Pts</small>
+                    </div>
+                    <div class="col-4">
                         <h3 class="mb-0 font-weight-bold text-dark">{{ number_format($totalPoints) }}</h3>
-                        <small class="text-muted text-uppercase font-weight-bold" style="font-size: 10px;">Lifetime Pts</small>
+                        <small class="text-muted text-uppercase font-weight-bold" style="font-size: 9px;">Life Pts</small>
                     </div>
                 </div>
 

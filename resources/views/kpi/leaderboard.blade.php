@@ -219,6 +219,7 @@ Monthly and all-time staff performance rankings
                                 <th class="text-center" style="width: 80px;">Rank</th>
                                 <th>Sales Officer & Branch</th>
                                 <th style="width: 35%;">Monthly Progress (Target: {{ number_format((int)($settings['kpi_level_champion'] ?? 35000)) }})</th>
+                                <th class="text-center" style="width: 100px;">Leads Registered</th>
                                 <th class="text-center" style="width: 120px;">This Month's Points</th>
                                 <th class="text-center" style="width: 120px;">Lifetime</th>
                                 <th class="text-center" style="width: 100px;">Actions</th>
@@ -276,6 +277,10 @@ Monthly and all-time staff performance rankings
                                         <small class="text-muted">{{ $s->monthly_points }} points earned</small>
                                         <small class="text-muted font-italic">{{ max(0, $target - $s->monthly_points) }} to next level</small>
                                     </div>
+                                </td>
+                                <td class="text-center align-middle bg-light" style="border-right: 2px solid #fff;">
+                                    <h3 class="mb-0 font-weight-bold text-success">{{ number_format($s->total_leads) }}</h3>
+                                    <small class="text-muted font-weight-bold text-uppercase" style="font-size: 9px;">Leads</small>
                                 </td>
                                 <td class="text-center align-middle bg-light">
                                     <h3 class="mb-0 font-weight-bold text-primary">{{ number_format($s->monthly_points) }}</h3>
@@ -357,11 +362,15 @@ Monthly and all-time staff performance rankings
                             
                             {{-- Points Breakdown Row --}}
                             <div class="row text-center bg-light py-2 rounded mb-3 mx-0">
-                                <div class="col-6 border-right">
+                                <div class="col-4 border-right">
+                                    <small class="text-muted d-block text-uppercase" style="font-size: 8px; letter-spacing: 0.5px;">Leads</small>
+                                    <span class="h6 font-weight-bold text-success mb-0">{{ number_format($s->total_leads) }}</span>
+                                </div>
+                                <div class="col-4 border-right">
                                     <small class="text-muted d-block text-uppercase" style="font-size: 8px; letter-spacing: 0.5px;">This Month</small>
                                     <span class="h6 font-weight-bold text-primary mb-0">{{ number_format($s->monthly_points) }}</span>
                                 </div>
-                                <div class="col-6">
+                                <div class="col-4">
                                     <small class="text-muted d-block text-uppercase" style="font-size: 8px; letter-spacing: 0.5px;">Lifetime</small>
                                     <span class="h6 font-weight-bold text-dark mb-0">{{ number_format($s->total_points) }}</span>
                                 </div>

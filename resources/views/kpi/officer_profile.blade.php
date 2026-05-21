@@ -196,9 +196,7 @@ Detailed performance analysis for {{ $officer->name }}
         {{-- Growth Trend Chart --}}
         <div class="tile shadow-sm border-0 mb-4 p-4">
             <h5 class="tile-title border-bottom pb-2 mb-4"><i class="fa fa-filter text-primary mr-2"></i> Sales Funnel Performance</h5>
-            <div style="height: 280px;">
-                <canvas id="trendChart"></canvas>
-            </div>
+            <div id="salesFunnelChart" style="min-height: 280px;"></div>
         </div>
 
         {{-- Activity Ledger --}}
@@ -333,9 +331,10 @@ Detailed performance analysis for {{ $officer->name }}
 @endsection
 
 @section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script type="text/javascript" src="{{ asset('vali/js/plugins/jquery.dataTables.min.js') }}"></script>
 <script type="text/javascript" src="{{ asset('vali/js/plugins/dataTables.bootstrap.min.js') }}"></script>
-<script type="text/javascript" src="{{ asset('vali/js/plugins/chart.js') }}"></script>
+<script type="text/javascript" src="{{ asset('vali/js/plugins/select2.min.js') }}"></script>
 <script>
     function toggleCustomPointsProfile(select) {
         if (select.value === 'CUSTOM') {
@@ -348,38 +347,27 @@ Detailed performance analysis for {{ $officer->name }}
     }
 
     $(document).ready(function() {
-        $('.select2-modal').select2({
-            dropdownParent: $('#adjustModal')
-        });
-
-        // Funnel Chart Implementation (Using Chart.js horizontalBar)
-        var chartData = {!! json_encode($chartData) !!};
-        
-        var ctx = document.getElementById('trendChart').getContext('2d');
-        var trendChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: chartData.labels,
-                datasets: [{
-                    label: "Leads",
-                    backgroundColor: "rgba(148, 0, 0, 0.7)",
-                    borderColor: "rgba(148, 0, 0, 1)",
-                    borderWidth: 1,
-                    data: chartData.data
-                }]
+        // Funnel Chart Implementation (Using ApexCharts like Dashboard)
+        var funnelOptions = {
+            series: [{ name: 'Leads', data: @json($chartData['data']) }],
+            chart: { 
+                type: 'bar', 
+                height: 280, 
+                toolbar: { show: false },
+                zoom: { enabled: false }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    yAxes: [{
-                        ticks: {
-                            beginAtZero: true
-                        }
-                    }]
-                }
-            }
-        });
+            plotOptions: { bar: { horizontal: true, distributed: true, borderRadius: 4 } },
+            colors: ['#940000', '#17a2b8', '#ffc107', '#28a745', '#dc3545', '#6c757d', '#28a745'],
+            xaxis: { categories: @json($chartData['labels']) }
+        };
+        new ApexCharts(document.querySelector("#salesFunnelChart"), funnelOptions).render();
+
+        // Initialize Select2 (After chart to prevent blocking)
+        if ($.fn.select2) {
+            $('.select2-modal').select2({
+                dropdownParent: $('#adjustModal')
+            });
+        }
     });
 </script>
 @endsection

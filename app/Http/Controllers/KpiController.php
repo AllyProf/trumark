@@ -165,18 +165,21 @@ class KpiController extends Controller
         $branchStaffCount = $branchStaffIds->count();
         $branchAvg = $branchStaffCount > 0 ? ($branchTotalPoints / $branchStaffCount) : 0;
             
-        // 3. Historical Data (6 Months Trend)
-        $chartData = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $month = now()->subMonths($i);
-            $chartData[] = [
-                'month' => $month->format('M'),
-                'points' => (int) KpiActivity::where('user_id', $officer->id)
-                    ->whereMonth('created_at', $month->month)
-                    ->whereYear('created_at', $month->year)
-                    ->sum('points')
-            ];
-        }
+        // 3. Sales Funnel Performance
+        $funnelData = [
+            'Inquiry' => \App\Models\Customer::where('sales_officer_id', $officer->id)->where('buying_stage', 'Inquiry')->count(),
+            'Quotation Sent' => \App\Models\Customer::where('sales_officer_id', $officer->id)->where('buying_stage', 'Quotation Sent')->count(),
+            'Negotiation' => \App\Models\Customer::where('sales_officer_id', $officer->id)->where('buying_stage', 'Negotiation')->count(),
+            'Order Confirmed' => \App\Models\Customer::where('sales_officer_id', $officer->id)->where('buying_stage', 'Order Confirmed')->count(),
+            'Delivered' => \App\Models\Customer::where('sales_officer_id', $officer->id)->where('buying_stage', 'Delivered')->count(),
+            'Payment Pending' => \App\Models\Customer::where('sales_officer_id', $officer->id)->where('buying_stage', 'Payment Pending')->count(),
+            'Closed Won' => \App\Models\Customer::where('sales_officer_id', $officer->id)->where('buying_stage', 'Closed Won')->count(),
+        ];
+        
+        $chartData = [
+            'labels' => array_keys($funnelData),
+            'data' => array_values($funnelData)
+        ];
         
         // 4. Performance Notes (Privacy Filter)
         $notes = \App\Models\KpiNote::with('manager')

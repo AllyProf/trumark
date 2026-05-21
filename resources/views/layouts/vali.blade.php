@@ -525,6 +525,31 @@
                 title: "{{ session('error') }}"
             });
         @endif
+        
+        // Auto Logout after 30 minutes of inactivity
+        (function() {
+            let idleTime = 0;
+            setInterval(function() {
+                idleTime++;
+                if (idleTime >= 30) {
+                    Swal.fire({
+                        title: 'Session Expired',
+                        text: 'You have been logged out due to inactivity.',
+                        icon: 'warning',
+                        confirmButtonText: 'Login Again',
+                        allowOutsideClick: false
+                    }).then(() => {
+                        document.getElementById('logout-form').submit();
+                    });
+                }
+            }, 60000); // 1 minute
+
+            const resetTimer = () => { idleTime = 0; };
+            document.addEventListener('mousemove', resetTimer);
+            document.addEventListener('keypress', resetTimer);
+            document.addEventListener('click', resetTimer);
+            document.addEventListener('scroll', resetTimer);
+        })();
     </script>
     <script>
         // Mobile/Tablet: sidebar open/close via hamburger & overlay

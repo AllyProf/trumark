@@ -195,7 +195,7 @@ Detailed performance analysis for {{ $officer->name }}
     <div class="col-md-8">
         {{-- Growth Trend Chart --}}
         <div class="tile shadow-sm border-0 mb-4 p-4">
-            <h5 class="tile-title border-bottom pb-2 mb-4"><i class="fa fa-line-chart text-primary mr-2"></i> 6-Month Performance Trend</h5>
+            <h5 class="tile-title border-bottom pb-2 mb-4"><i class="fa fa-filter text-primary mr-2"></i> Sales Funnel Performance</h5>
             <div style="height: 280px;">
                 <canvas id="trendChart"></canvas>
             </div>
@@ -352,23 +352,20 @@ Detailed performance analysis for {{ $officer->name }}
             dropdownParent: $('#adjustModal')
         });
 
-        // Trend Chart Implementation (Using Chart.js - Native to Vali)
+        // Funnel Chart Implementation (Using Chart.js horizontalBar)
         var chartData = {!! json_encode($chartData) !!};
         
         var ctx = document.getElementById('trendChart').getContext('2d');
         var trendChart = new Chart(ctx, {
-            type: 'line',
+            type: 'bar',
             data: {
-                labels: chartData.map(function(d) { return d.month; }),
+                labels: chartData.labels,
                 datasets: [{
-                    label: "KPI Points",
-                    fillColor: "rgba(148, 0, 0, 0.1)",
-                    strokeColor: "rgba(148, 0, 0, 1)",
-                    pointColor: "rgba(148, 0, 0, 1)",
-                    pointStrokeColor: "#fff",
-                    pointHighlightFill: "#fff",
-                    pointHighlightStroke: "rgba(148, 0, 0, 1)",
-                    data: chartData.map(function(d) { return d.points; })
+                    label: "Leads",
+                    backgroundColor: "rgba(148, 0, 0, 0.7)",
+                    borderColor: "rgba(148, 0, 0, 1)",
+                    borderWidth: 1,
+                    data: chartData.data
                 }]
             },
             options: {

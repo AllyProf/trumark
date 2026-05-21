@@ -526,12 +526,14 @@
             });
         @endif
         
-        // Auto Logout after 30 minutes of inactivity
+        // Auto Logout after inactivity
         (function() {
             let idleTime = 0;
+            let timeoutMinutes = {{ \App\Models\SystemSetting::where('key', 'session_timeout')->value('value') ?? 30 }};
+            
             setInterval(function() {
                 idleTime++;
-                if (idleTime >= 30) {
+                if (idleTime >= timeoutMinutes) {
                     Swal.fire({
                         title: 'Session Expired',
                         text: 'You have been logged out due to inactivity.',

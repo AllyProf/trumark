@@ -111,10 +111,31 @@ class SendFollowupReminders extends Command
                 }
             }
 
-            // 4. Send SMS Reminder to the Assigned Sales Officer
-            if ($customer->salesOfficer && $customer->salesOfficer->phone) {
+            // 4. Send SMS, WhatsApp, and Email Reminder to the Assigned Sales Officer
+            if ($customer->salesOfficer) {
+                $officer = $customer->salesOfficer;
                 $officerMessage = "TRUMARK Reminder: You have a scheduled follow-up with {$customer->name} today. Please contact them.";
-                $sms->sendSms($customer->salesOfficer->phone, $officerMessage);
+                
+                // Officer SMS
+                if ($officer->phone) {
+                    $sms->sendSms($officer->phone, $officerMessage);
+                }
+
+                // Officer WhatsApp (Standard Message)
+                if ($useWhatsapp && $officer->phone) {
+                    $whatsapp->sendMessage($officer->phone, $officerMessage);
+                }
+
+                // Officer Email
+                if ($useEmail && $officer->email) {
+                    try {
+                        \Illuminate\Support\Facades\Mail::raw($officerMessage, function($m) use ($officer, $customer) {
+                            $m->to($officer->email)->subject("Action Required: Follow-up with {$customer->name}");
+                        });
+                    } catch (\Exception $e) {
+                        $this->error("Failed to email officer {$officer->email}: " . $e->getMessage());
+                    }
+                }
             }
 
             $this->info("Successfully dispatched follow-up to: {$customer->name}");

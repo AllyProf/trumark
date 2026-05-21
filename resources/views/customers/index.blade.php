@@ -371,6 +371,19 @@ $(document).ready(function() {
         $('.char-count-' + id).text(len + ' / 160').css('color', len > 160 ? '#940000' : '');
     });
 
+    // Reset SMS Modal on Close
+    $('.modal').on('hidden.bs.modal', function () {
+        $(this).find('textarea[name="message"]').val('');
+        $(this).find('.sms-template-btn').removeClass('active');
+        $(this).find('input[name="wa_template"]').val('general_broadcast');
+        
+        const modalId = $(this).attr('id');
+        if (modalId && modalId.startsWith('smsModal-')) {
+            const id = modalId.replace('smsModal-', '');
+            $('.char-count-' + id).text('0 / 160').css('color', '');
+        }
+    });
+
     // SweetAlert for Delete
     $('.delete-lead-btn').on('click', function(e) {
         e.preventDefault();

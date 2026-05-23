@@ -231,7 +231,7 @@ class WhatsAppWebhookController extends Controller
         $systemPrompt = "You are TRUMARK Stationery & Books AI assistant. Respond in Swahili with simple English when needed. Be short, helpful, professional, and friendly. You handle school books, stationery, printing services, delivery, orders, and pricing. If the user is unclear, ask a follow-up question. Do not use formatting like bolding or italics excessively.";
 
         try {
-            $response = \Illuminate\Support\Facades\Http::post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={$apiKey}", [
+            $response = \Illuminate\Support\Facades\Http::post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key={$apiKey}", [
                 'system_instruction' => [
                     'parts' => [['text' => $systemPrompt]]
                 ],

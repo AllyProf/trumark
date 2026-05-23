@@ -21,6 +21,11 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('/feedback/{uuid}', [\App\Http\Controllers\FeedbackController::class, 'show'])->name('feedback.show');
 Route::post('/feedback/{uuid}', [\App\Http\Controllers\FeedbackController::class, 'store'])->name('feedback.store');
 
+// Privacy Policy
+Route::get('/privacy-policy', function () {
+    return view('privacy_policy');
+})->name('privacy_policy');
+
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

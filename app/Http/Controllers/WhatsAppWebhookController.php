@@ -9,15 +9,22 @@ use App\Models\SmsLog;
 
 class WhatsAppWebhookController extends Controller
 {
+    protected $whatsapp;
+
+    public function __construct(\App\Services\WhatsAppService $whatsapp)
+    {
+        $this->whatsapp = $whatsapp;
+    }
+
     /**
      * Webhook verification for Meta
      */
     public function verify(Request $request)
     {
-        $verifyToken = 'trumark_secure_webhook_token'; // This must match what you enter in Meta
+        $verifyToken = 'trumark_secure_webhook_token';
         
-        $mode = $request->query('hub_mode');
-        $token = $request->query('hub_verify_token');
+        $mode      = $request->query('hub_mode');
+        $token     = $request->query('hub_verify_token');
         $challenge = $request->query('hub_challenge');
 
         if ($mode && $token) {
@@ -30,66 +37,74 @@ class WhatsAppWebhookController extends Controller
         return response('Forbidden', 403);
     }
 
-    public function __construct(\App\Services\WhatsAppService $whatsapp)
-    {
-        $this->whatsapp = $whatsapp;
-    }
-
     /**
      * Handle incoming WhatsApp messages and status updates
      */
     public function handle(Request $request)
     {
         $data = $request->all();
-        
-        // Basic processing of incoming messages
-        if (isset($data['entry'][0]['changes'][0]['value']['messages'][0])) {
-            $message = $data['entry'][0]['changes'][0]['value']['messages'][0];
-            $from = $message['from']; // Customer phone number
-            $text = trim($message['text']['body'] ?? '');
-            
-            if (empty($text)) {
-                return response('OK', 200); // Ignore non-text messages for now
-            }
+        Log::info('[WA-BOT] Incoming webhook payload: ' . json_encode($data));
 
-            // Find customer by phone
-            $cleanPhone = preg_replace('/[^0-9]/', '', $from);
-            $customer = Customer::where('phone', 'like', "%$cleanPhone%")->first();
+        try {
+            // Basic processing of incoming messages
+            if (isset($data['entry'][0]['changes'][0]['value']['messages'][0])) {
+                $message = $data['entry'][0]['changes'][0]['value']['messages'][0];
+                $from    = $message['from'];
+                $text    = trim($message['text']['body'] ?? '');
 
-            // Log incoming message
-            SmsLog::create([
-                'customer_id' => $customer ? $customer->id : null,
-                'phone'       => $from,
-                'message'     => "INCOMING: " . $text,
-                'status'      => 'received',
-                'response'    => json_encode($message),
-            ]);
-            
-            Log::info("WhatsApp Message from $from: $text");
+                Log::info("[WA-BOT] Message received from $from: \"$text\"");
 
-            // ROUTING LOGIC: 1. Ice Breakers -> 2. Commands -> 3. AI Fallback
-            $responseMessage = $this->handleIceBreaker($text);
-            
-            if (!$responseMessage) {
-                if (str_starts_with($text, '/')) {
-                    $responseMessage = $this->handleCommand($text, $from);
-                } else {
-                    $responseMessage = $this->askGeminiAI($text);
+                if (empty($text)) {
+                    Log::info('[WA-BOT] Non-text message ignored.');
+                    return response('OK', 200);
                 }
-            }
 
-            // Dispatch reply
-            if ($responseMessage) {
-                $this->whatsapp->sendMessage($from, $responseMessage);
-                
-                // Log outgoing automated reply
+                // Find customer by phone
+                $cleanPhone = preg_replace('/[^0-9]/', '', $from);
+                $customer   = Customer::where('phone', 'like', "%$cleanPhone%")->first();
+
+                // Log incoming message to CRM
                 SmsLog::create([
                     'customer_id' => $customer ? $customer->id : null,
                     'phone'       => $from,
-                    'message'     => "[BOT REPLY] " . $responseMessage,
-                    'status'      => 'sent',
+                    'message'     => "INCOMING: " . $text,
+                    'status'      => 'received',
+                    'response'    => json_encode($message),
                 ]);
+
+                // ROUTING: 1. Ice Breakers -> 2. Commands -> 3. AI Fallback
+                $responseMessage = $this->handleIceBreaker($text);
+                if ($responseMessage) {
+                    Log::info('[WA-BOT] Matched ICE BREAKER.');
+                } elseif (str_starts_with($text, '/')) {
+                    Log::info('[WA-BOT] Routing to COMMAND handler.');
+                    $responseMessage = $this->handleCommand($text, $from);
+                } else {
+                    Log::info('[WA-BOT] No match — falling back to GEMINI AI.');
+                    $responseMessage = $this->askGeminiAI($text);
+                }
+
+                Log::info('[WA-BOT] Response to send: ' . ($responseMessage ?? 'NULL'));
+
+                // Dispatch reply
+                if ($responseMessage) {
+                    $sendResult = $this->whatsapp->sendMessage($from, $responseMessage);
+                    Log::info('[WA-BOT] WhatsApp send result: ' . json_encode($sendResult));
+
+                    SmsLog::create([
+                        'customer_id' => $customer ? $customer->id : null,
+                        'phone'       => $from,
+                        'message'     => "[BOT REPLY] " . $responseMessage,
+                        'status'      => $sendResult['success'] ? 'sent' : 'failed',
+                    ]);
+                }
+            } else {
+                // Status update (delivery receipts, etc.) — just acknowledge
+                Log::info('[WA-BOT] Non-message webhook event received (status update or other).');
             }
+
+        } catch (\Throwable $e) {
+            Log::error('[WA-BOT] EXCEPTION in handle(): ' . $e->getMessage() . ' | ' . $e->getFile() . ':' . $e->getLine());
         }
 
         return response('OK', 200);

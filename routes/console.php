@@ -10,5 +10,5 @@ Artisan::command('inspire', function () {
 use Illuminate\Support\Facades\Schedule;
 Schedule::command('app:notify-follow-ups')->dailyAt('08:00');
 Schedule::command('campaigns:dispatch')->dailyAt('07:00');
-Schedule::command('surveys:send-automated')->everyMinute();
-Schedule::command('followups:send-reminders')->everyMinute();
+Schedule::command('surveys:send-automated')->everyFiveMinutes();
+Schedule::command('followups:send-reminders')->everyFiveMinutes();

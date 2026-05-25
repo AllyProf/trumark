@@ -22,9 +22,9 @@ class WhatsAppWebhookController extends Controller
     public function verify(Request $request)
     {
         $verifyToken = 'trumark_secure_webhook_token';
-        
-        $mode      = $request->query('hub_mode');
-        $token     = $request->query('hub_verify_token');
+
+        $mode = $request->query('hub_mode');
+        $token = $request->query('hub_verify_token');
         $challenge = $request->query('hub_challenge');
 
         if ($mode && $token) {
@@ -48,14 +48,14 @@ class WhatsAppWebhookController extends Controller
         try {
             if (isset($data['entry'][0]['changes'][0]['value']['messages'][0])) {
                 $message = $data['entry'][0]['changes'][0]['value']['messages'][0];
-                $from    = $message['from'];
-                $type    = $message['type'] ?? 'text';
+                $from = $message['from'];
+                $type = $message['type'] ?? 'text';
 
                 // --- Handle Interactive Button Reply ---
                 if ($type === 'interactive') {
                     $interactiveType = $message['interactive']['type'] ?? '';
                     if ($interactiveType === 'button_reply') {
-                        $buttonId    = $message['interactive']['button_reply']['id']    ?? '';
+                        $buttonId = $message['interactive']['button_reply']['id'] ?? '';
                         $buttonTitle = $message['interactive']['button_reply']['title'] ?? '';
                         $text = $buttonId ?: $buttonTitle;
                         Log::info("[WA-BOT] Interactive button tapped from $from: \"$text\"");
@@ -78,7 +78,7 @@ class WhatsAppWebhookController extends Controller
 
                 // Find customer by phone, create draft lead if not exists
                 $cleanPhone = preg_replace('/[^0-9]/', '', $from);
-                $customer   = Customer::where('phone', 'like', "%$cleanPhone%")->first();
+                $customer = Customer::where('phone', 'like', "%$cleanPhone%")->first();
                 if (!$customer) {
                     $customer = Customer::create([
                         'name' => 'WhatsApp Lead (' . $from . ')',
@@ -91,10 +91,10 @@ class WhatsAppWebhookController extends Controller
                 // Log incoming message
                 SmsLog::create([
                     'customer_id' => $customer ? $customer->id : null,
-                    'phone'       => $from,
-                    'message'     => "INCOMING: " . $text,
-                    'status'      => 'received',
-                    'response'    => json_encode($message),
+                    'phone' => $from,
+                    'message' => "INCOMING: " . $text,
+                    'status' => 'received',
+                    'response' => json_encode($message),
                 ]);
 
                 // ROUTING: 1. State Flow -> 2. Ice Breakers -> 3. Commands -> 4. Keyword Matcher -> 5. AI Fallback
@@ -137,9 +137,9 @@ class WhatsAppWebhookController extends Controller
 
                     SmsLog::create([
                         'customer_id' => $customer ? $customer->id : null,
-                        'phone'       => $from,
-                        'message'     => "[BOT REPLY] " . $responseMessage,
-                        'status'      => $sendResult['success'] ? 'sent' : 'failed',
+                        'phone' => $from,
+                        'message' => "[BOT REPLY] " . $responseMessage,
+                        'status' => $sendResult['success'] ? 'sent' : 'failed',
                     ]);
 
                     // Send follow-up interactive buttons based on context
@@ -171,126 +171,76 @@ class WhatsAppWebhookController extends Controller
 
     /**
      * Get follow-up button options based on which command was just handled
+     * Always appends 'Menu Kuu' and 'Maoni' options alongside a contextual action.
      */
     protected function getFollowUpButtons($command)
     {
-        $mainMenu = [
-            ['id' => '/books',     'title' => '📚 Vitabu'],
-            ['id' => '/stationery','title' => '✏️ Vifaa'],
-            ['id' => '/support',   'title' => '🤝 Msaada'],
-        ];
+        $customId = '/support';
+        $customTitle = '🤝 Msaada';
 
         switch ($command) {
             case 'welcome':
             case 'help':
-                return [
-                    ['id' => '/products',  'title' => '📦 Bidhaa Zetu'],
-                    ['id' => '/pricing',   'title' => '💰 Bei za Bidhaa'],
-                    ['id' => '/support',   'title' => '🤝 Msaada'],
-                ];
+            case 'menu':
+                $customId = '/products';
+                $customTitle = '📦 Bidhaa Zetu';
+                break;
 
             case 'books':
             case 'school books':
             case 'vitabu vya shule':
-                return [
-                    ['id' => '/revision',  'title' => '📖 Past Papers'],
-                    ['id' => '/order',     'title' => '🛒 Agiza Sasa'],
-                    ['id' => '/pricing',   'title' => '💰 Bei'],
-                ];
-
+            case 'revision':
+            case 'subjects':
             case 'stationery':
-            case 'stationery & office supplies':
-            case 'stationery and office supplies':
             case 'office supplies':
             case 'vifaa vya ofisi':
-                return [
-                    ['id' => '/pricing',   'title' => '💰 Bei za Vifaa'],
-                    ['id' => '/wholesale', 'title' => '📦 Bei ya Jumla'],
-                    ['id' => '/order',     'title' => '🛒 Agiza Sasa'],
-                ];
-
-            case 'printing':
-            case 'printing & photocopy':
-            case 'uchapishaji':
-                return [
-                    ['id' => '/location',  'title' => '📍 Tawi Letu'],
-                    ['id' => '/hours',     'title' => '⏰ Muda Wetu'],
-                    ['id' => '/support',   'title' => '🤝 Wasiliana Nasi'],
-                ];
-
-            case 'delivery':
-            case 'usafirishaji':
-            case 'delivery information':
-                return [
-                    ['id' => '/order',     'title' => '🛒 Weka Oda'],
-                    ['id' => '/payment',   'title' => '💳 Njia za Lipa'],
-                    ['id' => '/support',   'title' => '🤝 Msaada'],
-                ];
-
             case 'pricing':
             case 'bei za bidhaa':
             case 'price list':
-                return [
-                    ['id' => '/wholesale', 'title' => '📦 Bei ya Jumla'],
-                    ['id' => '/quotation', 'title' => '📄 Pata Quotation'],
-                    ['id' => '/order',     'title' => '🛒 Agiza Sasa'],
-                ];
+            case 'payment':
+                $customId = '/order';
+                $customTitle = '🛒 Agiza Sasa';
+                break;
+
+            case 'printing':
+            case 'uchapishaji':
+                $customId = '/location';
+                $customTitle = '📍 Tawi Letu';
+                break;
+
+            case 'delivery':
+            case 'usafirishaji':
+                $customId = '/order';
+                $customTitle = '🛒 Weka Oda';
+                break;
 
             case 'wholesale':
             case 'mauzo ya jumla':
-            case 'bulk order':
-                return [
-                    ['id' => '/quotation', 'title' => '📄 Omba Quotation'],
-                    ['id' => '/payment',   'title' => '💳 Njia za Lipa'],
-                    ['id' => '/support',   'title' => '🤝 Ongea na Meneja'],
-                ];
-
-            case 'payment':
-                return [
-                    ['id' => '/order',     'title' => '🛒 Weka Oda'],
-                    ['id' => '/track',     'title' => '🔍 Fuatilia Oda'],
-                    ['id' => '/support',   'title' => '🤝 Msaada'],
-                ];
-
-            case 'order':
-                return [
-                    ['id' => '/payment',   'title' => '💳 Jinsi ya Kulipa'],
-                    ['id' => '/delivery',  'title' => '🚚 Delivery Info'],
-                    ['id' => '/support',   'title' => '🤝 Ongea na Mhudumu'],
-                ];
+                $customId = '/quotation';
+                $customTitle = '📄 Omba Quotation';
+                break;
 
             case 'location':
-            case 'our locations / matawi yetu':
-            case 'matawi yetu':
             case 'branches':
-                return [
-                    ['id' => '/hours',     'title' => '⏰ Muda wa Kazi'],
-                    ['id' => '/delivery',  'title' => '🚚 Tunadelivery Pia'],
-                    ['id' => '/support',   'title' => '📞 Piga Simu'],
-                ];
-
-            case 'revision':
-                return [
-                    ['id' => '/books',     'title' => '📚 Vitabu Zaidi'],
-                    ['id' => '/order',     'title' => '🛒 Agiza Sasa'],
-                    ['id' => '/support',   'title' => '🤝 Msaada'],
-                ];
+            case 'matawi yetu':
+                $customId = '/hours';
+                $customTitle = '⏰ Muda wa Kazi';
+                break;
 
             case 'support':
             case 'customer support':
             case 'huduma kwa wateja':
-                return [
-                    ['id' => '/products',  'title' => '📦 Angalia Bidhaa'],
-                    ['id' => '/location',  'title' => '📍 Tawi Letu'],
-                    ['id' => '/hours',     'title' => '⏰ Muda Wetu'],
-                ];
-
-            default:
-                // Always show main menu as fallback
-                return $mainMenu;
+                $customId = '/products';
+                $customTitle = '📦 Angalia Bidhaa';
+                break;
         }
-    }
 
+        return [
+            ['id' => $customId,    'title' => $customTitle],
+            ['id' => '/menu',      'title' => '📋 Menu Kuu'],
+            ['id' => '/feedback',  'title' => '⭐ Maoni'],
+        ];
+    }
 
     /**
      * Exact matches for Ice Breaker Buttons — Returns rich, detailed replies
@@ -327,54 +277,54 @@ class WhatsAppWebhookController extends Controller
         $iceBreakers = [
             // Books
             'school books / vitabu vya shule' => $booksReply,
-            'school books'                     => $booksReply,
-            'vitabu vya shule'                 => $booksReply,
-            'books'                            => $booksReply,
-            'vitabu'                           => $booksReply,
+            'school books' => $booksReply,
+            'vitabu vya shule' => $booksReply,
+            'books' => $booksReply,
+            'vitabu' => $booksReply,
 
             // Stationery
-            'stationery & office supplies'     => $stationeryReply,
-            'stationery and office supplies'   => $stationeryReply,
-            'stationery'                       => $stationeryReply,
-            'vifaa vya ofisi'                  => $stationeryReply,
-            'office supplies'                  => $stationeryReply,
+            'stationery & office supplies' => $stationeryReply,
+            'stationery and office supplies' => $stationeryReply,
+            'stationery' => $stationeryReply,
+            'vifaa vya ofisi' => $stationeryReply,
+            'office supplies' => $stationeryReply,
 
             // Delivery
             'delivery information / usafirishaji' => $deliveryReply,
-            'delivery information'             => $deliveryReply,
-            'delivery'                         => $deliveryReply,
-            'usafirishaji'                     => $deliveryReply,
+            'delivery information' => $deliveryReply,
+            'delivery' => $deliveryReply,
+            'usafirishaji' => $deliveryReply,
 
             // Support
             'customer support / huduma kwa wateja' => $supportReply,
-            'customer support'                 => $supportReply,
-            'huduma kwa wateja'                => $supportReply,
-            'support'                          => $supportReply,
-            'msaada'                           => $supportReply,
+            'customer support' => $supportReply,
+            'huduma kwa wateja' => $supportReply,
+            'support' => $supportReply,
+            'msaada' => $supportReply,
 
             // Pricing
-            'pricing / bei'                    => $pricingReply,
-            'pricing'                          => $pricingReply,
-            'bei za bidhaa'                    => $pricingReply,
-            'price list'                       => $pricingReply,
+            'pricing / bei' => $pricingReply,
+            'pricing' => $pricingReply,
+            'bei za bidhaa' => $pricingReply,
+            'price list' => $pricingReply,
 
             // Printing
-            'printing & photocopy'             => $printingReply,
-            'printing'                         => $printingReply,
-            'photocopy'                        => $printingReply,
-            'uchapishaji'                      => $printingReply,
+            'printing & photocopy' => $printingReply,
+            'printing' => $printingReply,
+            'photocopy' => $printingReply,
+            'uchapishaji' => $printingReply,
 
             // Wholesale
             'wholesale orders / mauzo ya jumla' => $wholesaleReply,
-            'wholesale'                        => $wholesaleReply,
-            'mauzo ya jumla'                   => $wholesaleReply,
-            'bulk order'                       => $wholesaleReply,
+            'wholesale' => $wholesaleReply,
+            'mauzo ya jumla' => $wholesaleReply,
+            'bulk order' => $wholesaleReply,
 
             // Location
-            'our locations / matawi yetu'      => $locationReply,
-            'location'                         => $locationReply,
-            'matawi yetu'                      => $locationReply,
-            'branches'                         => $locationReply,
+            'our locations / matawi yetu' => $locationReply,
+            'location' => $locationReply,
+            'matawi yetu' => $locationReply,
+            'branches' => $locationReply,
         ];
 
         foreach ($iceBreakers as $breaker => $reply) {
@@ -391,7 +341,7 @@ class WhatsAppWebhookController extends Controller
     protected function handleKeywordMatch($text)
     {
         $cleanText = strtolower(trim($text));
-        
+
         // Remove common Swahili/English filler prefixes
         $cleanText = preg_replace('/^(mambo|habari|hi|hello|mambo vipi|niaje|habari za leo|naomba|nataka|nahitaji|nisaidie|tafadhali)\s+/i', '', $cleanText);
 
@@ -435,7 +385,7 @@ class WhatsAppWebhookController extends Controller
             'mitihani' => '/revision',
             'mtihani' => '/revision',
             'marudio' => '/revision',
-            
+
             // Stationery
             'stationery' => '/stationery',
             'kalamu' => '/stationery',
@@ -446,7 +396,7 @@ class WhatsAppWebhookController extends Controller
             'pen' => '/stationery',
             'counter' => '/stationery',
             'pencils' => '/stationery',
-            
+
             // Delivery
             'delivery' => '/delivery',
             'usafirishaji' => '/delivery',
@@ -454,7 +404,7 @@ class WhatsAppWebhookController extends Controller
             'mikoani' => '/delivery',
             'tuma' => '/delivery',
             'ship' => '/delivery',
-            
+
             // Location & Hours
             'location' => '/location',
             'ubungo' => '/location',
@@ -469,7 +419,7 @@ class WhatsAppWebhookController extends Controller
             'saa' => '/hours',
             'fungua' => '/hours',
             'siku' => '/hours',
-            
+
             // Printing
             'printing' => '/printing',
             'kutoa copy' => '/printing',
@@ -479,7 +429,7 @@ class WhatsAppWebhookController extends Controller
             'kucopy' => '/printing',
             'binding' => '/printing',
             'lamination' => '/printing',
-            
+
             // Wholesale & Quotation
             'wholesale' => '/wholesale',
             'jumla' => '/wholesale',
@@ -489,7 +439,7 @@ class WhatsAppWebhookController extends Controller
             'proforma' => '/quotation',
             'invoice' => '/quotation',
             'nukuu ya bei' => '/quotation',
-            
+
             // Pricing & Catalog
             'bei' => '/pricing',
             'pricing' => '/pricing',
@@ -497,7 +447,7 @@ class WhatsAppWebhookController extends Controller
             'catalog' => '/catalog',
             'orodha' => '/catalog',
             'katalogi' => '/catalog',
-            
+
             // Payments
             'payment' => '/payment',
             'lipa' => '/payment',
@@ -508,7 +458,7 @@ class WhatsAppWebhookController extends Controller
             'tigo' => '/payment',
             'airtel' => '/payment',
             'lipa na' => '/payment',
-            
+
             // Info & Support
             'help' => '/help',
             'msaada' => '/help',
@@ -574,7 +524,7 @@ class WhatsAppWebhookController extends Controller
 
             case 'quotation':
                 return "📄 *NUKUU YA BEI / PROFORMA & QUOTATION*\n\nKupata Proforma Invoice au Quotation rasmi kwa ajili ya Shule au Kampuni yako, tafadhali tumia hatua hizi:\n\n1. Andika orodha ya vitabu/vifaa unavyohitaji na idadi yake (mfano: Daftari A4 Counter Book 3 Quire - Box 5).\n2. Tuma jina kamili la Shule/Taasisi na anwani (mfano: TRUMARK High School, S.L.P 123, Dar es Salaam).\n3. Tuma maelezo haya hapa, kisha andika */support* ili mhasibu wetu ayapokee na kukuandalia nukuu rasmi ndani ya muda mfupi!";
-            
+
             // Info
             case 'hours':
                 return "⏰ *MUDA WA KAZI / WORKING HOURS*\n\nTuko wazi kukuhudumia siku zote za wiki, ikiwemo wikendi!\n\n• 📅 *Jumatatu hadi Ijumaa*: Saa 2:00 Asubuhi hadi Saa 2:30 Usiku (8:00AM - 8:30PM)\n• 📅 *Jumamosi*: Saa 3:00 Asubuhi hadi Saa 2:00 Usiku (9:00AM - 8:00PM)\n• 📅 *Jumapili*: Saa 3:00 Asubuhi hadi Saa 2:00 Usiku (9:00AM - 8:00PM)\n\n📍 *Matawi yetu*:\n   - Ubungo: Soko Kubwa la Kimataifa la Ubungo (EACLC)\n   - Kimara: Kimara Stopover\n\n📞 *Simu*: 0794 467 694\n\n✅ Hata wikendi tuko hapa kukusaidia! Karibu sana.";
@@ -590,7 +540,7 @@ class WhatsAppWebhookController extends Controller
 
             case 'pricing':
                 return "💰 *BEI ZA BIDHAA MAARUFU / PRICE LIST*\n\nHapa kuna bei za baadhi ya vifaa vyetu maarufu (Mauzo ya Reja reja):\n\n• 📑 *Karatasi za Print (A4 Reams)*: TZS 11,500 hadi 13,000 (kulingana na chapa - Double A, PaperOne nk).\n• 📓 *Daftari za Counter (3 Quire)*: TZS 2,500 kila moja.\n• 📓 *Daftari za Counter (4 Quire)*: TZS 3,200 kila moja.\n• 🖊️ *Kalamu (Boksi la kalamu 50 - Bic/Speedo)*: TZS 8,000 hadi 10,000.\n• 📖 *Vitabu vya Mazoezi (Exercise Books - A5)*: TZS 500 kila kimoja.\n• 🗂️ *Faili za Ofisi (Box Files)*: TZS 3,500 hadi 5,000 kila moja.\n\n⚠️ *Kumbuka*: Bei za jumla (Wholesale) zina punguzo kubwa! Andika */wholesale* kujua zaidi.";
-            
+
             // Edu & Products
             case 'stationery':
                 return "✏️ *VIFAA VYA OFISI NA SHULE / STATIONERY*\n\nTRUMARK tuna vifaa vyote vya shule na ofisi vya ubora wa juu:\n\n• 📑 *Karatasi (Paper)*: A4 Reams (Double A, PaperOne, Supreme nk), A3, karatasi za rangi, manila paper.\n• 📓 *Madaftari (Exercise/Counter Books)*: Counter books (1-4 Quire), Exercise books, Sketchbooks, Diaries.\n• ✒️ *Vifaa vya Kuandika*: Kalamu (Bic, Speedo, Pilot), penseli, markers za rangi, highlighters, chaki.\n• 🎒 *School Bags*: Mabegi ya shule ya ubora mzuri na ya kudumu kwa watoto wa nursery hadi sekondari.\n• 🗂️ *Vifaa vya Ofisi*: Box files, spring files, staplers, punch machines, rulers, makasi, gundi, stampu.\n• 🧮 *Vifaa vya Hesabu*: Mathematical sets na CASIO Scientific Calculators (halisi zenye warranty).\n\n👉 Sema bidhaa unayotaka ili tukufahamishe bei, au andika */pricing* kuona orodha ya bei maarufu!";
@@ -603,7 +553,7 @@ class WhatsAppWebhookController extends Controller
 
             case 'schoolpacks':
                 return "🎒 *VIFURUSHI VYA SHULE / BACK-TO-SCHOOL PACKS*\n\nOkoa muda na fedha kwa kununua vifurushi vyetu vilivyoandaliwa tayari kwa ajili ya mwanafunzi wako:\n\n1. 🧸 *Kifurushi cha Nursery (TZS 15,000)*:\n   - Kalamu za rangi, daftari la kuchora, herufi, namba na penseli.\n\n2. ✏️ *Kifurushi cha Primary (TZS 35,000)*:\n   - Daftari 12, Kalamu 10, Penseli, Rula, Seti ya hesabu, Kifutio na cherezo.\n\n3. 📚 *Kifurushi cha Secondary (TZS 55,000)*:\n   - Daftari za Counter book 6, Kalamu 12, Seti ya Hesabu (Mathematical Set), Scientific Calculator, rula na box file.\n\n👉 *Jinsi ya kuagiza*: Taja kifurushi unachotaka, kisha andika */order* ili tukuletee mzigo popote ulipo!";
-            
+
             // Customer Service
             case 'order':
                 $stateKey = "wa_state_" . preg_replace('/[^0-9]/', '', $customerPhone);
@@ -617,7 +567,7 @@ class WhatsAppWebhookController extends Controller
                 $buttons = [
                     ['id' => 'feedback_5_stars', 'title' => '⭐⭐⭐⭐⭐ Safi sana'],
                     ['id' => 'feedback_3_stars', 'title' => '⭐⭐⭐ Wastani'],
-                    ['id' => 'feedback_1_star',  'title' => '⭐ Changamoto'],
+                    ['id' => 'feedback_1_star', 'title' => '⭐ Changamoto'],
                 ];
                 $body = "⭐ *JE, UMERIDHIKA NA HUDUMA YETU?*\n\nTafadhali chagua kiwango cha kuridhika kwako na huduma za TRUMARK leo:";
                 $this->whatsapp->sendInteractiveButtons($customerPhone, $body, $buttons, '', 'TRUMARK Feedback');
@@ -721,7 +671,7 @@ class WhatsAppWebhookController extends Controller
     protected function triggerHumanHandoff($customerPhone)
     {
         $adminPhone = env('WHATSAPP_ADMIN_PHONE');
-        
+
         // Notify admin silently
         if ($adminPhone) {
             $alertMsg = "🚨 *Support Request Alert!*\nCustomer +{$customerPhone} needs human assistance.\nLink to message them: https://wa.me/{$customerPhone}";
@@ -765,12 +715,12 @@ If a user asks anything outside these services, politely redirect them. If uncle
                 'contents' => [
                     // Simulate system context via conversation turns
                     [
-                        'role'  => 'user',
+                        'role' => 'user',
                         'parts' => [['text' => $systemPrompt . "\n\nCustomer message: " . $text]]
                     ]
                 ],
                 'generationConfig' => [
-                    'temperature'     => 0.7,
+                    'temperature' => 0.7,
                     'maxOutputTokens' => 200,
                 ]
             ]);
@@ -815,9 +765,9 @@ If a user asks anything outside these services, politely redirect them. If uncle
                 $buttons = [
                     ['id' => 'delivery_pickup_ubungo', 'title' => '🏢 Ubungo EACLC'],
                     ['id' => 'delivery_pickup_kimara', 'title' => '🏢 Kimara Stopover'],
-                    ['id' => 'delivery_home',          'title' => '🚚 Delivery (Ulipo)'],
+                    ['id' => 'delivery_home', 'title' => '🚚 Delivery (Ulipo)'],
                 ];
-                
+
                 $body = "🛒 *HATUA YA 2/2: Usafirishaji / Delivery*\n\nJe, utakuja kuchukua bidhaa zako kwenye matawi yetu wenyewe, au ungependa tukuletee (Delivery)?\n\nTafadhali chagua hapa chini:";
                 $this->whatsapp->sendInteractiveButtons($from, $body, $buttons, '', 'TRUMARK Orders');
                 return true;
@@ -840,12 +790,12 @@ If a user asks anything outside these services, politely redirect them. If uncle
                     $state['step'] = 'awaiting_delivery_address';
                     $state['data'] = $data;
                     \Illuminate\Support\Facades\Cache::put($stateKey, $state, now()->addMinutes(30));
-                    
+
                     return "🚚 *Anwani ya Delivery*\n\nTafadhali andika **Eneo lako unapoishi / Ofisi** na **Jina kamili la Mpokeaji**:";
                 } else {
                     \Illuminate\Support\Facades\Cache::forget($stateKey);
                     $this->completeOrder($from, $data, $customer);
-                    
+
                     return "✅ *Oda Yako Imepokelewa kwa Ufanisi!*\n\n📍 *Njia ya Kuchukulia*: {$method}\n📦 *Orodha ya Vifaa*: {$data['items']}\n\nMhudumu wetu anaanza kuandaa mzigo wako na atakupigia simu au kukutumia maelekezo ya malipo hapa WhatsApp hivi punde. Asante kwa kuchagua TRUMARK! 😊";
                 }
 
@@ -883,8 +833,8 @@ If a user asks anything outside these services, politely redirect them. If uncle
                 try {
                     \App\Models\CustomerFeedback::create([
                         'customer_id' => $customer ? $customer->id : Customer::firstOrCreate(['phone' => $from], ['name' => 'WhatsApp Customer'])->id,
-                        'rating'      => $rating,
-                        'comment'     => (strtolower($comment) === 'hapana') ? null : $comment,
+                        'rating' => $rating,
+                        'comment' => (strtolower($comment) === 'hapana') ? null : $comment,
                     ]);
                 } catch (\Exception $e) {
                     Log::error("Failed to save customer feedback: " . $e->getMessage());
@@ -909,11 +859,11 @@ If a user asks anything outside these services, politely redirect them. If uncle
 
         if ($adminPhone) {
             $alertMsg = "🛒 *Oda Mpya ya WhatsApp!*\n\n"
-                      . "👤 *Mteja*: +{$from}\n"
-                      . "📦 *Bidhaa*: {$items}\n"
-                      . "🚚 *Njia*: {$delivery}\n"
-                      . "📍 *Anwani/Tawi*: {$address}\n\n"
-                      . "Tafadhali wasiliana na mteja kukamilisha malipo na usafirishaji: https://wa.me/{$from}";
+                . "👤 *Mteja*: +{$from}\n"
+                . "📦 *Bidhaa*: {$items}\n"
+                . "🚚 *Njia*: {$delivery}\n"
+                . "📍 *Anwani/Tawi*: {$address}\n\n"
+                . "Tafadhali wasiliana na mteja kukamilisha malipo na usafirishaji: https://wa.me/{$from}";
             $this->whatsapp->sendMessage($adminPhone, $alertMsg);
         }
     }

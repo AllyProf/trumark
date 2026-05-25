@@ -55,9 +55,11 @@ Detailed profile and sales history for {{ $customer->name }}
                         <i class="fa fa-pencil-square-o mr-1"></i> Update Stage
                     </button>
                     
-                    <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-secondary btn-block btn-sm mb-3">
-                        <i class="fa fa-edit mr-1"></i> Edit Profile
-                    </a>
+                    @if(Auth::user()->role !== 'sales_officer')
+                        <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-secondary btn-block btn-sm mb-3">
+                            <i class="fa fa-edit mr-1"></i> Edit Profile
+                        </a>
+                    @endif
 
                     @if(!$customer->survey_uuid)
                         @php
@@ -107,13 +109,38 @@ Detailed profile and sales history for {{ $customer->name }}
                         <p><b>Contact Person:</b> {{ $customer->contact_person ?? 'N/A' }}</p>
                         <p><b>Position:</b> {{ $customer->position ?? 'N/A' }}</p>
                     @endif
-                    <p><b>Phone:</b> {{ $customer->phone }}</p>
+                    <p>
+                        <b>Phone:</b> {{ $customer->phone }}
+                        @if($customer->phone)
+                            @php
+                                $cleanPhone = preg_replace('/[^0-9]/', '', $customer->phone);
+                                if (str_starts_with($cleanPhone, '0')) {
+                                    $cleanPhone = '255' . substr($cleanPhone, 1);
+                                } elseif (str_starts_with($cleanPhone, '7')) {
+                                    $cleanPhone = '255' . $cleanPhone;
+                                }
+                            @endphp
+                            <a href="tel:{{ $customer->phone }}" class="btn btn-outline-primary btn-xs py-0 px-2 ml-2" title="Call Customer" style="font-size: 11px; border-radius: 4px;">
+                                <i class="fa fa-phone text-primary"></i> Call
+                            </a>
+                            <a href="https://wa.me/{{ $cleanPhone }}" target="_blank" class="btn btn-outline-success btn-xs py-0 px-2 ml-1" title="WhatsApp Customer" style="font-size: 11px; border-radius: 4px;">
+                                <i class="fa fa-whatsapp text-success"></i> WhatsApp
+                            </a>
+                        @endif
+                    </p>
                     @if($customer->service === 'Bookshop')
                         <p><b>Alt. Phone:</b> {{ $customer->alternative_phone ?? 'N/A' }}</p>
                     @endif
                 </div>
                 <div class="col-md-6">
-                    <p><b>Email:</b> {{ $customer->email ?? 'N/A' }}</p>
+                    <p>
+                        <b>Email:</b> {{ $customer->email ?? 'N/A' }}
+                        @if($customer->email)
+                            <a href="mailto:{{ $customer->email }}" class="btn btn-outline-info btn-xs py-0 px-2 ml-2" title="Email Customer" style="font-size: 11px; border-radius: 4px;">
+                                <i class="fa fa-envelope text-info"></i> Email
+                            </a>
+                        @endif
+                    </p>
                     <p><b>Country:</b> {{ $customer->country ?? 'Tanzania (+255)' }}</p>
                     @if($customer->service === 'Bookshop')
                         <p><b>Source:</b> {{ $customer->source ?? 'N/A' }}</p>

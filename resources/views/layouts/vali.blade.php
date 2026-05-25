@@ -461,6 +461,16 @@
                 <li><a class="treeview-item {{ Route::is('campaigns.create') ? 'active' : '' }}" href="{{ route('campaigns.create') }}"><i class="fa fa-plus"></i> New Campaign</a></li>
             </ul>
         </li>
+        @if(auth()->user()->role === 'super_admin' || auth()->user()->role === 'manager')
+        <li class="treeview {{ Route::is('suppliers.*') ? 'is-expanded' : '' }}">
+            <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-truck"></i><span class="app-menu__label">Suppliers</span><i class="treeview-indicator fa fa-angle-right"></i></a>
+            <ul class="treeview-menu">
+                <li><a class="treeview-item {{ Route::is('suppliers.index') ? 'active' : '' }}" href="{{ route('suppliers.index') }}"><i class="fa fa-list"></i> All Suppliers</a></li>
+                <li><a class="treeview-item {{ Route::is('suppliers.create') ? 'active' : '' }}" href="{{ route('suppliers.create') }}"><i class="fa fa-plus"></i> Register Supplier</a></li>
+            </ul>
+        </li>
+        @endif
+
         @if(auth()->user()->role === 'super_admin')
         <li class="treeview {{ Route::is('staff.*') || Route::is('branches.*') || Route::is('settings.index') || Route::is('audit_logs.index') ? 'is-expanded' : '' }}">
             <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-lock"></i><span class="app-menu__label">Administration</span><i class="treeview-indicator fa fa-angle-right"></i></a>

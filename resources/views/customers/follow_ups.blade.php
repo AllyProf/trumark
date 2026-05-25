@@ -104,7 +104,39 @@ Track and manage scheduled follow-ups with potential leads and customers
                                 <b>{{ $customer->name }}</b><br>
                                 <small class="text-muted">{{ $customer->contact_person }}</small>
                             </td>
-                            <td><b class="text-primary">{{ $customer->phone }}</b></td>
+                            <td>
+                                <div class="d-flex flex-column">
+                                    <div>
+                                        <b class="text-primary">{{ $customer->phone }}</b>
+                                    </div>
+                                    @if($customer->email)
+                                        <div class="text-muted small mb-1" style="font-size: 11px;">{{ $customer->email }}</div>
+                                    @endif
+                                    <div class="mt-1 d-flex flex-wrap">
+                                        @if($customer->phone)
+                                            @php
+                                                $cleanPhone = preg_replace('/[^0-9]/', '', $customer->phone);
+                                                if (str_starts_with($cleanPhone, '0')) {
+                                                    $cleanPhone = '255' . substr($cleanPhone, 1);
+                                                } elseif (str_starts_with($cleanPhone, '7')) {
+                                                    $cleanPhone = '255' . $cleanPhone;
+                                                }
+                                            @endphp
+                                            <a href="tel:{{ $customer->phone }}" class="btn btn-outline-primary py-0 px-2 mr-1 mb-1" title="Call Customer" style="font-size: 10px; border-radius: 4px;">
+                                                <i class="fa fa-phone"></i> Call
+                                            </a>
+                                            <a href="https://wa.me/{{ $cleanPhone }}" target="_blank" class="btn btn-outline-success py-0 px-2 mr-1 mb-1" title="WhatsApp Customer" style="font-size: 10px; border-radius: 4px;">
+                                                <i class="fa fa-whatsapp"></i> WhatsApp
+                                            </a>
+                                        @endif
+                                        @if($customer->email)
+                                            <a href="mailto:{{ $customer->email }}" class="btn btn-outline-info py-0 px-2 mb-1" title="Email Customer" style="font-size: 10px; border-radius: 4px;">
+                                                <i class="fa fa-envelope"></i> Email
+                                            </a>
+                                        @endif
+                                    </div>
+                                </div>
+                            </td>
                             <td>
                                 <span class="badge badge-info">{{ $customer->buying_stage }}</span>
                             </td>

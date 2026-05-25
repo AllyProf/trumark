@@ -351,6 +351,10 @@ class CustomerController extends Controller
     public function edit(Customer $customer)
     {
         $user = Auth::user();
+        if ($user->role === 'sales_officer') {
+            abort(403, 'Unauthorized. Sales Officers cannot edit customer profiles.');
+        }
+
         $officers = [];
         if ($user->role === 'super_admin' || $user->role === 'manager') {
             $officers = \App\Models\User::with('branch')
@@ -363,6 +367,11 @@ class CustomerController extends Controller
 
     public function update(Request $request, Customer $customer)
     {
+        $user = Auth::user();
+        if ($user->role === 'sales_officer') {
+            abort(403, 'Unauthorized. Sales Officers cannot edit customer profiles.');
+        }
+
         $request->validate([
             'name'         => 'required|string|max:255',
             'phone'        => 'required|string|max:20',
@@ -731,15 +740,20 @@ class CustomerController extends Controller
             ->get();
 
         $regions = Customer::whereNotNull('region')
+            ->where('region', '!=', '')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->distinct()
             ->pluck('region')
+            ->map(fn($r) => trim($r))
             ->filter(function($r) {
+                if (empty($r)) return false;
                 $rUpper = strtoupper($r);
                 return !str_contains($rUpper, 'SEC') && 
                        !str_contains($rUpper, 'SCH') && 
                        !str_contains($rUpper, 'VTC') &&
                        !str_contains($rUpper, 'ACADEMY');
             })
+            ->unique()
             ->toArray();
 
         return view('customers.bulk_delegate', compact('customers', 'officers', 'regions', 'currentOfficerId', 'region'));

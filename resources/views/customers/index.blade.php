@@ -108,8 +108,37 @@ Manage registered customers, leads, and sales pipeline progress
                                 <small class="text-muted">{{ $customer->contact_person }}</small>
                             </td>
                             <td>
-                                <b class="text-primary">{{ $customer->phone }}</b><br>
-                                <small class="text-muted">{{ $customer->email }}</small>
+                                <div class="d-flex flex-column">
+                                    <div>
+                                        <b class="text-primary">{{ $customer->phone }}</b>
+                                    </div>
+                                    @if($customer->email)
+                                        <div class="text-muted small mb-1">{{ $customer->email }}</div>
+                                    @endif
+                                    <div class="mt-1">
+                                        @if($customer->phone)
+                                            @php
+                                                $cleanPhone = preg_replace('/[^0-9]/', '', $customer->phone);
+                                                if (str_starts_with($cleanPhone, '0')) {
+                                                    $cleanPhone = '255' . substr($cleanPhone, 1);
+                                                } elseif (str_starts_with($cleanPhone, '7')) {
+                                                    $cleanPhone = '255' . $cleanPhone;
+                                                }
+                                            @endphp
+                                            <a href="tel:{{ $customer->phone }}" class="btn btn-outline-primary py-0 px-2 mr-1" title="Call Customer" style="font-size: 10px; border-radius: 4px;">
+                                                <i class="fa fa-phone"></i> Call
+                                            </a>
+                                            <a href="https://wa.me/{{ $cleanPhone }}" target="_blank" class="btn btn-outline-success py-0 px-2 mr-1" title="WhatsApp Customer" style="font-size: 10px; border-radius: 4px;">
+                                                <i class="fa fa-whatsapp"></i> WhatsApp
+                                            </a>
+                                        @endif
+                                        @if($customer->email)
+                                            <a href="mailto:{{ $customer->email }}" class="btn btn-outline-info py-0 px-2" title="Email Customer" style="font-size: 10px; border-radius: 4px;">
+                                                <i class="fa fa-envelope"></i> Email
+                                            </a>
+                                        @endif
+                                    </div>
+                                </div>
                             </td>
                             <td>{{ $customer->service === 'Bookshop' ? ($customer->type ?: 'N/A') : $customer->service }}</td>
                             <td>
@@ -133,7 +162,9 @@ Manage registered customers, leads, and sales pipeline progress
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-right shadow-sm">
                                         <a class="dropdown-item" href="{{ route('customers.show', $customer->id) }}"><i class="fa fa-eye mr-2 text-primary"></i> View Profile</a>
-                                        <a class="dropdown-item" href="{{ route('customers.edit', $customer->id) }}"><i class="fa fa-edit mr-2 text-secondary"></i> Edit Full Profile</a>
+                                        @if(Auth::user()->role !== 'sales_officer')
+                                            <a class="dropdown-item" href="{{ route('customers.edit', $customer->id) }}"><i class="fa fa-edit mr-2 text-secondary"></i> Edit Full Profile</a>
+                                        @endif
                                         <div class="dropdown-divider"></div>
                                         @if($customer->service === 'Bookshop')
                                             <a class="dropdown-item" href="#" data-toggle="modal" data-target="#updateModal-{{ $customer->id }}"><i class="fa fa-bolt mr-2 text-warning"></i> Quick Update Stage</a>
@@ -331,8 +362,12 @@ Manage registered customers, leads, and sales pipeline progress
 <script>
 $(document).ready(function() {
     var table = $('#customerTable').DataTable({
-        "paging": true, "info": true, "pageLength": 20,
-        "retrieve": true, "destroy": true,
+        "paging": true, 
+        "info": true, 
+        "pageLength": 20,
+        "retrieve": true, 
+        "destroy": true,
+        "dom": "rtip", // Hides the default search box and length dropdown
         "order": [] // Disable initial sorting to keep server-side latest() order
     });
 

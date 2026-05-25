@@ -118,26 +118,92 @@ class WhatsAppWebhookController extends Controller
     }
 
     /**
-     * Exact matches for Ice Breaker Buttons
+     * Exact matches for Ice Breaker Buttons — Returns rich, detailed replies
      */
     protected function handleIceBreaker($text)
     {
+        $t = strtolower(trim($text));
+
+        // === SCHOOL BOOKS ===
+        $booksReply = "📚 *VITABU VYA SHULE / SCHOOL BOOKS*\n\nTuna stoki kamili ya vitabu vya mtaala wa NECTA:\n\n• *Nursery & Pre-School*: Vitabu vya herufi, namba, kuchora na stadi za awali.\n• *Primary School (Standard 1-7)*: Vitabu vya kiada na ziada vya masomo yote.\n• *Secondary School (Form 1-4)*: Physics, Chemistry, Biology, Mathematics, Geography, History, English, Kiswahili.\n• *High School (Form 5-6)*: Vitabu vya tahasusi (Combinations) zote.\n\n👉 *Marudio (Past Papers & Reviews)*: Andika */revision* kupata past papers za mitihani ya taifa.\n👉 Andika */order* kuagiza vitabu unavyovihitaji!";
+
+        // === STATIONERY ===
+        $stationeryReply = "✏️ *VIFAA VYA OFISI NA SHULE / STATIONERY*\n\nTuna vifaa vyote vya ofisi na shule vya ubora wa juu:\n\n• *Karatasi*: A4 Reams (Double A, PaperOne), A3, Karatasi za Rangi.\n• *Madaftari*: Counter books (1, 2, 3, 4 Quire), Exercise books, Diaries.\n• *Vifaa vya Kuandika*: Kalamu za wino, penseli, markers, highlighters.\n• *Vifaa vya Ofisi*: Box files, staplers, punch machines, rulers, makasi, gundi.\n• *Mathematical Sets*: Seti za hesabu na CASIO Scientific Calculators.\n\n👉 Andika */pricing* kuona bei za bidhaa maarufu.\n👉 Andika */wholesale* kwa punguzo la jumla la 10%-20%!";
+
+        // === DELIVERY ===
+        $deliveryReply = "🚚 *HUDUMA YA USAFIRISHAJI / DELIVERY SERVICES*\n\nTunatuma vifaa na vitabu maeneo yote ya Tanzania:\n\n1. 🏙️ *Ndani ya Dar es Salaam*:\n   - Bodaboda/Bajaji inaleta mpaka ulipo (ndani ya masaa 2-4).\n   - Gharama: TZS 3,000 hadi TZS 5,000 (kulingana na umbali).\n\n2. 🚌 *Mikoani (Upcountry Delivery)*:\n   - Tunatuma kwa mabasi ya uhakika (Shabiby, Abood, Hood, BM, nk).\n   - Gharama ya usafiri: Kuanzia TZS 5,000 tu.\n\n🛒 Andika */order* sasa kuweka oda yako!\n📍 Andika */location* kuona matawi yetu.";
+
+        // === SUPPORT ===
+        $supportReply = $this->triggerHumanHandoff('');
+
+        // === PRICING ===
+        $pricingReply = "💰 *BEI ZA BIDHAA MAARUFU / PRICE LIST*\n\nHapa kuna bei za vifaa vyetu maarufu (Mauzo ya Reja reja):\n\n• 📑 *A4 Reams (Double A, PaperOne)*: TZS 11,500 - 13,000\n• 📓 *Counter Book 3 Quire*: TZS 2,500 kila moja\n• 📓 *Counter Book 4 Quire*: TZS 3,200 kila moja\n• 🖊️ *Kalamu Boksi 50 (Bic/Speedo)*: TZS 8,000 - 10,000\n• 📖 *Exercise Book A5*: TZS 300 - 800 kila moja\n• 🗂️ *Box Files*: TZS 3,500 - 5,000 kila moja\n• 🧮 *CASIO Scientific Calculator*: TZS 35,000 - 45,000\n\n⚠️ *Punguzo kubwa kwa mauzo ya jumla!* Andika */wholesale* kujua zaidi.";
+
+        // === PRINTING ===
+        $printingReply = "🖨️ *UCHAPISHAJI NA COPY / PRINTING & COPY SERVICES*\n\nTunatoa huduma bora na za haraka za uchapishaji:\n\n• *B&W Printing/Photocopy*: TZS 100 kwa ukurasa\n• *Color Printing*: Kuanzia TZS 500 kwa ukurasa\n• *Document Binding*: Spiral & Hard binding kwa ripoti/thesis\n• *Lamination*: Kulinda nyaraka zako muhimu\n• *Graphic Design*: Nembo, vipeperushi, business cards\n\n👉 Tuma nyaraka zako (PDF/Word) hapa moja kwa moja, kisha andika */support*!";
+
+        // === WHOLESALE ===
+        $wholesaleReply = "📦 *MAUZO YA JUMLA / WHOLESALE ORDERS*\n\nJe, unamiliki shule, duka la vitabu au taasisi?\n\n• *Punguzo la Bei*: Hadi *15% - 20%* kwa wanunuzi wa jumla na shule.\n• *Uwasilishaji Bure*: Oda kubwa za Dar es Salaam — tunaleta bure!\n• *Proforma Invoice*: Tunaandaa haraka kwa shule na taasisi.\n\n👉 Andika */quotation* kupata bei ya jumla rasmi.\n👉 Andika */support* kuongea na Meneja Mauzo wetu moja kwa moja!";
+
+        // === LOCATION ===
+        $locationReply = "📍 *MAHALI TULIPO / OUR LOCATIONS*\n\nKaribu ututembelee katika matawi yetu:\n\n1. 🏢 *Tawi la Ubungo*:\n   - Ubungo Plaza, Ghorofa ya Chini, karibu na kituo cha mwendo wa haraka.\n\n2. 🏢 *Tawi la Kimara*:\n   - Kimara Mwisho, mkabala na kituo kikuu cha mabasi.\n\n⏰ *Muda*: Jumatatu - Ijumaa: 8:00AM - 6:00PM | Jumamosi: 8:00AM - 5:00PM\n📞 *Simu*: 0794 467 694\n\n👉 Huwezi kufika? Andika */delivery* ili tukuletee ulipo!";
+
+        // Map all possible button labels to the right reply
         $iceBreakers = [
-            'School Books / Vitabu vya Shule' => "📚 We offer a wide range of School Books for Nursery, Primary, Secondary, and A-Level! Type /books for details.",
-            'School Books' => "📚 We offer a wide range of School Books for Nursery, Primary, Secondary, and A-Level! Type /books for details.",
-            'Stationery & Office Supplies' => "🛒 TRUMARK provides top-quality stationery and office supplies. Type /stationery for categories or /wholesale for bulk orders.",
-            'Stationery' => "🛒 TRUMARK provides top-quality stationery and office supplies. Type /stationery for categories or /wholesale for bulk orders.",
-            'Delivery Information / Usafirishaji' => "🚚 We deliver inside and outside Tanzania! Type /delivery to see our delivery options and times.",
-            'Delivery Information' => "🚚 We deliver inside and outside Tanzania! Type /delivery to see our delivery options and times.",
-            'Delivery' => "🚚 We deliver inside and outside Tanzania! Type /delivery to see our delivery options and times.",
-            'Customer Support / Huduma kwa Wateja' => "💬 TRUMARK Customer Support is here to help! Type /support to connect with a representative.",
-            'Customer Support' => "💬 TRUMARK Customer Support is here to help! Type /support to connect with a representative.",
-            'Support' => "💬 TRUMARK Customer Support is here to help! Type /support to connect with a representative."
+            // Books
+            'school books / vitabu vya shule' => $booksReply,
+            'school books'                     => $booksReply,
+            'vitabu vya shule'                 => $booksReply,
+            'books'                            => $booksReply,
+            'vitabu'                           => $booksReply,
+
+            // Stationery
+            'stationery & office supplies'     => $stationeryReply,
+            'stationery and office supplies'   => $stationeryReply,
+            'stationery'                       => $stationeryReply,
+            'vifaa vya ofisi'                  => $stationeryReply,
+            'office supplies'                  => $stationeryReply,
+
+            // Delivery
+            'delivery information / usafirishaji' => $deliveryReply,
+            'delivery information'             => $deliveryReply,
+            'delivery'                         => $deliveryReply,
+            'usafirishaji'                     => $deliveryReply,
+
+            // Support
+            'customer support / huduma kwa wateja' => $supportReply,
+            'customer support'                 => $supportReply,
+            'huduma kwa wateja'                => $supportReply,
+            'support'                          => $supportReply,
+            'msaada'                           => $supportReply,
+
+            // Pricing
+            'pricing / bei'                    => $pricingReply,
+            'pricing'                          => $pricingReply,
+            'bei za bidhaa'                    => $pricingReply,
+            'price list'                       => $pricingReply,
+
+            // Printing
+            'printing & photocopy'             => $printingReply,
+            'printing'                         => $printingReply,
+            'photocopy'                        => $printingReply,
+            'uchapishaji'                      => $printingReply,
+
+            // Wholesale
+            'wholesale orders / mauzo ya jumla' => $wholesaleReply,
+            'wholesale'                        => $wholesaleReply,
+            'mauzo ya jumla'                   => $wholesaleReply,
+            'bulk order'                       => $wholesaleReply,
+
+            // Location
+            'our locations / matawi yetu'      => $locationReply,
+            'location'                         => $locationReply,
+            'matawi yetu'                      => $locationReply,
+            'branches'                         => $locationReply,
         ];
 
-        // Case-insensitive exact match
         foreach ($iceBreakers as $breaker => $reply) {
-            if (strtolower(trim($text)) === strtolower($breaker)) {
+            if ($t === strtolower($breaker)) {
                 return $reply;
             }
         }
@@ -291,19 +357,25 @@ class WhatsAppWebhookController extends Controller
         switch ($command) {
             // Core
             case 'products':
-                return "📦 *BIDHAA ZETU / OUR PRODUCTS*\n\nTunajivunia kutoa bidhaa bora za kielimu na ofisi:\n\n1. 📚 *Vitabu vya Shule (School Books)*\n   - Mtaala mpya wa NECTA (Nursery, Primary, Secondary & A-Level).\n   - Vitabu vya marudio na Past Papers zote (/revision).\n\n2. ✏️ *Vifaa vya Ofisi na Shule (Stationery)*\n   - Daftari, kalamu, A4 paper reams, faili, nk (/stationery).\n\n3. 🖨️ *Huduma za Uchapishaji (Printing Services)*\n   - Photocopy, Color Printing, Binding & Lamination (/printing).\n\n4. 🎒 *Vifurushi vya Shule (Back to School Packs)*\n   - Pata vifaa vyote kwa punguzo kubwa (/schoolpacks).\n\n👉 Andika bidhaa unayotaka au chagua amri husika kujua zaidi!";
+                return "📦 *BIDHAA ZETU / OUR PRODUCTS*\n\nTRUMARK Stationery & Books tunauza bidhaa bora za kielimu, ofisi na shule:\n\n1. 📚 *Vitabu vya Shule (School Books)*\n   - Vitabu vya Nursery, Primary, Sekondari, A-Level na maandalizi ya NECTA.\n   - Review books na Past Papers za mitihani yote.\n\n2. ✏️ *Vifaa vya Ofisi na Shule (Stationery)*\n   - Daftari, kalamu, penseli, karatasi za printa (reams), school bags na vifaa vingi.\n\n3. 🖨️ *Huduma za Uchapishaji (Printing Services)*\n   - Printing, Photocopy, Scanning, Laminating, Binding na kuandaa nyaraka.\n\n4. 🎒 *Mauzo ya Jumla & Rejareja*\n   - Tunahudumia shule, taasisi, kampuni na wateja binafsi.\n\n👉 Andika */stationery*, */books*, au */printing* kujua zaidi. Andika */order* kuagiza sasa!";
 
             case 'books':
-                return "📚 *VITABU VYA SHULE / SCHOOL BOOKS*\n\nTuna stoki kamili ya vitabu vya mtaala wa NECTA:\n\n• *Nursery & Pre-School*: Vitabu vya herufi, namba, kuchora na stadi za awali.\n• *Primary School (Standard 1-7)*: Vitabu vya kiada na ziada vya masomo yote.\n• *Secondary School (Form 1-4)*: Physics, Chemistry, Biology, Mathematics, Geography, History, English, Kiswahili.\n• *High School (Form 5-6)*: Vitabu vya tahasusi (Combinations) zote.\n\n👉 *Marudio (Past Papers & Reviews)*: Andika */revision* kupata past papers za mitihani ya taifa.";
+                return "📚 *VITABU VYA SHULE / SCHOOL BOOKS*\n\nSisi ni wakala wa vitabu vya shule Tanzania! Tuna stoki kamili ya mtaala wa NECTA:\n\n• 🧒 *Nursery & Pre-School*: Vitabu vya herufi, namba, kuchora na stadi za awali.\n• 🏫 *Primary School (Darasa 1-7)*: Vitabu vya kiada na ziada vya masomo yote.\n• 📗 *Secondary School / O-Level (Form 1-4)*: Physics, Chemistry, Biology, Mathematics, Geography, History, English, Kiswahili na zaidi.\n• 🎓 *A-Level (Form 5-6)*: Vitabu vya tahasusi (Combinations) zote — PCM, PCB, EGM, HGL, HKL nk.\n\n📖 *Review Books & Past Papers*: Tunazo past papers zenye majibu za mitihani ya NECTA kwa Standard 4, 7, Form 2, 4 na 6.\n\n👉 Andika */revision* kupata zaidi kuhusu vitabu vya marudio.\n👉 Andika */order* kuagiza vitabu unavyovihitaji mara moja!";
 
             case 'location':
-                return "📍 *MAHALI TULIPO / OUR LOCATIONS*\n\nKaribu ututembelee katika matawi yetu yafuatayo:\n\n1. 🏢 *Tawi la Ubungo (Ubungo Branch)*\n   - Ubungo Plaza, Ghorofa ya Chini, karibu na kituo cha mabasi ya mwendo wa haraka ya Ubungo.\n\n2. 🏢 *Tawi la Kimara (Kimara Branch)*\n   - Kimara Mwisho, mkabala na kituo kikuu cha mabasi, jengo jipya la biashara la TRUMARK.\n\n⏱️ Tunaongeza urahisi wa manunuzi! Kama huwezi kufika dukani, andika */delivery* ili tukuletee ulipo!";
+                return "📍 *MAHALI TULIPO / OUR LOCATIONS*\n\nKaribu ututembelee katika matawi yetu mawili hapa Dar es Salaam:\n\n1. 🏢 *Tawi la Ubungo*\n   - Soko Kubwa la Kimataifa la Ubungo (EACLC), Dar es Salaam.\n   - Karibu na lango kuu la soko, upande wa kulia ukiingia.\n\n2. 🏢 *Tawi la Kimara*\n   - Kimara Stopover, Dar es Salaam.\n   - Karibu na kituo cha mwendo wa haraka cha Kimara.\n\n⏰ *Muda wa Kazi*:\n   - Jumatatu - Ijumaa: Saa 2:00 asubuhi - Saa 2:30 usiku (8AM - 8:30PM)\n   - Jumamosi & Jumapili: Saa 3:00 asubuhi - Saa 2:00 usiku (9AM - 8PM)\n\n📞 Simu: *0794 467 694*\n\n👉 Huwezi kufika? Andika */delivery* ili tukuletee mzigo ulipo Tanzania yote!";
 
             case 'delivery':
                 return "🚚 *HUDUMA YA USAFIRISHAJI / DELIVERY SERVICES*\n\nTunatuma vifaa na vitabu maeneo yote ya Tanzania:\n\n1. 🏙️ *Ndani ya Dar es Salaam*:\n   - Bodaboda/Bajaji inaleta mpaka ulipo (ndani ya masaa 2-4).\n   - Gharama: TZS 3,000 hadi TZS 5,000 (kulingana na umbali).\n\n2. 🚌 *Mikoani (Upcountry Delivery)*:\n   - Tunatuma kwa njia ya mabasi ya uhakika (Shabiby, Abood, Hood, BM, nk) au Courier Services (DHL, EMS).\n   - Gharama ya usafiri: Kuanzia TZS 5,000 (utachukua kwenye stendi ya basi mkoani kwako).\n\n🛒 *Jinsi ya Kuagiza*: Andika */order* sasa kuweka oda yako!";
 
             case 'printing':
-                return "🖨️ *UCHAPISHAJI NA COPY / PRINTING & COPY SERVICES*\n\nTunatoa huduma bora na za haraka za uchapishaji:\n\n• *Black & White Printing/Photocopy*: TZS 100 kwa ukurasa mmoja (punguzo kubwa kwa kazi nyingi za shule/ofisi).\n• *Color Printing*: Kazi safi na zenye muonekano mzuri (kuanzia TZS 500).\n• *Document Binding*: Spiral binding na Hard binding kwa ripoti au thesis.\n• *Lamination*: Kulinda nyaraka zako muhimu dhidi ya maji na uchafu.\n• *Graphic Design*: Kudesign nembo, vipeperushi, business cards nk.\n\n👉 Tuma nyaraka zako (PDF au Word) kupitia WhatsApp hii, kisha andika */support* uongee na mchapishaji wetu!";
+                return "🖨️ *HUDUMA ZA UCHAPISHAJI / PRINTING & DOCUMENT SERVICES*\n\nTunatoa huduma kamili za uchapishaji na usimamizi wa nyaraka:\n\n• 🖨️ *Printing (B&W)*: Uchapishaji wa kawaida wa haraka na bei nafuu.
+• 🎨 *Color Printing*: Uchapishaji wa rangi wa ubora wa juu.
+• 📋 *Photocopy*: Kunakilisha nyaraka haraka na kwa usahihi.
+• 🔍 *Scanning*: Kubadilisha nyaraka za karatasi kuwa faili za PDF/digital.
+• 🛡️ *Laminating*: Kulinda nyaraka muhimu (cheti, vitambulisho nk).
+• 📎 *Binding*: Kushona na kufunga vitabu, ripoti na thesis (spiral & hard binding).
+• 📄 *Kuandaa Nyaraka*: Tunasaidia kubadilisha na kuandaa nyaraka mbalimbali, ikiwemo kubadilisha cheti cha kuzaliwa kwenye mfumo mpya wa serikali.\n\n👉 Tuma nyaraka zako (PDF au picha) kupitia WhatsApp hii na tutakusaidia haraka!\n👉 Andika */support* kuongea na mchapishaji wetu moja kwa moja.";
 
             case 'wholesale':
                 return "📦 *MAUZO YA JUMLA / WHOLESALE ORDERS*\n\nJe, unamiliki shule, duka la vitabu, au unahitaji vifaa kwa ajili ya taasisi/mradi wako?\n\n• *Punguzo la Bei*: Tunatoa punguzo hadi *15% - 20%* kwa wanunuzi wa jumla na shule.\n• *Uwasilishaji*: Tunapeleka mzigo hadi shuleni au dukani kwako (kwa oda kubwa za Dar na mikoani).\n• *Uaminifu*: Bidhaa zote ni halisi na zina viwango vya juu.\n\n👉 Omba nukuu ya bei kwa kuandika */quotation* au wasiliana moja kwa moja na meneja mauzo wetu kwa kuandika */support*!";
@@ -313,23 +385,23 @@ class WhatsAppWebhookController extends Controller
             
             // Info
             case 'hours':
-                return "⏰ *MUDA WA KAZI / WORKING HOURS*\n\nTuko wazi kukuhudumia siku zote isipokuwa Jumapili:\n\n• 📅 *Jumatatu hadi Ijumaa*: 8:00 AM - 6:00 PM\n• 📅 *Jumamosi*: 8:00 AM - 5:00 PM\n• ❌ *Jumapili na Sikukuu*: Tumefunga (Lakini unaweza kuacha ujumbe na tutakujibu siku ya kazi inayofuata).\n\n📍 Tembelea matawi yetu ya Ubungo au Kimara. Andika */location* kuona anwani.";
+                return "⏰ *MUDA WA KAZI / WORKING HOURS*\n\nTuko wazi kukuhudumia siku zote za wiki, ikiwemo wikendi!\n\n• 📅 *Jumatatu hadi Ijumaa*: Saa 2:00 Asubuhi hadi Saa 2:30 Usiku (8:00AM - 8:30PM)\n• 📅 *Jumamosi*: Saa 3:00 Asubuhi hadi Saa 2:00 Usiku (9:00AM - 8:00PM)\n• 📅 *Jumapili*: Saa 3:00 Asubuhi hadi Saa 2:00 Usiku (9:00AM - 8:00PM)\n\n📍 *Matawi yetu*:\n   - Ubungo: Soko Kubwa la Kimataifa la Ubungo (EACLC)\n   - Kimara: Kimara Stopover\n\n📞 *Simu*: 0794 467 694\n\n✅ Hata wikendi tuko hapa kukusaidia! Karibu sana.";
 
             case 'payment':
-                return "💳 *NJIA ZA MALIPO / PAYMENT METHODS*\n\nIli kurahisisha manunuzi yako, unaweza kulipia kupitia njia zifuatazo:\n\n1. 📱 *Lipa na M-Pesa (Till Number)*:\n   - Namba ya Till: *567890*\n   - Jina la Biashara: *TRUMARK CO. LTD*\n\n2. 📱 *Tigo Pesa / Airtel Money*:\n   - Tuma kwa namba: *0794 467 694* (Jina: TRUMARK Support)\n\n3. 🏦 *Benki (Bank Transfer)*:\n   - *CRDB Bank*: Acc: *0150248769300* (Jina: TRUMARK CO. LTD)\n   - *NMB Bank*: Acc: *2201004567890* (Jina: TRUMARK CO. LTD)\n\n⚠️ *Kumbuka*: Baada ya kufanya malipo, tafadhali tuma picha au ujumbe wa muamala hapa ili tuthibitishe na kuanza kuandaa mzigo wako!";
+                return "💳 *NJIA ZA MALIPO / PAYMENT METHODS*\n\nTunapokea malipo kupitia njia zifuatazo:\n\n1. 💵 *Cash (Pesa Taslimu)*: Lipa moja kwa moja katika tawi letu la Ubungo au Kimara.\n\n2. 📱 *M-Pesa*: Tuma pesa kwenye namba yetu ya biashara. Andika */support* kupata namba.\n\n3. 📱 *Tigo Pesa*: Tuma pesa kwenye namba yetu. Andika */support* kupata namba.\n\n4. 📱 *Airtel Money*: Tuma pesa kwenye namba yetu ya Airtel. Andika */support* kupata namba.\n\n5. 🏦 *Bank Transfer*: Tunatoa namba ya akaunti ya benki unapoagiza. Andika */support* kupata maelezo ya benki.\n\n✅ *Nyaraka za Malipo*: Tunatoa risiti, invoice, quotation na nyaraka zote za auditing bila malipo ya ziada.\n\n⚠️ Baada ya kulipa, tuma picha ya muamala hapa ili tuthibitishe na kuanza mzigo wako mara moja!";
 
             case 'catalog':
                 return "📑 *KATALOGI YA BIDHAA / PRODUCT CATALOG*\n\nTunaandaa katalogi ya kisasa yenye bidhaa na bei zetu zote za hivi karibuni. \n\nKwa sasa, tafadhali andika jina la kitabu au vifaa unavyohitaji hapa, na tutakupa picha na bei zake mara moja. Unaweza pia kuandika */pricing* kuona bei za vifaa maarufu au */support* kuongea na mhudumu wetu.";
 
             case 'trust':
-                return "⭐ *KWANINI UCHAGUE TRUMARK? / WHY TRUMARK?*\n\nTRUMARK Co. LTD ni nembo inayoaminika Tanzania kwa zaidi ya miaka 5 kwa sababu:\n\n1. ✅ *Uhakika vya Bidhaa*: Vitabu vyote vinafuata mtaala rasmi wa serikali na vimeidhinishwa.\n2. 💰 *Bei Nafuu*: Bei zetu ni rafiki kwa wazazi, walimu na shule.\n3. ⚡ *Uharaka*: Huduma ya delivery ya haraka popote nchini Tanzania.\n4. 🤝 *Uaminifu*: Tunathamini wateja wetu na tunalinda ubora wa huduma zetu kila siku.";
+                return "⭐ *KWANINI UCHAGUE TRUMARK? / WHY CHOOSE TRUMARK?*\n\nTRUMARK Stationery & Books ni biashara ya kuaminika Tanzania kwa sababu zifuatazo:\n\n1. ✅ *Bidhaa za Asili (Original Products)*: Tunauza bidhaa original za ubora wa juu. Tuepuka nakala na bidhaa duni.\n2. 💰 *Bei Nzuri*: Bei zetu ni za ushindani na zinafaa kwa wazazi, walimu, shule na kampuni.\n3. ⚡ *Huduma ya Haraka*: Tunahudumia haraka — delivery, printing na maswali yote tunayajibu kwa wakati.\n4. 📄 *Nyaraka Kamili*: Tunatoa risiti, invoice, quotation na nyaraka zote za biashara kwa uhakika.\n5. 🚚 *Delivery Yote Tanzania*: Tunatuma bidhaa mikoa yote ya Tanzania bila tatizo.\n6. 🤝 *Uaminifu wa Kweli*: Biashara yetu inajengwa juu ya uaminifu, kuheshimu wateja na kuhakikisha unachohitaji unakipata kwa wakati.\n\n👉 Jaribu leo — utapendezwa na huduma yetu! Andika */order* au */support*!";
 
             case 'pricing':
                 return "💰 *BEI ZA BIDHAA MAARUFU / PRICE LIST*\n\nHapa kuna bei za baadhi ya vifaa vyetu maarufu (Mauzo ya Reja reja):\n\n• 📑 *Karatasi za Print (A4 Reams)*: TZS 11,500 hadi 13,000 (kulingana na chapa - Double A, PaperOne nk).\n• 📓 *Daftari za Counter (3 Quire)*: TZS 2,500 kila moja.\n• 📓 *Daftari za Counter (4 Quire)*: TZS 3,200 kila moja.\n• 🖊️ *Kalamu (Boksi la kalamu 50 - Bic/Speedo)*: TZS 8,000 hadi 10,000.\n• 📖 *Vitabu vya Mazoezi (Exercise Books - A5)*: TZS 500 kila kimoja.\n• 🗂️ *Faili za Ofisi (Box Files)*: TZS 3,500 hadi 5,000 kila moja.\n\n⚠️ *Kumbuka*: Bei za jumla (Wholesale) zina punguzo kubwa! Andika */wholesale* kujua zaidi.";
             
             // Edu & Products
             case 'stationery':
-                return "✏️ *VIFAA VYA OFISI NA SHULE / STATIONERY*\n\nTuna vifaa vyote vya ofisi na shule vya ubora wa juu:\n\n• *Karatasi*: A4 Reams, A3, Karatasi za Rangi, Manila papers.\n• *Madaftari*: Counter books (1, 2, 3, 4 Quire), Exercise books, Sketchbooks, na Diaries.\n• *Vifaa vya Kuandika*: Kalamu za wino, penseli, markers, highlighters, chaki nk.\n• *Vifaa vya Ofisi*: Box files, staplers, punch machines, rulers, makasi, gundi na stampu.\n• *Mathematical Sets*: Seti za hesabu na calculators za kisayansi.\n\n👉 Andika bidhaa unayotaka ili tukufahamishe bei zake, au andika */order* ili kuweka oda ya vifaa vyako!";
+                return "✏️ *VIFAA VYA OFISI NA SHULE / STATIONERY*\n\nTRUMARK tuna vifaa vyote vya shule na ofisi vya ubora wa juu:\n\n• 📑 *Karatasi (Paper)*: A4 Reams (Double A, PaperOne, Supreme nk), A3, karatasi za rangi, manila paper.\n• 📓 *Madaftari (Exercise/Counter Books)*: Counter books (1-4 Quire), Exercise books, Sketchbooks, Diaries.\n• ✒️ *Vifaa vya Kuandika*: Kalamu (Bic, Speedo, Pilot), penseli, markers za rangi, highlighters, chaki.\n• 🎒 *School Bags*: Mabegi ya shule ya ubora mzuri na ya kudumu kwa watoto wa nursery hadi sekondari.\n• 🗂️ *Vifaa vya Ofisi*: Box files, spring files, staplers, punch machines, rulers, makasi, gundi, stampu.\n• 🧮 *Vifaa vya Hesabu*: Mathematical sets na CASIO Scientific Calculators (halisi zenye warranty).\n\n👉 Sema bidhaa unayotaka ili tukufahamishe bei, au andika */pricing* kuona orodha ya bei maarufu!";
 
             case 'revision':
                 return "📖 *VITABU VYA MARUDIO NA PAST PAPERS / REVISION BOOKS*\n\nMsaidie mwanafunzi kufanya vizuri katika mitihani ya NECTA kwa kutumia vitabu vyetu vya marudio:\n\n• 🏫 *Darasa la 4 & 7 (Standard 4 & 7)*: Past papers zenye majibu ya masomo yote (Sayansi, Hesabu, Kiswahili, English, nk).\n• 🎒 *Form 2 & Form 4 (O-Level)*: Solved Past Papers za miaka 10 iliyopita, Miongozo ya kujibu maswali ya mitihani.\n• 🎓 *Form 6 (A-Level)*: Vitabu vya marudio vya masomo ya sayansi na sanaa kulingana na tahasusi (PCM, PCB, PGM, HGL, HKL, EGM, nk).\n\n👉 Andika somo au darasa unalotaka ili kupata maelezo na bei ya vitabu husika!";
@@ -420,7 +492,7 @@ class WhatsAppWebhookController extends Controller
         }
 
         // Return user response
-        return "TRUMARK Customer Support 😊\n\n📞 Call / WhatsApp: 0794 467 694\n\nWe assist with:\n• Orders\n• Products\n• Delivery\n• Pricing\n• Printing services\n\nReply here for immediate help, or click to chat with a human directly: https://wa.me/255794467694";
+        return "🤝 *TRUMARK Customer Support / Huduma kwa Wateja* 😊\n\n📞 *Piga Simu / WhatsApp*: 0794 467 694\n\nTunakusaidia na:\n✅ Oda za vitabu na vifaa\n✅ Delivery na usafirishaji\n✅ Bei na quotation\n✅ Huduma za Printing & Photocopy\n✅ Nyaraka na risiti za biashara\n✅ Malalamiko yoyote\n\n📍 *Matawi yetu*:\n   - Ubungo: Soko Kubwa la Kimataifa la Ubungo (EACLC)\n   - Kimara: Kimara Stopover\n\n⏰ *Wazi*: Jumatatu-Ijumaa (8AM-8:30PM) | Jumamosi-Jumapili (9AM-8PM)\n\n💬 Jibu hapa au bonyeza kuzungumza na mhudumu wetu moja kwa moja:\nhttps://wa.me/255794467694";
     }
 
     /**
@@ -433,7 +505,23 @@ class WhatsAppWebhookController extends Controller
             return "Samahani, sijaelewa. (AI is currently offline). Tafadhali tumia /help kuona maelekezo, au /support kuongea na mhudumu wetu.";
         }
 
-        $systemPrompt = "You are TRUMARK Stationery & Books AI assistant. Respond in Swahili with simple English when needed. Be short, helpful, professional, and friendly. You handle school books, stationery, printing services, delivery, orders, and pricing. If the user is unclear, ask a follow-up question. Do not use formatting like bolding or italics excessively.";
+        $systemPrompt = "You are the official AI assistant for TRUMARK Stationery & Books, a trusted business in Dar es Salaam, Tanzania. Always respond in Swahili first, with simple English clarification when needed. Be short, helpful, professional, warm, and friendly.
+
+KEY BUSINESS FACTS (always use these, never guess):
+- Business Name: TRUMARK Stationery & Books
+- Phone: 0794 467 694
+- Branch 1: Soko Kubwa la Kimataifa la Ubungo (EACLC), Dar es Salaam
+- Branch 2: Kimara Stopover, Dar es Salaam
+- Hours: Mon-Fri 8:00AM-8:30PM | Sat-Sun 9:00AM-8:00PM (open 7 days a week)
+- Products: School books (Nursery, Primary, Secondary O-Level, A-Level, NECTA), review books, past papers, stationery (daftari, kalamu, penseli, karatasi za printa/reams, school bags), office supplies
+- Services: Printing (B&W & Color), Photocopy, Scanning, Laminating, Binding, Document preparation (including birth certificate conversion to new government format)
+- Payment: Cash, M-Pesa, Tigo Pesa, Airtel Money, Bank Transfer
+- Documents provided: Risiti, Invoice, Quotation, Proforma — all provided free of charge
+- Sales: Both jumla (wholesale) and rejareja (retail) — serves schools, institutions, companies, and individuals
+- Delivery: Inside Dar es Salaam (bodaboda/bajaji) and all regions of Tanzania (via bus/courier)
+
+If a user asks anything outside these services, politely redirect them. If unclear, ask a follow-up question. Do not make up prices unless specifically asked — then give approximate ranges. Keep responses under 200 words.";
+
 
         try {
             $response = \Illuminate\Support\Facades\Http::post("https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={$apiKey}", [

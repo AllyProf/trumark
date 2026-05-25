@@ -72,7 +72,7 @@ class WhatsAppWebhookController extends Controller
                     'response'    => json_encode($message),
                 ]);
 
-                // ROUTING: 1. Ice Breakers -> 2. Commands -> 3. AI Fallback
+                // ROUTING: 1. Ice Breakers -> 2. Commands -> 3. Keyword Matcher -> 4. AI Fallback
                 $responseMessage = $this->handleIceBreaker($text);
                 if ($responseMessage) {
                     Log::info('[WA-BOT] Matched ICE BREAKER.');
@@ -80,8 +80,15 @@ class WhatsAppWebhookController extends Controller
                     Log::info('[WA-BOT] Routing to COMMAND handler.');
                     $responseMessage = $this->handleCommand($text, $from);
                 } else {
-                    Log::info('[WA-BOT] No match — falling back to GEMINI AI.');
-                    $responseMessage = $this->askGeminiAI($text);
+                    // Try to match keywords before falling back to Gemini
+                    $matchedCommand = $this->handleKeywordMatch($text);
+                    if ($matchedCommand) {
+                        Log::info("[WA-BOT] Matched KEYWORD intent: $matchedCommand");
+                        $responseMessage = $this->handleCommand($matchedCommand, $from);
+                    } else {
+                        Log::info('[WA-BOT] No match — falling back to GEMINI AI.');
+                        $responseMessage = $this->askGeminiAI($text);
+                    }
                 }
 
                 Log::info('[WA-BOT] Response to send: ' . ($responseMessage ?? 'NULL'));
@@ -134,6 +141,79 @@ class WhatsAppWebhookController extends Controller
                 return $reply;
             }
         }
+        return null;
+    }
+
+    /**
+     * Map common Swahili and English keywords to existing commands
+     */
+    protected function handleKeywordMatch($text)
+    {
+        $cleanText = strtolower(trim($text));
+        
+        // Remove common Swahili/English filler prefixes
+        $cleanText = preg_replace('/^(mambo|habari|hi|hello|mambo vipi|niaje|habari za leo|naomba|nataka|nahitaji)\s+/i', '', $cleanText);
+
+        // Map keywords to command strings
+        $mappings = [
+            'books' => '/books',
+            'kitabu' => '/books',
+            'vitabu' => '/books',
+            'shule' => '/books',
+            'school' => '/books',
+            
+            'stationery' => '/stationery',
+            'kalamu' => '/stationery',
+            'daftari' => '/stationery',
+            'reams' => '/stationery',
+            'karatasi' => '/stationery',
+            
+            'delivery' => '/delivery',
+            'usafirishaji' => '/delivery',
+            'kutuma' => '/delivery',
+            'mikoani' => '/delivery',
+            
+            'location' => '/location',
+            'ubungo' => '/location',
+            'kimara' => '/location',
+            'ofisi' => '/location',
+            'duka' => '/location',
+            
+            'printing' => '/printing',
+            'kutoa copy' => '/printing',
+            'print' => '/printing',
+            'photocopy' => '/printing',
+            
+            'wholesale' => '/wholesale',
+            'jumla' => '/wholesale',
+            
+            'quotation' => '/quotation',
+            'proforma' => '/quotation',
+            'invoice' => '/quotation',
+            'bei' => '/pricing',
+            'pricing' => '/pricing',
+            'gharama' => '/pricing',
+            
+            'payment' => '/payment',
+            'lipa' => '/payment',
+            'malipo' => '/payment',
+            
+            'help' => '/help',
+            'msaada' => '/help',
+            'maelekezo' => '/help',
+            
+            'support' => '/support',
+            'mhudumu' => '/support',
+            'ongea na mtu' => '/support',
+            'help me' => '/support',
+        ];
+
+        foreach ($mappings as $keyword => $command) {
+            if (str_contains($cleanText, $keyword)) {
+                return $command;
+            }
+        }
+
         return null;
     }
 

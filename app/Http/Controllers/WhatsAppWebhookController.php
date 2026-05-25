@@ -46,16 +46,33 @@ class WhatsAppWebhookController extends Controller
         Log::info('[WA-BOT] Incoming webhook payload: ' . json_encode($data));
 
         try {
-            // Basic processing of incoming messages
             if (isset($data['entry'][0]['changes'][0]['value']['messages'][0])) {
                 $message = $data['entry'][0]['changes'][0]['value']['messages'][0];
                 $from    = $message['from'];
-                $text    = trim($message['text']['body'] ?? '');
+                $type    = $message['type'] ?? 'text';
 
-                Log::info("[WA-BOT] Message received from $from: \"$text\"");
+                // --- Handle Interactive Button Reply ---
+                if ($type === 'interactive') {
+                    $interactiveType = $message['interactive']['type'] ?? '';
+                    if ($interactiveType === 'button_reply') {
+                        $buttonId    = $message['interactive']['button_reply']['id']    ?? '';
+                        $buttonTitle = $message['interactive']['button_reply']['title'] ?? '';
+                        $text = $buttonId ?: $buttonTitle;
+                        Log::info("[WA-BOT] Interactive button tapped from $from: \"$text\"");
+                    } elseif ($interactiveType === 'list_reply') {
+                        $text = $message['interactive']['list_reply']['id'] ?? '';
+                        Log::info("[WA-BOT] List item selected from $from: \"$text\"");
+                    } else {
+                        $text = '';
+                    }
+                } else {
+                    $text = trim($message['text']['body'] ?? '');
+                }
+
+                Log::info("[WA-BOT] Processed text from $from: \"$text\"");
 
                 if (empty($text)) {
-                    Log::info('[WA-BOT] Non-text message ignored.');
+                    Log::info('[WA-BOT] Empty message ignored.');
                     return response('OK', 200);
                 }
 
@@ -63,7 +80,7 @@ class WhatsAppWebhookController extends Controller
                 $cleanPhone = preg_replace('/[^0-9]/', '', $from);
                 $customer   = Customer::where('phone', 'like', "%$cleanPhone%")->first();
 
-                // Log incoming message to CRM
+                // Log incoming message
                 SmsLog::create([
                     'customer_id' => $customer ? $customer->id : null,
                     'phone'       => $from,
@@ -73,17 +90,21 @@ class WhatsAppWebhookController extends Controller
                 ]);
 
                 // ROUTING: 1. Ice Breakers -> 2. Commands -> 3. Keyword Matcher -> 4. AI Fallback
+                $routedCommand = null;
+
                 $responseMessage = $this->handleIceBreaker($text);
                 if ($responseMessage) {
                     Log::info('[WA-BOT] Matched ICE BREAKER.');
+                    $routedCommand = strtolower(trim($text));
                 } elseif (str_starts_with($text, '/')) {
                     Log::info('[WA-BOT] Routing to COMMAND handler.');
+                    $routedCommand = ltrim(explode(' ', strtolower(trim($text)))[0], '/');
                     $responseMessage = $this->handleCommand($text, $from);
                 } else {
-                    // Try to match keywords before falling back to Gemini
                     $matchedCommand = $this->handleKeywordMatch($text);
                     if ($matchedCommand) {
                         Log::info("[WA-BOT] Matched KEYWORD intent: $matchedCommand");
+                        $routedCommand = ltrim($matchedCommand, '/');
                         $responseMessage = $this->handleCommand($matchedCommand, $from);
                     } else {
                         Log::info('[WA-BOT] No match — falling back to GEMINI AI.');
@@ -93,10 +114,10 @@ class WhatsAppWebhookController extends Controller
 
                 Log::info('[WA-BOT] Response to send: ' . ($responseMessage ?? 'NULL'));
 
-                // Dispatch reply
+                // Send the main text reply
                 if ($responseMessage) {
                     $sendResult = $this->whatsapp->sendMessage($from, $responseMessage);
-                    Log::info('[WA-BOT] WhatsApp send result: ' . json_encode($sendResult));
+                    Log::info('[WA-BOT] Send result: ' . json_encode($sendResult));
 
                     SmsLog::create([
                         'customer_id' => $customer ? $customer->id : null,
@@ -104,9 +125,22 @@ class WhatsAppWebhookController extends Controller
                         'message'     => "[BOT REPLY] " . $responseMessage,
                         'status'      => $sendResult['success'] ? 'sent' : 'failed',
                     ]);
+
+                    // Send follow-up interactive buttons based on context
+                    $followUpButtons = $this->getFollowUpButtons($routedCommand);
+                    if (!empty($followUpButtons)) {
+                        sleep(1); // small delay so messages arrive in order
+                        $this->whatsapp->sendInteractiveButtons(
+                            $from,
+                            "Chagua hatua inayofuata / Choose next step:",
+                            $followUpButtons,
+                            '',
+                            'TRUMARK Stationery & Books 📚'
+                        );
+                    }
                 }
+
             } else {
-                // Status update (delivery receipts, etc.) — just acknowledge
                 Log::info('[WA-BOT] Non-message webhook event received (status update or other).');
             }
 
@@ -116,6 +150,129 @@ class WhatsAppWebhookController extends Controller
 
         return response('OK', 200);
     }
+
+    /**
+     * Get follow-up button options based on which command was just handled
+     */
+    protected function getFollowUpButtons($command)
+    {
+        $mainMenu = [
+            ['id' => '/books',     'title' => '📚 Vitabu'],
+            ['id' => '/stationery','title' => '✏️ Vifaa'],
+            ['id' => '/support',   'title' => '🤝 Msaada'],
+        ];
+
+        switch ($command) {
+            case 'welcome':
+            case 'help':
+                return [
+                    ['id' => '/products',  'title' => '📦 Bidhaa Zetu'],
+                    ['id' => '/pricing',   'title' => '💰 Bei za Bidhaa'],
+                    ['id' => '/support',   'title' => '🤝 Msaada'],
+                ];
+
+            case 'books':
+            case 'school books':
+            case 'vitabu vya shule':
+                return [
+                    ['id' => '/revision',  'title' => '📖 Past Papers'],
+                    ['id' => '/order',     'title' => '🛒 Agiza Sasa'],
+                    ['id' => '/pricing',   'title' => '💰 Bei'],
+                ];
+
+            case 'stationery':
+            case 'stationery & office supplies':
+            case 'stationery and office supplies':
+            case 'office supplies':
+            case 'vifaa vya ofisi':
+                return [
+                    ['id' => '/pricing',   'title' => '💰 Bei za Vifaa'],
+                    ['id' => '/wholesale', 'title' => '📦 Bei ya Jumla'],
+                    ['id' => '/order',     'title' => '🛒 Agiza Sasa'],
+                ];
+
+            case 'printing':
+            case 'printing & photocopy':
+            case 'uchapishaji':
+                return [
+                    ['id' => '/location',  'title' => '📍 Tawi Letu'],
+                    ['id' => '/hours',     'title' => '⏰ Muda Wetu'],
+                    ['id' => '/support',   'title' => '🤝 Wasiliana Nasi'],
+                ];
+
+            case 'delivery':
+            case 'usafirishaji':
+            case 'delivery information':
+                return [
+                    ['id' => '/order',     'title' => '🛒 Weka Oda'],
+                    ['id' => '/payment',   'title' => '💳 Njia za Lipa'],
+                    ['id' => '/support',   'title' => '🤝 Msaada'],
+                ];
+
+            case 'pricing':
+            case 'bei za bidhaa':
+            case 'price list':
+                return [
+                    ['id' => '/wholesale', 'title' => '📦 Bei ya Jumla'],
+                    ['id' => '/quotation', 'title' => '📄 Pata Quotation'],
+                    ['id' => '/order',     'title' => '🛒 Agiza Sasa'],
+                ];
+
+            case 'wholesale':
+            case 'mauzo ya jumla':
+            case 'bulk order':
+                return [
+                    ['id' => '/quotation', 'title' => '📄 Omba Quotation'],
+                    ['id' => '/payment',   'title' => '💳 Njia za Lipa'],
+                    ['id' => '/support',   'title' => '🤝 Ongea na Meneja'],
+                ];
+
+            case 'payment':
+                return [
+                    ['id' => '/order',     'title' => '🛒 Weka Oda'],
+                    ['id' => '/track',     'title' => '🔍 Fuatilia Oda'],
+                    ['id' => '/support',   'title' => '🤝 Msaada'],
+                ];
+
+            case 'order':
+                return [
+                    ['id' => '/payment',   'title' => '💳 Jinsi ya Kulipa'],
+                    ['id' => '/delivery',  'title' => '🚚 Delivery Info'],
+                    ['id' => '/support',   'title' => '🤝 Ongea na Mhudumu'],
+                ];
+
+            case 'location':
+            case 'our locations / matawi yetu':
+            case 'matawi yetu':
+            case 'branches':
+                return [
+                    ['id' => '/hours',     'title' => '⏰ Muda wa Kazi'],
+                    ['id' => '/delivery',  'title' => '🚚 Tunadelivery Pia'],
+                    ['id' => '/support',   'title' => '📞 Piga Simu'],
+                ];
+
+            case 'revision':
+                return [
+                    ['id' => '/books',     'title' => '📚 Vitabu Zaidi'],
+                    ['id' => '/order',     'title' => '🛒 Agiza Sasa'],
+                    ['id' => '/support',   'title' => '🤝 Msaada'],
+                ];
+
+            case 'support':
+            case 'customer support':
+            case 'huduma kwa wateja':
+                return [
+                    ['id' => '/products',  'title' => '📦 Angalia Bidhaa'],
+                    ['id' => '/location',  'title' => '📍 Tawi Letu'],
+                    ['id' => '/hours',     'title' => '⏰ Muda Wetu'],
+                ];
+
+            default:
+                // Always show main menu as fallback
+                return $mainMenu;
+        }
+    }
+
 
     /**
      * Exact matches for Ice Breaker Buttons — Returns rich, detailed replies

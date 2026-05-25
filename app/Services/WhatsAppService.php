@@ -73,6 +73,130 @@ class WhatsAppService
     }
 
     /**
+     * Send an interactive message with up to 3 reply buttons
+     * @param string $to          Recipient phone number
+     * @param string $bodyText    Main message body
+     * @param array  $buttons     Array of ['id'=>'...', 'title'=>'...'] (max 3)
+     * @param string $headerText  Optional header text
+     * @param string $footerText  Optional footer text
+     */
+    public function sendInteractiveButtons($to, $bodyText, array $buttons, $headerText = '', $footerText = '')
+    {
+        if (!$this->accessToken || !$this->phoneNumberId) {
+            return ['success' => false, 'message' => 'WhatsApp configuration missing.'];
+        }
+
+        $cleanTo = preg_replace('/[^0-9]/', '', $to);
+
+        // Build buttons array (max 3)
+        $formattedButtons = [];
+        foreach (array_slice($buttons, 0, 3) as $btn) {
+            $formattedButtons[] = [
+                'type'  => 'reply',
+                'reply' => [
+                    'id'    => $btn['id'],
+                    'title' => mb_substr($btn['title'], 0, 20) // WhatsApp max 20 chars
+                ]
+            ];
+        }
+
+        $interactive = [
+            'type' => 'button',
+            'body' => ['text' => $bodyText],
+            'action' => ['buttons' => $formattedButtons],
+        ];
+
+        if (!empty($headerText)) {
+            $interactive['header'] = ['type' => 'text', 'text' => $headerText];
+        }
+        if (!empty($footerText)) {
+            $interactive['footer'] = ['text' => $footerText];
+        }
+
+        try {
+            $response = Http::withToken($this->accessToken)
+                ->timeout(30)
+                ->withOptions(['verify' => false])
+                ->post("{$this->baseUrl}/{$this->phoneNumberId}/messages", [
+                    'messaging_product' => 'whatsapp',
+                    'recipient_type'    => 'individual',
+                    'to'                => $cleanTo,
+                    'type'              => 'interactive',
+                    'interactive'       => $interactive,
+                ]);
+
+            if ($response->successful()) {
+                return ['success' => true, 'response' => $response->json()];
+            }
+
+            Log::error('WA Interactive Buttons Error: ' . $response->body());
+            return ['success' => false, 'message' => $response->json()['error']['message'] ?? 'Unknown error'];
+
+        } catch (\Exception $e) {
+            Log::error('WA Interactive Exception: ' . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Send an interactive List Message with up to 10 rows/options
+     * @param string $to           Recipient phone number
+     * @param string $bodyText     Main message body
+     * @param string $buttonLabel  The button label that opens the list
+     * @param array  $sections     Array of sections: [['title'=>'', 'rows'=>[['id'=>'','title'=>'','description'=>'']]]]
+     * @param string $headerText   Optional header text
+     * @param string $footerText   Optional footer text
+     */
+    public function sendListMessage($to, $bodyText, $buttonLabel, array $sections, $headerText = '', $footerText = '')
+    {
+        if (!$this->accessToken || !$this->phoneNumberId) {
+            return ['success' => false, 'message' => 'WhatsApp configuration missing.'];
+        }
+
+        $cleanTo = preg_replace('/[^0-9]/', '', $to);
+
+        $interactive = [
+            'type' => 'list',
+            'body' => ['text' => $bodyText],
+            'action' => [
+                'button'   => mb_substr($buttonLabel, 0, 20),
+                'sections' => $sections,
+            ],
+        ];
+
+        if (!empty($headerText)) {
+            $interactive['header'] = ['type' => 'text', 'text' => $headerText];
+        }
+        if (!empty($footerText)) {
+            $interactive['footer'] = ['text' => $footerText];
+        }
+
+        try {
+            $response = Http::withToken($this->accessToken)
+                ->timeout(30)
+                ->withOptions(['verify' => false])
+                ->post("{$this->baseUrl}/{$this->phoneNumberId}/messages", [
+                    'messaging_product' => 'whatsapp',
+                    'recipient_type'    => 'individual',
+                    'to'                => $cleanTo,
+                    'type'              => 'interactive',
+                    'interactive'       => $interactive,
+                ]);
+
+            if ($response->successful()) {
+                return ['success' => true, 'response' => $response->json()];
+            }
+
+            Log::error('WA List Message Error: ' . $response->body());
+            return ['success' => false, 'message' => $response->json()['error']['message'] ?? 'Unknown error'];
+
+        } catch (\Exception $e) {
+            Log::error('WA List Exception: ' . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
      * Send a template-based message (Required for business-initiated chats)
      */
     /**

@@ -156,6 +156,17 @@ class WhatsAppWebhookController extends Controller
 
         // Map keywords to command strings
         $mappings = [
+            // Welcome & Greetings
+            'hello' => '/welcome',
+            'hi' => '/welcome',
+            'mambo' => '/welcome',
+            'habari' => '/welcome',
+            'niaje' => '/welcome',
+            'karibu' => '/welcome',
+            'hey' => '/welcome',
+            'start' => '/welcome',
+            'welcome' => '/welcome',
+
             // Books & Revision
             'books' => '/books',
             'kitabu' => '/books',
@@ -337,14 +348,61 @@ class WhatsAppWebhookController extends Controller
                 return "🔍 *KUFUATILIA MZIGO / ORDER TRACKING*\n\nJe, tayari umeshafanya malipo na unataka kujua hatua ya mzigo wako?\n\n• *Ndani ya Dar es Salaam*: Mzigo unatumwa ndani ya masaa 2-4 baada ya malipo. Tutakupigia simu bodaboda/bajaji akiondoka.\n• *Mikoani*: Mara baada ya kukabidhi mzigo kwenye basi, tutakutumia **picha ya risiti (Waybill)** yenye namba ya simu ya dereva wa basi hapa WhatsApp.\n\n👉 Kama unahitaji msaada wowote kuhusu ufuatiliaji wa mzigo, andika tu */support* na tutakusaidia mara moja!";
 
             case 'help':
-                return "🆘 *MAJELEKO / HELP MENU*\n\nTuna kila kitu unachohitaji! Andika neno lolote hapa, au tumia amri zifuatazo:\n\n📦 *Bidhaa & Huduma*:\n/products - Bidhhaa zetu zote\n/books - Vitabu vya Shule\n/stationery - Vifaa vya Ofisi/Shule\n/printing - Huduma ya Printing/Copy\n/wholesale - Mauzo ya Jumla\n/revision - Vitabu vya Marudio/Mitihani\n/subjects - Masomo yote ya vitabu\n/schoolpacks - Vifurushi vya bei nafuu\n\n🚚 *Oda & Usafirishaji*:\n/order - Jinsi ya kufanya oda\n/delivery - Huduma ya kutuma mzigo\n/track - Kufuatilia mzigo wako\n/payment - Njia za kufanya malipo\n/pricing - Bei za bidhaa maarufu\n\n🏢 *Mawasiliano & Muda*:\n/location - Matawi yetu\n/hours - Muda wetu wa kazi\n/trust - Kuhusu TRUMARK\n/support - Ongea na Mhudumu wetu";
+                return "🆘 *MAJELEKO / HELP MENU*\n\nTuna kila kitu unachohitaji! Andika neno lolote hapa, au tumia amri zifuatazo:\n\n📦 *Bidhaa & Huduma*:\n/products - Bidhaa zetu zote\n/books - Vitabu vya Shule\n/stationery - Vifaa vya Ofisi/Shule\n/printing - Huduma ya Printing/Copy\n/wholesale - Mauzo ya Jumla\n/revision - Vitabu vya Marudio/Mitihani\n/subjects - Masomo yote ya vitabu\n/schoolpacks - Vifurushi vya bei nafuu\n\n🚚 *Oda & Usafirishaji*:\n/order - Jinsi ya kufanya oda\n/delivery - Huduma ya kutuma mzigo\n/track - Kufuatilia mzigo wako\n/payment - Njia za kufanya malipo\n/pricing - Bei za bidhaa maarufu\n\n🏢 *Mawasiliano & Muda*:\n/location - Matawi yetu\n/hours - Muda wetu wa kazi\n/trust - Kuhusu TRUMARK\n/support - Ongea na Mhudumu wetu";
+
+            case 'welcome':
+                return "👋 *KARIBU TRUMARK CO. LTD! / WELCOME TO TRUMARK!*\n\nHabari! Sisi ni wauzaji wa vitabu vyote vya shule, vifaa vya ofisini/shuleni na watoaji wa huduma bora za printing na photocopy Tanzania. 😊\n\nAndika neno lolote hapa kuuliza swali, au chagua huduma unayohitaji kwa kuandika amri hizi:\n\n📦 *Bidhaa & Vifaa (Products & Catalog)*:\n👉 Andika */products* - Kuona bidhaa zetu zote.\n👉 Andika */books* - Kujua vitabu vya shule tunavyouza.\n👉 Andika */stationery* - Kuona vifaa vya ofisi na shule.\n👉 Andika */schoolpacks* - Vifurushi vya Back-to-School.\n\n🚚 *Oda & Malipo (Order & Delivery)*:\n👉 Andika */order* - Jinsi ya kuweka oda yako.\n👉 Andika */delivery* - Maelezo ya kutumiwa mzigo.\n👉 Andika */payment* - Njia za kufanya malipo na namba zetu.\n\n📍 *Ofisi & Mawasiliano*:\n👉 Andika */location* - Kupata ramani na matawi yetu Ubungo & Kimara.\n👉 Andika */support* - Ongea na Mhudumu wetu (Live Support).\n\nTRUMARK inakujali! Tunakutakia siku njema na manunuzi mema! 🌟";
+
+            // Expanded Sub-commands
+            case 'books_primary':
+                return "📚 *VITABU VYA SHULE ZA MSINGI / PRIMARY SCHOOL BOOKS*\n\nTuna vitabu vyote vya mtaala mpya wa NECTA (Darasa la 1 - 7):\n- Mathematics (Hesabu)\n- Science & Technology (Sayansi na Teknolojia)\n- Social Studies (Maarifa ya Jamii)\n- English & Kiswahili\n- Civic & Moral Education (Uraia na Maadili)\n- Vocational Skills (Stadi za Kazi)\n\n👉 Andika */order* kuagiza vitabu hivi!";
+
+            case 'books_secondary':
+                return "📚 *VITABU VYA SEKONDARI / SECONDARY SCHOOL BOOKS*\n\nTuna vitabu vya O-Level (Form 1-4) na A-Level (Form 5-6):\n- Physics, Chemistry, Biology\n- Pure Mathematics & Basic Mathematics\n- Geography, History, Civics\n- English, Kiswahili, Literature in English\n- Bookkeeping, Commerce, Economics\n\n👉 Andika masomo unayotaka kuagiza, kisha andika */order*!";
+
+            case 'pastpapers_o':
+                return "📝 *PAST PAPERS ZA O-LEVEL (FORM 2 & 4)*\n\nJiandae vizuri na mitihani ya NECTA kwa Solved Past Papers za miaka 10 iliyopita:\n- Masomo yote ya Sayansi na Sanaa.\n- Miongozo ya kujibu maswali na kupata alama za juu.\n- Bei: TZS 5,000 hadi 8,000 kwa kila kitabu cha somo husika.\n\n👉 Andika */order* kuweka oda ya vitabu hivi vya marudio!";
+
+            case 'pastpapers_a':
+                return "📝 *PAST PAPERS ZA A-LEVEL (FORM 6)*\n\nVitabu vya marudio na solved past papers za tahasusi zote za A-Level (PCM, PCB, CBG, EGM, HGE, HGL, HKL, nk):\n- Maswali na majibu ya kina ya Mitihani ya Taifa iliyopita.\n- Kujazwa na vidokezo vya NECTA.\n- Bei: Kuanzia TZS 7,000 tu kila somo.\n\n👉 Andika */order* ili tukuletee mzigo ulipo!";
+
+            case 'exercise_books':
+                return "📓 *MAJADALIANO YA DAFTARI / EXERCISE BOOKS PRICING*\n\nTuna Exercise books za chapa maarufu kama Kasuku, Sifa, na nyinginezo:\n- Daftari nyembamba (A5 Exercise Book 32/48/96 Pages): TZS 300 - TZS 800 kila moja.\n- Daftari za Quire (Counter Books A4):\n  * 1 Quire: TZS 1,200\n  * 2 Quire: TZS 1,800\n  * 3 Quire: TZS 2,500\n  * 4 Quire: TZS 3,200\n\n👉 Mauzo ya Box zima yana punguzo kubwa la jumla! Andika */wholesale* kujua zaidi.";
+
+            case 'office_supplies':
+                return "✏️ *VIFAA VYA OFISI / OFFICE STATIONERY*\n\nTuna vifaa vyote vinavyohitajika ofisini kwako kwa ajili ya utendaji bora:\n- A4 Printing paper (Chapa ya Double A, PaperOne, nk) - Boksi / Ream.\n- Faili za Ofisi (Box Files, Spring Files, Flat Files, Clear Bags).\n- Kalamu za saini (Gel pens, ball pens - Bic, Speedo, Schneider).\n- Mashine za Ofisi (Staplers, Staple removers, Paper punches, Laminating machines).\n- Wino na Tona (Printer cartridges, stamp pads & ink).\n\n👉 Andika */quotation* ili tukuandalie nukuu ya bei kwa ajili ya ofisi yako!";
+
+            case 'calc':
+                return "🧮 *CALCULATORS / KIKOKOTOO YA KISAYANSI*\n\nTuna calculators halisi za chapa ya CASIO zenye warranty kwa ajili ya wanafunzi na ofisi:\n- *Scientific Calculator (Casio fx-991EX / fx-991ES Plus)*: Kikokotoo bora cha sayansi na hesabu za sekondari/vyuo vikuu.\n  * Bei: TZS 35,000 hadi 45,000 (Halisi na imara).\n- *Standard Office Calculator (Casio/Citizen)*: Kikokotoo kikubwa kwa ajili ya biashara na hesabu za kawaida ofisini.\n  * Bei: Kuanzia TZS 15,000.\n\n👉 Andika */order* kuagiza calculator yako safi leo!";
+
+            case 'brands':
+                return "🏷️ *CHAPA TUNAZOZIELEWA / OUR BRAND PARTNERS*\n\nTunasambaza na kuuza bidhaa za chapa zinazoongoza duniani na Tanzania kwa ubora:\n- *Madaftari*: Kasuku, Sifa, TRUMARK premium.\n- *Karatasi*: Double A, PaperOne, IK Yellow, Supreme.\n- *Kalamu*: Bic, Speedo, Schneider, Pilot, Cello.\n- *Calculators*: CASIO (Original with warranty).\n- *Vifaa vingine*: Kangaroo, Deli, Rexel, Maped.\n\n✅ Kila bidhaa kwetu ni ya uhakika na asili!";
+
+            case 'discount':
+                return "🏷️ *SERA YA MAPUNGUZO / OFFERS & DISCOUNTS*\n\nTunaamini katika kutoa thamani kubwa kwa kila shilingi unayolipa TRUMARK:\n- *Wateja wa Reja reja*: Pata punguzo la hadi 5% unaponunua Back-to-school packs (/schoolpacks).\n- *Wateja wa Jumla / Shule*: Pata punguzo kubwa la *10% hadi 20%* kulingana na kiasi cha oda yako (/wholesale).\n- *Usafirishaji Bure*: Oda zote za jumla ndani ya Dar es Salaam tunakuletea bure kabisa!\n\n👉 Wasiliana na mhudumu wetu kwa kuandika */support* kupata ofa maalum!";
+
+            case 'location_ubungo':
+                return "🏢 *MAELEKEZO YA TAWI LA UBUNGO / UBUNGO BRANCH DIRECTIONS*\n\n- *Mahali*: Ubungo Plaza, Ghorofa ya Chini (Ground Floor).\n- *Jinsi ya kufika*: Kama unatumia mwendo wa haraka, shuka kituo cha Ubungo Plaza, duka letu liko upande wa kulia ukielekea lango kuu la jengo.\n- *Simu*: 0794 467 694\n\n📍 Tunafungua Jumatatu hadi Jumamosi, 8:00 AM - 6:00 PM.";
+
+            case 'location_kimara':
+                return "🏢 *MAELEKEZO YA TAWI LA KIMARA / KIMARA BRANCH DIRECTIONS*\n\n- *Mahali*: Kimara Mwisho, mkabala na kituo kikuu cha mwendo wa haraka cha Kimara.\n- *Jinsi ya kufika*: Shuka kituo cha mwendo wa haraka cha Kimara Mwisho, vuka barabara upande wa pili kuelekea jengo jipya la TRUMARK (lililoandikwa TRUMARK Stationery & Books).\n- *Simu*: 0794 467 694\n\n📍 Tunafungua Jumatatu hadi Jumamosi, 8:00 AM - 6:00 PM.";
+
+            case 'jobs':
+                return "💼 *KAZI NA NAFASI / CAREERS & INTERNSHIPS*\n\nAsante kwa nia yako ya kujiunga na timu ya TRUMARK Co. LTD!\n\nTunaongeza timu yetu mara kwa mara tunapofungua matawi mapya. \n- Kwa sasa, hatuna nafasi zilizo wazi (No vacancies).\n- Lakini tunakaribisha CV yako kwa kazi za baadae za Uuzaji (Sales), Graphic Design, nk.\n- Tuma barua pepe yako na CV kwenda: *hr@trumark.co.tz*.\n\nAsante kwa kuipenda TRUMARK!";
+
+            case 'complaints':
+                return "📢 *MALALAMIKO NA MAONI / CUSTOMER FEEDBACK & ISSUES*\n\nTRUMARK tunathamini sana maoni na kuridhika kwako. Kama kuna changamoto yoyote uliyokutana nayo:\n1. Huduma mbaya kutoka kwa mhudumu wetu.\n2. Kuchelewa kwa mzigo wako.\n3. Bidhaa iliyoharibika au isiyo sahihi.\n\nTafadhali tuma ujumbe wako hapa moja kwa moja au piga simu kwa meneja wa huduma kwa wateja kwa namba: *0794 467 694*.\n\nTunaahidi kutatua changamoto yako ndani ya masaa 24! Uaminifu wako ni furaha yetu. ❤️";
+
+            case 'refund':
+                return "🔄 *SERA YA KURUDISHA BIDHAA / RETURN & REFUND POLICY*\n\nSera yetu ya kurudisha bidhaa ni rahisi na yenye usawa:\n- *Muda*: Bidhaa inaweza kurudishwa au kubadilishwa ndani ya **siku 3** tangu tarehe ya ununuzi.\n- *Hali ya Bidhaa*: Bidhaa lazima iwe katika hali yake ya awali (haijatumika wala kuharibiwa, na risiti yake iwepo).\n- *Kubadilisha (Exchange)*: Unaweza kubadilisha bidhaa kwa bidhaa nyingine yenye thamani sawa.\n- *Kurudishiwa Pesa (Refund)*: Pesa inarudishwa endapo bidhaa ilikuwa na kasoro kutoka kiwandani na hatuna nyingine ya kuibadilisha.\n\n👉 Kwa maelezo zaidi ya bidhaa yako, andika */support*!";
 
             case 'contact':
             case 'support':
                 return $this->triggerHumanHandoff($customerPhone);
 
             default:
-                return "❓ Amri haieleweki: /$command. Andika */help* kuona amri zote zilizopo.";
+                // Fallback directly to support instead of showing error
+                return $this->triggerHumanHandoff($customerPhone);
         }
     }
 

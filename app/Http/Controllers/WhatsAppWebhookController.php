@@ -171,75 +171,124 @@ class WhatsAppWebhookController extends Controller
 
     /**
      * Get follow-up button options based on which command was just handled
-     * Always appends 'Menu Kuu' and 'Maoni' options alongside a contextual action.
      */
     protected function getFollowUpButtons($command)
     {
-        $customId = '/support';
-        $customTitle = '🤝 Msaada';
+        $mainMenu = [
+            ['id' => '/books',     'title' => '📚 Vitabu'],
+            ['id' => '/stationery','title' => '✏️ Vifaa'],
+            ['id' => '/support',   'title' => '🤝 Msaada'],
+        ];
 
         switch ($command) {
             case 'welcome':
             case 'help':
-            case 'menu':
-                $customId = '/products';
-                $customTitle = '📦 Bidhaa Zetu';
-                break;
+                return [
+                    ['id' => '/products',  'title' => '📦 Bidhaa Zetu'],
+                    ['id' => '/pricing',   'title' => '💰 Bei za Bidhaa'],
+                    ['id' => '/support',   'title' => '🤝 Msaada'],
+                ];
 
             case 'books':
             case 'school books':
             case 'vitabu vya shule':
-            case 'revision':
-            case 'subjects':
+                return [
+                    ['id' => '/revision',  'title' => '📖 Past Papers'],
+                    ['id' => '/order',     'title' => '🛒 Agiza Sasa'],
+                    ['id' => '/pricing',   'title' => '💰 Bei'],
+                ];
+
             case 'stationery':
+            case 'stationery & office supplies':
+            case 'stationery and office supplies':
             case 'office supplies':
             case 'vifaa vya ofisi':
-            case 'pricing':
-            case 'bei za bidhaa':
-            case 'price list':
-            case 'payment':
-                $customId = '/order';
-                $customTitle = '🛒 Agiza Sasa';
-                break;
+                return [
+                    ['id' => '/pricing',   'title' => '💰 Bei za Vifaa'],
+                    ['id' => '/wholesale', 'title' => '📦 Bei ya Jumla'],
+                    ['id' => '/order',     'title' => '🛒 Agiza Sasa'],
+                ];
 
             case 'printing':
+            case 'printing & photocopy':
             case 'uchapishaji':
-                $customId = '/location';
-                $customTitle = '📍 Tawi Letu';
-                break;
+                return [
+                    ['id' => '/location',  'title' => '📍 Tawi Letu'],
+                    ['id' => '/hours',     'title' => '⏰ Muda Wetu'],
+                    ['id' => '/support',   'title' => '🤝 Wasiliana Nasi'],
+                ];
 
             case 'delivery':
             case 'usafirishaji':
-                $customId = '/order';
-                $customTitle = '🛒 Weka Oda';
-                break;
+            case 'delivery information':
+                return [
+                    ['id' => '/order',     'title' => '🛒 Weka Oda'],
+                    ['id' => '/payment',   'title' => '💳 Njia za Lipa'],
+                    ['id' => '/support',   'title' => '🤝 Msaada'],
+                ];
+
+            case 'pricing':
+            case 'bei za bidhaa':
+            case 'price list':
+                return [
+                    ['id' => '/wholesale', 'title' => '📦 Bei ya Jumla'],
+                    ['id' => '/quotation', 'title' => '📄 Pata Quotation'],
+                    ['id' => '/order',     'title' => '🛒 Agiza Sasa'],
+                ];
 
             case 'wholesale':
             case 'mauzo ya jumla':
-                $customId = '/quotation';
-                $customTitle = '📄 Omba Quotation';
-                break;
+            case 'bulk order':
+                return [
+                    ['id' => '/quotation', 'title' => '📄 Omba Quotation'],
+                    ['id' => '/payment',   'title' => '💳 Njia za Lipa'],
+                    ['id' => '/support',   'title' => '🤝 Ongea na Meneja'],
+                ];
+
+            case 'payment':
+                return [
+                    ['id' => '/order',     'title' => '🛒 Weka Oda'],
+                    ['id' => '/track',     'title' => '🔍 Fuatilia Oda'],
+                    ['id' => '/support',   'title' => '🤝 Msaada'],
+                ];
+
+            case 'order':
+                return [
+                    ['id' => '/payment',   'title' => '💳 Jinsi ya Kulipa'],
+                    ['id' => '/delivery',  'title' => '🚚 Delivery Info'],
+                    ['id' => '/support',   'title' => '🤝 Ongea na Mhudumu'],
+                ];
 
             case 'location':
-            case 'branches':
+            case 'our locations / matawi yetu':
             case 'matawi yetu':
-                $customId = '/hours';
-                $customTitle = '⏰ Muda wa Kazi';
-                break;
+            case 'branches':
+                return [
+                    ['id' => '/hours',     'title' => '⏰ Muda wa Kazi'],
+                    ['id' => '/delivery',  'title' => '🚚 Tunadelivery Pia'],
+                    ['id' => '/support',   'title' => '📞 Piga Simu'],
+                ];
+
+            case 'revision':
+                return [
+                    ['id' => '/books',     'title' => '📚 Vitabu Zaidi'],
+                    ['id' => '/order',     'title' => '🛒 Agiza Sasa'],
+                    ['id' => '/support',   'title' => '🤝 Msaada'],
+                ];
 
             case 'support':
             case 'customer support':
             case 'huduma kwa wateja':
-                $customId = '/products';
-                $customTitle = '📦 Angalia Bidhaa';
-                break;
-        }
+                return [
+                    ['id' => '/products',  'title' => '📦 Angalia Bidhaa'],
+                    ['id' => '/location',  'title' => '📍 Tawi Letu'],
+                    ['id' => '/hours',     'title' => '⏰ Muda Wetu'],
+                ];
 
-        return [
-            ['id' => $customId,    'title' => $customTitle],
-            ['id' => '/menu',      'title' => '📋 Menu Kuu'],
-            ['id' => '/feedback',  'title' => '⭐ Maoni'],
-        ];
+            default:
+                // Always show main menu as fallback
+                return $mainMenu;
+        }
     }
 
     /**

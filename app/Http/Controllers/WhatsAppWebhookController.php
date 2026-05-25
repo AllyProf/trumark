@@ -76,9 +76,17 @@ class WhatsAppWebhookController extends Controller
                     return response('OK', 200);
                 }
 
-                // Find customer by phone
+                // Find customer by phone, create draft lead if not exists
                 $cleanPhone = preg_replace('/[^0-9]/', '', $from);
                 $customer   = Customer::where('phone', 'like', "%$cleanPhone%")->first();
+                if (!$customer) {
+                    $customer = Customer::create([
+                        'name' => 'WhatsApp Lead (' . $from . ')',
+                        'phone' => $from,
+                        'is_draft' => true,
+                        'notes' => 'Auto-created from WhatsApp first contact.'
+                    ]);
+                }
 
                 // Log incoming message
                 SmsLog::create([
@@ -89,33 +97,41 @@ class WhatsAppWebhookController extends Controller
                     'response'    => json_encode($message),
                 ]);
 
-                // ROUTING: 1. Ice Breakers -> 2. Commands -> 3. Keyword Matcher -> 4. AI Fallback
+                // ROUTING: 1. State Flow -> 2. Ice Breakers -> 3. Commands -> 4. Keyword Matcher -> 5. AI Fallback
                 $routedCommand = null;
 
-                $responseMessage = $this->handleIceBreaker($text);
-                if ($responseMessage) {
-                    Log::info('[WA-BOT] Matched ICE BREAKER.');
-                    $routedCommand = strtolower(trim($text));
-                } elseif (str_starts_with($text, '/')) {
-                    Log::info('[WA-BOT] Routing to COMMAND handler.');
-                    $routedCommand = ltrim(explode(' ', strtolower(trim($text)))[0], '/');
-                    $responseMessage = $this->handleCommand($text, $from);
+                $responseMessage = $this->handleStateFlow($from, $text, $customer);
+                if ($responseMessage !== null) {
+                    Log::info('[WA-BOT] Handled via active state flow.');
+                    $routedCommand = 'state_flow';
                 } else {
-                    $matchedCommand = $this->handleKeywordMatch($text);
-                    if ($matchedCommand) {
-                        Log::info("[WA-BOT] Matched KEYWORD intent: $matchedCommand");
-                        $routedCommand = ltrim($matchedCommand, '/');
-                        $responseMessage = $this->handleCommand($matchedCommand, $from);
+                    $responseMessage = $this->handleIceBreaker($text);
+                    if ($responseMessage) {
+                        Log::info('[WA-BOT] Matched ICE BREAKER.');
+                        $routedCommand = strtolower(trim($text));
+                    } elseif (str_starts_with($text, '/')) {
+                        Log::info('[WA-BOT] Routing to COMMAND handler.');
+                        $routedCommand = ltrim(explode(' ', strtolower(trim($text)))[0], '/');
+                        $responseMessage = $this->handleCommand($text, $from);
                     } else {
-                        Log::info('[WA-BOT] No match — falling back to GEMINI AI.');
-                        $responseMessage = $this->askGeminiAI($text);
+                        $matchedCommand = $this->handleKeywordMatch($text);
+                        if ($matchedCommand) {
+                            Log::info("[WA-BOT] Matched KEYWORD intent: $matchedCommand");
+                            $routedCommand = ltrim($matchedCommand, '/');
+                            $responseMessage = $this->handleCommand($matchedCommand, $from);
+                        } else {
+                            Log::info('[WA-BOT] No match — falling back to GEMINI AI.');
+                            $responseMessage = $this->askGeminiAI($text);
+                        }
                     }
                 }
 
                 Log::info('[WA-BOT] Response to send: ' . ($responseMessage ?? 'NULL'));
 
                 // Send the main text reply
-                if ($responseMessage) {
+                if ($responseMessage === true) {
+                    // Do nothing, message was already sent interactively
+                } elseif ($responseMessage) {
                     $sendResult = $this->whatsapp->sendMessage($from, $responseMessage);
                     Log::info('[WA-BOT] Send result: ' . json_encode($sendResult));
 
@@ -127,16 +143,18 @@ class WhatsAppWebhookController extends Controller
                     ]);
 
                     // Send follow-up interactive buttons based on context
-                    $followUpButtons = $this->getFollowUpButtons($routedCommand);
-                    if (!empty($followUpButtons)) {
-                        sleep(1); // small delay so messages arrive in order
-                        $this->whatsapp->sendInteractiveButtons(
-                            $from,
-                            "Chagua hatua inayofuata / Choose next step:",
-                            $followUpButtons,
-                            '',
-                            'TRUMARK Stationery & Books 📚'
-                        );
+                    if ($routedCommand !== 'state_flow') {
+                        $followUpButtons = $this->getFollowUpButtons($routedCommand);
+                        if (!empty($followUpButtons)) {
+                            sleep(1); // small delay so messages arrive in order
+                            $this->whatsapp->sendInteractiveButtons(
+                                $from,
+                                "Chagua hatua inayofuata / Choose next step:",
+                                $followUpButtons,
+                                '',
+                                'TRUMARK Stationery & Books 📚'
+                            );
+                        }
                     }
                 }
 
@@ -390,6 +408,21 @@ class WhatsAppWebhookController extends Controller
             'start' => '/welcome',
             'welcome' => '/welcome',
 
+            // Order Flow
+            'weka oda' => '/order',
+            'kuagiza' => '/order',
+            'agiza' => '/order',
+            'order' => '/order',
+            'oda' => '/order',
+            'nunua' => '/order',
+
+            // Feedback Flow
+            'feedback' => '/feedback',
+            'maoni' => '/feedback',
+            'kadiria' => '/feedback',
+            'rate' => '/feedback',
+            'review' => '/feedback',
+
             // Books & Revision
             'books' => '/books',
             'kitabu' => '/books',
@@ -480,6 +513,8 @@ class WhatsAppWebhookController extends Controller
             'help' => '/help',
             'msaada' => '/help',
             'maelekezo' => '/help',
+            'menu' => '/help',
+            'menu kuu' => '/help',
             'about' => '/trust',
             'kuhusu' => '/trust',
             'sifa' => '/trust',
@@ -571,16 +606,61 @@ class WhatsAppWebhookController extends Controller
             
             // Customer Service
             case 'order':
-                return "🛒 *JINSI YA KUFANYA ODA / HOW TO ORDER*\n\nKuweka oda yako kwa urahisi sana, fuata hatua hizi:\n\n1. **Tuma orodha** ya vitabu au vifaa unavyotaka (mfano: Vitabu vya Biology Form 1 & 2 - nakala 1 kila kimoja).\n2. **Taja eneo lako** unapoishi au unakotaka mzigo upelekwe (Dar es Salaam - Mbezi, au Mkoani - Dodoma, Arusha nk).\n3. **Tuma jina lako** na namba ya simu ya mpokeaji.\n\nBaada ya kutuma maelezo haya, andika */support* ili mhudumu wetu athibitishe gharama na kukupatia maelekezo ya malipo. Karibu sana TRUMARK! 😊";
+                $stateKey = "wa_state_" . preg_replace('/[^0-9]/', '', $customerPhone);
+                \Illuminate\Support\Facades\Cache::put($stateKey, ['step' => 'awaiting_order_items', 'data' => []], now()->addMinutes(30));
+                return "🛒 *HATUA YA 1/2: Orodha ya Vifaa / Order Items*\n\nTafadhali andika hapa orodha ya vitabu au vifaa unavyotaka kununua na idadi yake:\n*(Mfano: Daftari za Counter Quire 3 nakala 5, Kalamu za Bic boksi 1)*";
+
+            case 'feedback':
+                $stateKey = "wa_state_" . preg_replace('/[^0-9]/', '', $customerPhone);
+                \Illuminate\Support\Facades\Cache::put($stateKey, ['step' => 'awaiting_feedback', 'data' => []], now()->addMinutes(30));
+
+                $buttons = [
+                    ['id' => 'feedback_5_stars', 'title' => '⭐⭐⭐⭐⭐ Safi sana'],
+                    ['id' => 'feedback_3_stars', 'title' => '⭐⭐⭐ Wastani'],
+                    ['id' => 'feedback_1_star',  'title' => '⭐ Changamoto'],
+                ];
+                $body = "⭐ *JE, UMERIDHIKA NA HUDUMA YETU?*\n\nTafadhali chagua kiwango cha kuridhika kwako na huduma za TRUMARK leo:";
+                $this->whatsapp->sendInteractiveButtons($customerPhone, $body, $buttons, '', 'TRUMARK Feedback');
+                return true;
 
             case 'track':
                 return "🔍 *KUFUATILIA MZIGO / ORDER TRACKING*\n\nJe, tayari umeshafanya malipo na unataka kujua hatua ya mzigo wako?\n\n• *Ndani ya Dar es Salaam*: Mzigo unatumwa ndani ya masaa 2-4 baada ya malipo. Tutakupigia simu bodaboda/bajaji akiondoka.\n• *Mikoani*: Mara baada ya kukabidhi mzigo kwenye basi, tutakutumia **picha ya risiti (Waybill)** yenye namba ya simu ya dereva wa basi hapa WhatsApp.\n\n👉 Kama unahitaji msaada wowote kuhusu ufuatiliaji wa mzigo, andika tu */support* na tutakusaidia mara moja!";
 
             case 'help':
-                return "🆘 *MAJELEKO / HELP MENU*\n\nTuna kila kitu unachohitaji! Andika neno lolote hapa, au tumia amri zifuatazo:\n\n📦 *Bidhaa & Huduma*:\n/products - Bidhaa zetu zote\n/books - Vitabu vya Shule\n/stationery - Vifaa vya Ofisi/Shule\n/printing - Huduma ya Printing/Copy\n/wholesale - Mauzo ya Jumla\n/revision - Vitabu vya Marudio/Mitihani\n/subjects - Masomo yote ya vitabu\n/schoolpacks - Vifurushi vya bei nafuu\n\n🚚 *Oda & Usafirishaji*:\n/order - Jinsi ya kufanya oda\n/delivery - Huduma ya kutuma mzigo\n/track - Kufuatilia mzigo wako\n/payment - Njia za kufanya malipo\n/pricing - Bei za bidhaa maarufu\n\n🏢 *Mawasiliano & Muda*:\n/location - Matawi yetu\n/hours - Muda wetu wa kazi\n/trust - Kuhusu TRUMARK\n/support - Ongea na Mhudumu wetu";
+            case 'menu':
+                $sections = [
+                    [
+                        'title' => 'Vitabu vya Shule',
+                        'rows' => [
+                            ['id' => '/books_primary', 'title' => 'Darasa la 1-7 (Primary)', 'description' => 'Vitabu vya mtaala mpya Standard 1-7'],
+                            ['id' => '/books_secondary', 'title' => 'Secondary & A-Level', 'description' => 'Form 1 hadi 6 masomo yote'],
+                            ['id' => '/revision', 'title' => 'Past Papers & Reviews', 'description' => 'Mitihani ya taifa na miongozo ya NECTA'],
+                        ]
+                    ],
+                    [
+                        'title' => 'Vifaa vya Shule & Ofisi',
+                        'rows' => [
+                            ['id' => '/stationery', 'title' => 'Stationery Categories', 'description' => 'Madaftari, Kalamu, Karatasi za printa, Faili'],
+                            ['id' => '/calc', 'title' => 'Scientific Calculators', 'description' => 'Calculators za CASIO halisi zenye warranty'],
+                            ['id' => '/schoolpacks', 'title' => 'Back to School Packs', 'description' => 'Vifurushi vya bei nafuu Nursery hadi Secondary'],
+                        ]
+                    ],
+                    [
+                        'title' => 'Huduma na Habari',
+                        'rows' => [
+                            ['id' => '/printing', 'title' => 'Printing & Photocopy', 'description' => 'Spiral/Hard binding, scanning, laminating'],
+                            ['id' => '/location', 'title' => 'Matawi & Mahali tulipo', 'description' => 'Matawi Ubungo EACLC na Kimara Stopover'],
+                            ['id' => '/payment', 'title' => 'Njia za Malipo', 'description' => 'Namba za malipo na benki'],
+                        ]
+                    ]
+                ];
+
+                $body = "👋 *TRUMARK MAIN MENU / MENU KUU*\n\nKaribu kwenye duka letu mtandaoni! Tafadhali fungua orodha hapa chini kuchagua huduma unayohitaji haraka:";
+                $this->whatsapp->sendListMessage($customerPhone, $body, "Fungua Orodha", $sections, '', 'TRUMARK Co. LTD');
+                return true;
 
             case 'welcome':
-                return "👋 *KARIBU TRUMARK CO. LTD! / WELCOME TO TRUMARK!*\n\nHabari! Sisi ni wauzaji wa vitabu vyote vya shule, vifaa vya ofisini/shuleni na watoaji wa huduma bora za printing na photocopy Tanzania. 😊\n\nAndika neno lolote hapa kuuliza swali, au chagua huduma unayohitaji kwa kuandika amri hizi:\n\n📦 *Bidhaa & Vifaa (Products & Catalog)*:\n👉 Andika */products* - Kuona bidhaa zetu zote.\n👉 Andika */books* - Kujua vitabu vya shule tunavyouza.\n👉 Andika */stationery* - Kuona vifaa vya ofisi na shule.\n👉 Andika */schoolpacks* - Vifurushi vya Back-to-School.\n\n🚚 *Oda & Malipo (Order & Delivery)*:\n👉 Andika */order* - Jinsi ya kuweka oda yako.\n👉 Andika */delivery* - Maelezo ya kutumiwa mzigo.\n👉 Andika */payment* - Njia za kufanya malipo na namba zetu.\n\n📍 *Ofisi & Mawasiliano*:\n👉 Andika */location* - Kupata ramani na matawi yetu Ubungo & Kimara.\n👉 Andika */support* - Ongea na Mhudumu wetu (Live Support).\n\nTRUMARK inakujali! Tunakutakia siku njema na manunuzi mema! 🌟";
+                return "👋 *KARIBU TRUMARK CO. LTD! / WELCOME TO TRUMARK!*\n\nHabari! Sisi ni wauzaji wa vitabu vyote vya shule, vifaa vya ofisini/shuleni na watoaji wa huduma bora za printing na photocopy Tanzania. 😊\n\nAndika neno lolote hapa kuuliza swali, au chagua huduma unayohitaji kwa kuandika amri hizi:\n\n📦 *Bidhaa & Vifaa (Products & Catalog)*:\n👉 Andika */products* - Kuona bidhaa zetu zote.\n👉 Andika */books* - Kujua vitabu vya shule tunavyouza.\n👉 Andika */stationery* - Kuona vifaa vya ofisi na shule.\n👉 Andika */schoolpacks* - Vifurushi vya Back-to-School.\n\n🚚 *Oda & Malipo (Order & Delivery)*:\n👉 Andika */order* - Jinsi ya kuweka oda yako ya haraka.\n👉 Andika */delivery* - Maelezo ya kutumiwa mzigo.\n👉 Andika */payment* - Njia za kufanya malipo na namba zetu.\n\n📍 *Ofisi & Mawasiliano*:\n👉 Andika */location* - Kupata ramani na matawi yetu Ubungo & Kimara.\n👉 Andika */support* - Ongea na Mhudumu wetu (Live Support).\n👉 Andika */menu* - Kuona menu kuu yenye orodha safi.\n\nTRUMARK inakujali! Tunakutakia siku njema na manunuzi mema! 🌟";
 
             // Expanded Sub-commands
             case 'books_primary':
@@ -706,6 +786,135 @@ If a user asks anything outside these services, politely redirect them. If uncle
         } catch (\Exception $e) {
             Log::error('Gemini Request Failed: ' . $e->getMessage());
             return "Samahani, nimeshindwa kuunganishwa. Tafadhali tumia /support.";
+        }
+    }
+
+    /**
+     * Intercept and handle active state machine conversational flows (orders & feedback)
+     */
+    protected function handleStateFlow($from, $text, $customer)
+    {
+        $stateKey = "wa_state_" . preg_replace('/[^0-9]/', '', $from);
+        $state = \Illuminate\Support\Facades\Cache::get($stateKey);
+
+        if (!$state) {
+            return null;
+        }
+
+        $step = $state['step'] ?? 'idle';
+        $data = $state['data'] ?? [];
+
+        switch ($step) {
+            // === ORDER STATE MACHINE ===
+            case 'awaiting_order_items':
+                $data['items'] = $text;
+                $state['step'] = 'awaiting_order_delivery_method';
+                $state['data'] = $data;
+                \Illuminate\Support\Facades\Cache::put($stateKey, $state, now()->addMinutes(30));
+
+                $buttons = [
+                    ['id' => 'delivery_pickup_ubungo', 'title' => '🏢 Ubungo EACLC'],
+                    ['id' => 'delivery_pickup_kimara', 'title' => '🏢 Kimara Stopover'],
+                    ['id' => 'delivery_home',          'title' => '🚚 Delivery (Ulipo)'],
+                ];
+                
+                $body = "🛒 *HATUA YA 2/2: Usafirishaji / Delivery*\n\nJe, utakuja kuchukua bidhaa zako kwenye matawi yetu wenyewe, au ungependa tukuletee (Delivery)?\n\nTafadhali chagua hapa chini:";
+                $this->whatsapp->sendInteractiveButtons($from, $body, $buttons, '', 'TRUMARK Orders');
+                return true;
+
+            case 'awaiting_order_delivery_method':
+                $method = '';
+                if ($text === 'delivery_pickup_ubungo') {
+                    $method = 'Pickup - Ubungo EACLC';
+                } elseif ($text === 'delivery_pickup_kimara') {
+                    $method = 'Pickup - Kimara Stopover';
+                } elseif ($text === 'delivery_home') {
+                    $method = 'Home/Office Delivery';
+                } else {
+                    $method = $text;
+                }
+
+                $data['delivery_method'] = $method;
+
+                if ($text === 'delivery_home' || str_contains(strtolower($text), 'delivery')) {
+                    $state['step'] = 'awaiting_delivery_address';
+                    $state['data'] = $data;
+                    \Illuminate\Support\Facades\Cache::put($stateKey, $state, now()->addMinutes(30));
+                    
+                    return "🚚 *Anwani ya Delivery*\n\nTafadhali andika **Eneo lako unapoishi / Ofisi** na **Jina kamili la Mpokeaji**:";
+                } else {
+                    \Illuminate\Support\Facades\Cache::forget($stateKey);
+                    $this->completeOrder($from, $data, $customer);
+                    
+                    return "✅ *Oda Yako Imepokelewa kwa Ufanisi!*\n\n📍 *Njia ya Kuchukulia*: {$method}\n📦 *Orodha ya Vifaa*: {$data['items']}\n\nMhudumu wetu anaanza kuandaa mzigo wako na atakupigia simu au kukutumia maelekezo ya malipo hapa WhatsApp hivi punde. Asante kwa kuchagua TRUMARK! 😊";
+                }
+
+            case 'awaiting_delivery_address':
+                $data['address'] = $text;
+                \Illuminate\Support\Facades\Cache::forget($stateKey);
+                $this->completeOrder($from, $data, $customer);
+
+                return "✅ *Oda Yako Imepokelewa kwa Ufanisi!*\n\n📍 *Mahali pa kuletewa*: {$text}\n📦 *Orodha ya Vifaa*: {$data['items']}\n\nMhudumu wetu anaanza kuandaa mzigo wako na atakupigia simu au kukutumia maelekezo ya malipo hapa WhatsApp hivi punde. Asante kwa kuchagua TRUMARK! 😊";
+
+            // === FEEDBACK STATE MACHINE ===
+            case 'awaiting_feedback':
+                $rating = 5;
+                if (str_contains($text, '5_stars') || str_contains($text, 'Safi')) {
+                    $rating = 5;
+                } elseif (str_contains($text, '3_stars') || str_contains($text, 'Wastani')) {
+                    $rating = 3;
+                } elseif (str_contains($text, '1_star') || str_contains($text, 'Changamoto')) {
+                    $rating = 1;
+                } else {
+                    $rating = intval(preg_replace('/[^0-9]/', '', $text)) ?: 5;
+                }
+
+                $data['rating'] = $rating;
+                $state['step'] = 'awaiting_feedback_comment';
+                $state['data'] = $data;
+                \Illuminate\Support\Facades\Cache::put($stateKey, $state, now()->addMinutes(30));
+
+                return "⭐ *Hatua ya 2/2: Maoni ya ziada / Extra Comments*\n\nAsante kwa kiwango ulichochagua! Tafadhali andika maoni yako mafupi, ushauri au mapendekezo ili tushughulikie (au andika 'Hapana' kama huna):";
+
+            case 'awaiting_feedback_comment':
+                $rating = $data['rating'] ?? 5;
+                $comment = $text;
+
+                try {
+                    \App\Models\CustomerFeedback::create([
+                        'customer_id' => $customer ? $customer->id : Customer::firstOrCreate(['phone' => $from], ['name' => 'WhatsApp Customer'])->id,
+                        'rating'      => $rating,
+                        'comment'     => (strtolower($comment) === 'hapana') ? null : $comment,
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error("Failed to save customer feedback: " . $e->getMessage());
+                }
+
+                \Illuminate\Support\Facades\Cache::forget($stateKey);
+                return "🙏 *Asante sana kwa maoni yako!* Yatusaidia kuboresha huduma zetu na kuhakikisha TRUMARK inabaki kuwa duka lako pendwa la vitabu na vifaa daima. Ubarikiwe sana!";
+        }
+
+        return null;
+    }
+
+    /**
+     * Complete order and alert Admin
+     */
+    protected function completeOrder($from, $data, $customer)
+    {
+        $adminPhone = env('WHATSAPP_ADMIN_PHONE');
+        $delivery = $data['delivery_method'] ?? 'Pickup';
+        $address = $data['address'] ?? 'N/A';
+        $items = $data['items'] ?? 'N/A';
+
+        if ($adminPhone) {
+            $alertMsg = "🛒 *Oda Mpya ya WhatsApp!*\n\n"
+                      . "👤 *Mteja*: +{$from}\n"
+                      . "📦 *Bidhaa*: {$items}\n"
+                      . "🚚 *Njia*: {$delivery}\n"
+                      . "📍 *Anwani/Tawi*: {$address}\n\n"
+                      . "Tafadhali wasiliana na mteja kukamilisha malipo na usafirishaji: https://wa.me/{$from}";
+            $this->whatsapp->sendMessage($adminPhone, $alertMsg);
         }
     }
 }

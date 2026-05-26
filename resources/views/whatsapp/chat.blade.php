@@ -60,6 +60,35 @@
 .thread-item.is-new{animation:newThreadPulse 2s ease 3;border-left:3px solid #28a745;}
 .thread-item.is-new .t-name{color:#155724 !important;font-weight:900 !important;}
 .thread-item.is-new .t-avatar{background:#28a745 !important;}
+
+/* Mobile & Tablet Responsiveness */
+@media (max-width: 767.98px) {
+  .chat-wrap {
+    height: calc(100vh - 120px) !important;
+    min-height: 480px !important;
+  }
+  .chat-left {
+    width: 100% !important;
+    border-right: none;
+  }
+  .chat-right {
+    width: 100% !important;
+    flex: 1;
+  }
+  /* Toggle panes based on thread-opened state */
+  .chat-wrap:not(.thread-opened) .chat-right {
+    display: none !important;
+  }
+  .chat-wrap.thread-opened .chat-left {
+    display: none !important;
+  }
+  .chat-footer {
+    padding: 8px 10px;
+  }
+  .bubble {
+    max-width: 85%;
+  }
+}
 </style>
 @endsection
 
@@ -123,6 +152,10 @@
 
         <div class="chat-header d-none" id="chatHeader">
           <div class="chat-header-left">
+            {{-- Back chevron for mobile view --}}
+            <button id="backBtn" class="btn btn-light btn-sm mr-2 d-md-none" style="border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;" onclick="goBackToList()">
+              <i class="fa fa-chevron-left text-muted"></i>
+            </button>
             <div class="t-avatar" id="hAvatar">WA</div>
             <div>
               <div class="h-name" id="hName">-</div>
@@ -206,6 +239,9 @@ function openThread(phone, name, cid) {
   let item = document.querySelector(`.thread-item[data-phone="${phone}"]`);
   if (item) item.classList.add('active');
 
+  // Trigger mobile pane shift
+  document.querySelector('.chat-wrap').classList.add('thread-opened');
+
   document.getElementById('emptyState').classList.add('d-none');
   ['chatHeader','chatBody','chatFooter'].forEach(id=>document.getElementById(id).classList.remove('d-none'));
 
@@ -231,6 +267,14 @@ function openThread(phone, name, cid) {
 
   if (pollMsgInterval) clearInterval(pollMsgInterval);
   pollMsgInterval = setInterval(()=>{ if(activePhone===phone) loadMessages(phone,true); }, 5000);
+}
+
+// ── Mobile Back Trigger ───────────────────────────────────────
+function goBackToList() {
+  document.querySelector('.chat-wrap').classList.remove('thread-opened');
+  activePhone = null;
+  if (pollMsgInterval) clearInterval(pollMsgInterval);
+  document.querySelectorAll('.thread-item').forEach(e=>e.classList.remove('active'));
 }
 
 // ── Load messages ─────────────────────────────────────────────

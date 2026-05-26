@@ -119,16 +119,14 @@ class WhatsAppChatController extends Controller
         // We identify WhatsApp outgoing by sender_id IS NULL (bot) or sender_id IS NOT NULL (human)
         // and the phone matching. We exclude records where status='sent' and message does NOT
         // start with 'INCOMING' but was created by a campaign (no sender_id, no 'received' peer).
-        $messages = SmsLog::where(function($q) use ($cleanPhone) {
-                $q->where('phone', 'like', "%$cleanPhone%");
-            })
+        $messages = SmsLog::where('phone', 'like', "%$cleanPhone%")
             ->where(function($q) {
-                // Include: all received (incoming) messages
-                $q->where('status', 'received')
-                  // Include: manual replies sent by a CRM user (sender_id set)
+                // Incoming messages from customer
+                $q->whereIn('status', ['received', 'read_by_agent'])
+                  // Manual replies sent by a CRM staff member
                   ->orWhereNotNull('sender_id')
-                  // Include: bot auto-replies (message starts with INCOMING prefix sibling - bot reply stored without prefix)
-                  ->orWhere('message', 'like', 'INCOMING:%');
+                  // Bot auto-replies stored with [BOT REPLY] prefix
+                  ->orWhere('message', 'like', '[BOT REPLY]%');
             })
             ->orderBy('created_at', 'asc')
             ->get();

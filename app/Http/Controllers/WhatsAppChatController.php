@@ -67,7 +67,7 @@ class WhatsAppChatController extends Controller
             ->select('phone', DB::raw('COUNT(*) as cnt'))
             ->pluck('cnt', 'phone');
 
-        $threads = SmsLog::whereIn('id', $maxIds)
+        $threads = SmsLog::whereIn('sms_logs.id', $maxIds)
             ->leftJoin('customers', function($join) {
                 $join->on(DB::raw("REPLACE(customers.phone, '+', '')"), '=', DB::raw("REPLACE(sms_logs.phone, '+', '')"));
             })

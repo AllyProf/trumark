@@ -115,25 +115,7 @@ class WhatsAppWebhookController extends Controller
                 }
 
                 // Check if bot is paused for this number (Human handoff active)
-                // PRIMARY: Cache-based check
-                $pausedKey  = "wa_bot_paused_" . preg_replace('/[^0-9]/', '', $from);
-                $isBotPaused = \Illuminate\Support\Facades\Cache::get($pausedKey, false);
-
-                // FALLBACK: Database check — if a CRM staff member (sender_id set)
-                // replied to this phone within the last 30 minutes, treat bot as paused.
-                // This covers cases where the cache driver does not persist between requests.
-                if (!$isBotPaused) {
-                    $recentManualReply = SmsLog::where('phone', 'like', "%$cleanPhone%")
-                        ->whereNotNull('sender_id')
-                        ->where('created_at', '>=', now()->subMinutes(30))
-                        ->exists();
-                    if ($recentManualReply) {
-                        $isBotPaused = true;
-                        // Re-set the cache so future checks are faster
-                        \Illuminate\Support\Facades\Cache::put($pausedKey, true, now()->addMinutes(30));
-                        Log::info("[WA-BOT] Bot PAUSED via DB fallback for $from (recent manual reply found).");
-                    }
-                }
+                $isBotPaused = $this->checkBotPausedStatus($cleanPhone, $from);
 
                 if ($isBotPaused) {
                     Log::info("[WA-BOT] Automated bot is PAUSED for customer $from. Human operator is chatting.");
@@ -976,5 +958,36 @@ If a user asks anything outside these services, politely redirect them. If uncle
                 . "Tafadhali wasiliana na mteja kukamilisha malipo na usafirishaji: https://wa.me/{$from}";
             $this->whatsapp->sendMessage($adminPhone, $alertMsg);
         }
+    }
+
+    /**
+     * Centralized pause status check, respecting explicit unpause override key
+     */
+    private function checkBotPausedStatus($cleanPhone, $from)
+    {
+        // 1. Explicit unpause override by CRM agent (expires in 30 min)
+        if (\Illuminate\Support\Facades\Cache::get("wa_bot_explicit_active_" . $cleanPhone, false)) {
+            return false;
+        }
+
+        // 2. Cache-based check
+        $pausedKey = "wa_bot_paused_" . $cleanPhone;
+        if (\Illuminate\Support\Facades\Cache::get($pausedKey, false)) {
+            return true;
+        }
+
+        // 3. Database fallback: recent manual reply from staff in last 30 minutes
+        $recentManualReply = SmsLog::where('phone', 'like', "%$cleanPhone%")
+            ->whereNotNull('sender_id')
+            ->where('created_at', '>=', now()->subMinutes(30))
+            ->exists();
+
+        if ($recentManualReply) {
+            \Illuminate\Support\Facades\Cache::put($pausedKey, true, now()->addMinutes(30));
+            Log::info("[WA-BOT] Bot PAUSED via DB fallback for $from (recent manual reply found).");
+            return true;
+        }
+
+        return false;
     }
 }

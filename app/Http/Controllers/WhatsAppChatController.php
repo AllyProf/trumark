@@ -86,7 +86,7 @@ class WhatsAppChatController extends Controller
             ->get()
             ->map(function($thread) use ($unreadCounts) {
                 $cleanPhone = preg_replace('/[^0-9]/', '', $thread->phone);
-                $thread->is_bot_paused = Cache::get("wa_bot_paused_" . $cleanPhone, false);
+                $thread->is_bot_paused = $this->checkBotPausedStatus($cleanPhone);
                 $thread->unread_count = $unreadCounts[$thread->phone] ?? 0;
                 return $thread;
             });
@@ -139,7 +139,7 @@ class WhatsAppChatController extends Controller
             ->latest()
             ->first();
 
-        $isBotPaused = Cache::get("wa_bot_paused_" . $cleanPhone, false);
+        $isBotPaused = $this->checkBotPausedStatus($cleanPhone);
 
         // 24h window: customer can receive free-form messages within 24h of their last inbound
         $windowOpen = $lastCustomerMsg
@@ -191,6 +191,8 @@ class WhatsAppChatController extends Controller
                 'whatsapp_message_id'=> $wamid,
             ]);
 
+            // Clear explicit active override when staff sends manual message
+            Cache::forget("wa_bot_explicit_active_" . $cleanPhone);
             // Auto-pause automated bot for 30 minutes when human replies
             Cache::put("wa_bot_paused_" . $cleanPhone, true, now()->addMinutes(30));
 
@@ -214,14 +216,18 @@ class WhatsAppChatController extends Controller
     {
         $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
         $key = "wa_bot_paused_" . $cleanPhone;
+        $explicitActiveKey = "wa_bot_explicit_active_" . $cleanPhone;
         
-        $current = Cache::get($key, false);
+        $current = $this->checkBotPausedStatus($cleanPhone);
 
         if ($current) {
+            // Staff explicitly wants the bot ACTIVE
             Cache::forget($key);
+            Cache::put($explicitActiveKey, true, now()->addMinutes(30));
             $status = 'active';
         } else {
-            // Pause bot for 24 hours
+            // Staff explicitly wants the bot PAUSED (for 24 hours)
+            Cache::forget($explicitActiveKey);
             Cache::put($key, true, now()->addHours(24));
             $status = 'paused';
         }
@@ -230,6 +236,35 @@ class WhatsAppChatController extends Controller
             'success' => true,
             'status' => $status
         ]);
+    }
+
+    /**
+     * Helper to determine if bot is paused, with database fallback for cache loss
+     */
+    private function checkBotPausedStatus($cleanPhone)
+    {
+        // 1. Explicit unpause override (expires after 30 min)
+        if (Cache::get("wa_bot_explicit_active_" . $cleanPhone, false)) {
+            return false;
+        }
+
+        // 2. Cache-based pause
+        if (Cache::get("wa_bot_paused_" . $cleanPhone, false)) {
+            return true;
+        }
+
+        // 3. Database fallback (manual replies by staff in last 30 minutes)
+        $recentManualReply = SmsLog::where('phone', 'like', "%$cleanPhone%")
+            ->whereNotNull('sender_id')
+            ->where('created_at', '>=', now()->subMinutes(30))
+            ->exists();
+
+        if ($recentManualReply) {
+            Cache::put("wa_bot_paused_" . $cleanPhone, true, now()->addMinutes(30));
+            return true;
+        }
+
+        return false;
     }
 
     /**

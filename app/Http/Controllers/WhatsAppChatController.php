@@ -44,8 +44,10 @@ class WhatsAppChatController extends Controller
      */
     private function buildThreads()
     {
-        // Step 1: Get only phones that have at least one real incoming WhatsApp message
-        $waPhones = SmsLog::where('status', 'received')
+        // Step 1: Get phones that have ever had a real incoming WhatsApp message.
+        // Include BOTH 'received' (unread) AND 'read_by_agent' (already opened by staff)
+        // so that marking a thread as read does NOT remove it from the list.
+        $waPhones = SmsLog::whereIn('status', ['received', 'read_by_agent'])
             ->pluck('phone')
             ->map(fn($p) => preg_replace('/[^0-9]/', '', $p))
             ->unique()

@@ -98,6 +98,8 @@ Route::middleware(['auth'])->group(function () {
 
     // WhatsApp Live Chat
     Route::get('/whatsapp/chat', [\App\Http\Controllers\WhatsAppChatController::class, 'index'])->name('whatsapp.chat');
+    Route::get('/whatsapp/chat/threads-data', [\App\Http\Controllers\WhatsAppChatController::class, 'threadsData'])->name('whatsapp.chat.threads_data');
+    Route::get('/whatsapp/chat/search-customers', [\App\Http\Controllers\WhatsAppChatController::class, 'searchCustomers'])->name('whatsapp.chat.search_customers');
     Route::get('/whatsapp/chat/thread/{phone}', [\App\Http\Controllers\WhatsAppChatController::class, 'thread'])->name('whatsapp.chat.thread');
     Route::post('/whatsapp/chat/send', [\App\Http\Controllers\WhatsAppChatController::class, 'sendMessage'])->name('whatsapp.chat.send');
     Route::post('/whatsapp/chat/toggle-bot/{phone}', [\App\Http\Controllers\WhatsAppChatController::class, 'toggleBot'])->name('whatsapp.chat.toggle_bot');

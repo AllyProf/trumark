@@ -144,11 +144,15 @@ class WhatsAppWebhookController extends Controller
                     $sendResult = $this->whatsapp->sendMessage($from, $responseMessage);
                     Log::info('[WA-BOT] Send result: ' . json_encode($sendResult));
 
+                    // Capture Meta message ID (wamid) for delivery/read receipt tracking
+                    $wamid = $sendResult['response']['messages'][0]['id'] ?? null;
+
                     SmsLog::create([
-                        'customer_id' => $customer ? $customer->id : null,
-                        'phone' => $from,
-                        'message' => "[BOT REPLY] " . $responseMessage,
-                        'status' => $sendResult['success'] ? 'sent' : 'failed',
+                        'customer_id'         => $customer ? $customer->id : null,
+                        'phone'               => $from,
+                        'message'             => "[BOT REPLY] " . $responseMessage,
+                        'status'              => $sendResult['success'] ? 'sent' : 'failed',
+                        'whatsapp_message_id' => $wamid,
                     ]);
 
                     // Send follow-up interactive buttons based on context
@@ -168,7 +172,21 @@ class WhatsAppWebhookController extends Controller
                 }
 
             } else {
-                Log::info('[WA-BOT] Non-message webhook event received (status update or other).');
+                // Handle Meta status update webhooks (sent → delivered → read)
+                $statuses = $data['entry'][0]['changes'][0]['value']['statuses'] ?? [];
+                if (!empty($statuses)) {
+                    foreach ($statuses as $statusUpdate) {
+                        $wamid    = $statusUpdate['id'] ?? null;
+                        $newStatus= $statusUpdate['status'] ?? null; // 'sent','delivered','read','failed'
+                        if ($wamid && $newStatus) {
+                            $updated = SmsLog::where('whatsapp_message_id', $wamid)
+                                ->update(['status' => $newStatus]);
+                            Log::info("[WA-BOT] Status update: wamid=$wamid → $newStatus (rows=$updated)");
+                        }
+                    }
+                } else {
+                    Log::info('[WA-BOT] Non-message, non-status webhook event received.');
+                }
             }
 
         } catch (\Throwable $e) {

@@ -24,18 +24,55 @@ class WhatsAppChatController extends Controller
      */
     public function index()
     {
-        // Query to get the latest message for each unique phone number
-        $threadsQuery = SmsLog::select('phone', DB::raw('MAX(id) as max_id'))
-            ->groupBy('phone');
+        $threads = $this->buildThreads();
+        return view('whatsapp.chat', compact('threads'));
+    }
 
-        $threads = DB::table(DB::raw("({$threadsQuery->toSql()}) as t"))
-            ->mergeBindings($threadsQuery->getQuery())
-            ->join('sms_logs', 'sms_logs.id', '=', 't.max_id')
+    /**
+     * Return threads list as JSON for real-time AJAX polling
+     */
+    public function threadsData()
+    {
+        $threads = $this->buildThreads();
+        return response()->json(['success' => true, 'threads' => $threads]);
+    }
+
+    /**
+     * Shared thread-building logic:
+     * ONLY shows phones that have at least one incoming (status='received') WhatsApp message.
+     * This prevents SMS campaign logs from polluting the WhatsApp chat dashboard.
+     */
+    private function buildThreads()
+    {
+        // Step 1: Get only phones that have at least one real incoming WhatsApp message
+        $waPhones = SmsLog::where('status', 'received')
+            ->pluck('phone')
+            ->map(fn($p) => preg_replace('/[^0-9]/', '', $p))
+            ->unique()
+            ->values();
+
+        if ($waPhones->isEmpty()) {
+            return collect();
+        }
+
+        // Step 2: For each of those phones, get the latest message record (any direction)
+        $maxIds = SmsLog::whereIn(DB::raw("REPLACE(REPLACE(phone, '+', ''), ' ', '')"), $waPhones)
+            ->groupBy('phone')
+            ->select('phone', DB::raw('MAX(id) as max_id'))
+            ->pluck('max_id');
+
+        // Step 3: Get unread count per phone (messages with status='received' not yet replied to)
+        $unreadCounts = SmsLog::where('status', 'received')
+            ->groupBy('phone')
+            ->select('phone', DB::raw('COUNT(*) as cnt'))
+            ->pluck('cnt', 'phone');
+
+        $threads = SmsLog::whereIn('id', $maxIds)
             ->leftJoin('customers', function($join) {
-                $join->on('customers.phone', '=', 'sms_logs.phone')
-                     ->orOn(DB::raw("REPLACE(customers.phone, '+', '')"), '=', 'sms_logs.phone');
+                $join->on(DB::raw("REPLACE(customers.phone, '+', '')"), '=', DB::raw("REPLACE(sms_logs.phone, '+', '')"));
             })
             ->select(
+                'sms_logs.id',
                 'sms_logs.phone',
                 'sms_logs.message',
                 'sms_logs.status',
@@ -44,16 +81,29 @@ class WhatsAppChatController extends Controller
                 'customers.id as customer_id'
             )
             ->orderBy('sms_logs.created_at', 'desc')
+            ->get()
+            ->map(function($thread) use ($unreadCounts) {
+                $cleanPhone = preg_replace('/[^0-9]/', '', $thread->phone);
+                $thread->is_bot_paused = Cache::get("wa_bot_paused_" . $cleanPhone, false);
+                $thread->unread_count = $unreadCounts[$thread->phone] ?? 0;
+                return $thread;
+            });
+
+        return $threads;
+    }
+
+    /**
+     * Search CRM customers by name or phone for the New Chat modal
+     */
+    public function searchCustomers(Request $request)
+    {
+        $q = $request->get('q', '');
+        $customers = Customer::where('name', 'like', "%$q%")
+            ->orWhere('phone', 'like', "%$q%")
+            ->select('id', 'name', 'phone')
+            ->limit(10)
             ->get();
-
-        // Check bot pause state for each thread
-        $threads = $threads->map(function($thread) {
-            $cleanPhone = preg_replace('/[^0-9]/', '', $thread->phone);
-            $thread->is_bot_paused = Cache::get("wa_bot_paused_" . $cleanPhone, false);
-            return $thread;
-        });
-
-        return view('whatsapp.chat', compact('threads'));
+        return response()->json($customers);
     }
 
     /**
@@ -63,16 +113,48 @@ class WhatsAppChatController extends Controller
     {
         $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
 
-        $messages = SmsLog::where('phone', 'like', "%$cleanPhone%")
+        // Only load messages that belong to WhatsApp interactions:
+        // - Incoming: status='received'
+        // - Outgoing bot/human replies linked to this phone
+        // We identify WhatsApp outgoing by sender_id IS NULL (bot) or sender_id IS NOT NULL (human)
+        // and the phone matching. We exclude records where status='sent' and message does NOT
+        // start with 'INCOMING' but was created by a campaign (no sender_id, no 'received' peer).
+        $messages = SmsLog::where(function($q) use ($cleanPhone) {
+                $q->where('phone', 'like', "%$cleanPhone%");
+            })
+            ->where(function($q) {
+                // Include: all received (incoming) messages
+                $q->where('status', 'received')
+                  // Include: manual replies sent by a CRM user (sender_id set)
+                  ->orWhereNotNull('sender_id')
+                  // Include: bot auto-replies (message starts with INCOMING prefix sibling - bot reply stored without prefix)
+                  ->orWhere('message', 'like', 'INCOMING:%');
+            })
             ->orderBy('created_at', 'asc')
             ->get();
 
+        // Build customer data for 24h window check
+        $lastCustomerMsg = SmsLog::where('phone', 'like', "%$cleanPhone%")
+            ->where('status', 'received')
+            ->latest()
+            ->first();
+
         $isBotPaused = Cache::get("wa_bot_paused_" . $cleanPhone, false);
 
+        // 24h window: customer can receive free-form messages within 24h of their last inbound
+        $windowOpen = $lastCustomerMsg
+            ? now()->diffInHours($lastCustomerMsg->created_at, false) > -24
+            : false;
+
+        // Get CRM customer info
+        $customer = Customer::where('phone', 'like', "%$cleanPhone%")->first();
+
         return response()->json([
-            'success' => true,
-            'messages' => $messages,
-            'is_bot_paused' => $isBotPaused
+            'success'      => true,
+            'messages'     => $messages,
+            'is_bot_paused'=> $isBotPaused,
+            'window_open'  => $windowOpen,
+            'customer'     => $customer ? ['id' => $customer->id, 'name' => $customer->name] : null,
         ]);
     }
 
@@ -96,21 +178,25 @@ class WhatsAppChatController extends Controller
         $result = $this->whatsapp->sendMessage($phone, $messageText);
 
         if ($result['success']) {
-            // Save to logs
+            // Extract wamid from Meta API response for read-receipt tracking
+            $wamid = $result['response']['messages'][0]['id'] ?? null;
+
+            // Save to logs with the whatsapp message ID
             $log = SmsLog::create([
-                'customer_id' => $customer ? $customer->id : null,
-                'sender_id' => auth()->id(),
-                'phone' => $phone,
-                'message' => $messageText,
-                'status' => 'sent',
+                'customer_id'        => $customer ? $customer->id : null,
+                'sender_id'          => auth()->id(),
+                'phone'              => $phone,
+                'message'            => $messageText,
+                'status'             => 'sent',
+                'whatsapp_message_id'=> $wamid,
             ]);
 
             // Auto-pause automated bot for 30 minutes when human replies
             Cache::put("wa_bot_paused_" . $cleanPhone, true, now()->addMinutes(30));
 
             return response()->json([
-                'success' => true,
-                'log' => $log,
+                'success'       => true,
+                'log'           => $log,
                 'is_bot_paused' => true
             ]);
         }

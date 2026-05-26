@@ -1,595 +1,446 @@
 @extends('layouts.vali')
-
 @section('title', 'WhatsApp Live Chat')
 @section('page_icon', 'fa-whatsapp')
-
-@section('subtitle')
-Monitor customer conversations, reply manually, and pause/resume automated bot replies
-@endsection
+@section('subtitle')Monitor conversations, reply manually, and control bot status@endsection
 
 @section('styles')
 <style>
-    .chat-container {
-        height: calc(100vh - 200px);
-        min-height: 550px;
-        display: flex;
-        background: #fff;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    .chat-sidebar {
-        width: 340px;
-        border-right: 1px solid #e0e0e0;
-        display: flex;
-        flex-direction: column;
-        background: #fdfdfd;
-    }
-    .chat-main {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        background: #efeae2; /* Classic WA background */
-        position: relative;
-    }
-    .search-wrapper {
-        padding: 12px;
-        border-bottom: 1px solid #e0e0e0;
-        background: #f6f6f6;
-    }
-    .search-input {
-        border-radius: 20px;
-        padding-left: 15px;
-        font-size: 13px;
-    }
-    .thread-list {
-        flex: 1;
-        overflow-y: auto;
-    }
-    .thread-item {
-        display: flex;
-        padding: 14px 16px;
-        border-bottom: 1px solid #f2f2f2;
-        cursor: pointer;
-        transition: background 0.2s;
-        align-items: center;
-    }
-    .thread-item:hover, .thread-item.active {
-        background: #ebebeb;
-    }
-    .thread-avatar {
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        background: #940000;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        margin-right: 12px;
-        font-size: 16px;
-        flex-shrink: 0;
-    }
-    .thread-info {
-        flex: 1;
-        min-width: 0;
-    }
-    .thread-header {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 4px;
-        align-items: center;
-    }
-    .thread-name {
-        font-weight: bold;
-        font-size: 13.5px;
-        color: #333;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .thread-time {
-        font-size: 10.5px;
-        color: #888;
-    }
-    .thread-snippet-wrapper {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .thread-snippet {
-        font-size: 12px;
-        color: #666;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        flex: 1;
-        margin-right: 8px;
-    }
-    .chat-header {
-        padding: 14px 20px;
-        background: #f0f2f5;
-        border-bottom: 1px solid #e0e0e0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        z-index: 10;
-    }
-    .chat-header-info {
-        display: flex;
-        align-items: center;
-    }
-    .chat-header-name {
-        font-weight: bold;
-        font-size: 15px;
-        color: #333;
-    }
-    .chat-header-phone {
-        font-size: 12px;
-        color: #666;
-    }
-    .chat-body {
-        flex: 1;
-        padding: 20px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-    .message-wrapper {
-        display: flex;
-        width: 100%;
-    }
-    .message-wrapper.incoming {
-        justify-content: flex-start;
-    }
-    .message-wrapper.outgoing {
-        justify-content: flex-end;
-    }
-    .message-bubble {
-        max-width: 65%;
-        padding: 8px 12px;
-        border-radius: 8px;
-        font-size: 13px;
-        position: relative;
-        line-height: 1.4;
-        box-shadow: 0 1px 1px rgba(0,0,0,0.08);
-        word-break: break-word;
-    }
-    .message-wrapper.incoming .message-bubble {
-        background: #ffffff;
-        color: #333;
-        border-top-left-radius: 0;
-    }
-    .message-wrapper.outgoing .message-bubble {
-        background: #d9fdd3;
-        color: #333;
-        border-top-right-radius: 0;
-    }
-    .message-wrapper.bot .message-bubble {
-        background: #e3f2fd;
-        border: 1px solid #bbdefb;
-    }
-    .message-meta {
-        font-size: 9.5px;
-        color: #888;
-        text-align: right;
-        margin-top: 4px;
-        display: block;
-    }
-    .chat-footer {
-        padding: 12px 20px;
-        background: #f0f2f5;
-        border-top: 1px solid #e0e0e0;
-        display: flex;
-        gap: 10px;
-        align-items: center;
-    }
-    .chat-input {
-        flex: 1;
-        border: 1px solid #ccc;
-        border-radius: 20px;
-        padding: 10px 18px;
-        outline: none;
-        font-size: 13px;
-        background: #fff;
-    }
-    .send-btn {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: #940000;
-        color: #fff;
-        border: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-    .send-btn:hover {
-        background: #7a0000;
-    }
-    .empty-chat {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: #f8f9fa;
-        color: #777;
-    }
-    .empty-chat i {
-        font-size: 64px;
-        color: #ccc;
-        margin-bottom: 15px;
-    }
-    .bot-toggle-btn {
-        font-size: 12px;
-        font-weight: bold;
-        border-radius: 20px;
-        padding: 6px 16px;
-        border: none;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .bot-active-btn {
-        background-color: #d4edda;
-        color: #155724;
-    }
-    .bot-active-btn:hover {
-        background-color: #c3e6cb;
-    }
-    .bot-paused-btn {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
-    .bot-paused-btn:hover {
-        background-color: #f5c6cb;
-    }
-    .status-badge {
-        font-size: 9px;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-weight: bold;
-    }
-    .status-badge-active {
-        background: #d4edda;
-        color: #155724;
-    }
-    .status-badge-paused {
-        background: #f8d7da;
-        color: #721c24;
-    }
+.chat-wrap{display:flex;height:calc(100vh - 200px);min-height:550px;border:1px solid #ddd;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.chat-left{width:320px;display:flex;flex-direction:column;border-right:1px solid #e0e0e0;background:#fdfdfd}
+.chat-right{flex:1;display:flex;flex-direction:column;background:#efeae2}
+.search-bar{padding:10px;border-bottom:1px solid #eee;background:#f5f5f5}
+.search-bar input{border-radius:20px;font-size:13px;padding-left:14px}
+.new-chat-btn{margin:8px 10px 0;border-radius:20px;font-size:12px;font-weight:bold;background:#940000;color:#fff;border:none;width:calc(100% - 20px);padding:7px}
+.new-chat-btn:hover{background:#7a0000}
+.thread-list{flex:1;overflow-y:auto}
+.thread-item{display:flex;padding:12px 14px;border-bottom:1px solid #f2f2f2;cursor:pointer;align-items:center;transition:background .15s}
+.thread-item:hover,.thread-item.active{background:#ebebeb}
+.t-avatar{width:42px;height:42px;border-radius:50%;background:#940000;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:15px;flex-shrink:0;margin-right:10px;position:relative}
+.t-info{flex:1;min-width:0}
+.t-header{display:flex;justify-content:space-between;margin-bottom:3px}
+.t-name{font-weight:bold;font-size:13px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-time{font-size:10px;color:#999}
+.t-row2{display:flex;justify-content:space-between;align-items:center}
+.t-snip{font-size:11.5px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;margin-right:6px}
+.badge-bot-active{background:#d4edda;color:#155724;font-size:9px;padding:2px 6px;border-radius:4px;font-weight:bold;white-space:nowrap}
+.badge-bot-paused{background:#f8d7da;color:#721c24;font-size:9px;padding:2px 6px;border-radius:4px;font-weight:bold;white-space:nowrap}
+.unread-dot{width:18px;height:18px;background:#940000;color:#fff;border-radius:50%;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:bold;flex-shrink:0}
+/* Chat right */
+.chat-header{padding:12px 18px;background:#f0f2f5;border-bottom:1px solid #e0e0e0;display:flex;justify-content:space-between;align-items:center}
+.chat-header-left{display:flex;align-items:center;gap:10px}
+.h-name{font-weight:bold;font-size:14px;color:#333}
+.h-sub{font-size:11px;color:#666}
+.chat-body{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.msg-wrap{display:flex;width:100%}
+.msg-wrap.in{justify-content:flex-start}
+.msg-wrap.out{justify-content:flex-end}
+.bubble{max-width:65%;padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.4;box-shadow:0 1px 1px rgba(0,0,0,.08);word-break:break-word}
+.msg-wrap.in .bubble{background:#fff;border-top-left-radius:0}
+.msg-wrap.out .bubble{background:#d9fdd3;border-top-right-radius:0}
+.msg-wrap.out.bot .bubble{background:#e3f2fd;border:1px solid #bbdefb}
+.msg-meta{font-size:9.5px;color:#999;text-align:right;margin-top:3px;display:flex;align-items:center;justify-content:flex-end;gap:3px}
+.tick{font-size:12px}
+.tick.sent{color:#aaa}
+.tick.delivered{color:#aaa}
+.tick.read{color:#53bdeb}
+.tick.failed{color:#e74c3c}
+.chat-footer{padding:10px 16px;background:#f0f2f5;border-top:1px solid #e0e0e0;display:flex;gap:8px;align-items:center}
+.chat-input{flex:1;border:1px solid #ccc;border-radius:20px;padding:9px 16px;font-size:13px;outline:none}
+.send-btn{width:40px;height:40px;border-radius:50%;background:#940000;color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .2s;flex-shrink:0}
+.send-btn:hover{background:#7a0000}
+.empty-chat{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#999;text-align:center}
+.empty-chat i{font-size:56px;color:#ccc;margin-bottom:12px}
+.bot-btn{font-size:11px;font-weight:bold;border-radius:20px;padding:5px 14px;border:none;cursor:pointer;transition:all .2s}
+.bot-on{background:#d4edda;color:#155724}
+.bot-off{background:#f8d7da;color:#721c24}
+.window-warn{background:#fff3cd;color:#856404;padding:8px 16px;font-size:12px;border-bottom:1px solid #ffc107;display:flex;align-items:center;gap:6px}
+.d-none{display:none!important}
 </style>
 @endsection
 
 @section('content')
 <div class="row">
-    <div class="col-md-12">
-        <div class="chat-container">
-            <!-- LEFT SIDEBAR -->
-            <div class="chat-sidebar">
-                <div class="search-wrapper">
-                    <input type="text" id="chatSearch" class="form-control search-input" placeholder="Search number or name...">
-                </div>
-                <div class="thread-list" id="threadList">
-                    @forelse($threads as $thread)
-                        <div class="thread-item" data-phone="{{ $thread->phone }}" data-name="{{ $thread->customer_name ?? $thread->phone }}">
-                            @php
-                                $initials = '';
-                                $displayName = $thread->customer_name ?? $thread->phone;
-                                $nameParts = explode(' ', $displayName);
-                                foreach($nameParts as $p) {
-                                    $initials .= strtoupper(substr($p, 0, 1));
-                                }
-                                $initials = substr($initials, 0, 2);
-                            @endphp
-                            <div class="thread-avatar">{{ $initials }}</div>
-                            <div class="thread-info">
-                                <div class="thread-header">
-                                    <div class="thread-name">{{ $displayName }}</div>
-                                    <div class="thread-time">{{ \Carbon\Carbon::parse($thread->created_at)->diffForHumans() }}</div>
-                                </div>
-                                <div class="thread-snippet-wrapper">
-                                    <div class="thread-snippet">{{ $thread->message }}</div>
-                                    <span class="status-badge status-badge-{{ $thread->is_bot_paused ? 'paused' : 'active' }}" id="badge-{{ preg_replace('/[^0-9]/', '', $thread->phone) }}">
-                                        {{ $thread->is_bot_paused ? 'Bot Paused' : 'Bot Active' }}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="text-center py-5 text-muted">
-                            <i class="fa fa-comments-o fa-3x mb-2 d-block"></i>
-                            No chats found.
-                        </div>
-                    @endforelse
-                </div>
-            </div>
+  <div class="col-md-12">
+    <div class="chat-wrap">
 
-            <!-- RIGHT CHAT AREA -->
-            <div class="chat-main" id="chatMain">
-                <!-- Select Chat Placeholder -->
-                <div class="empty-chat" id="emptyPlaceholder">
-                    <i class="fa fa-whatsapp"></i>
-                    <h4>Trumark WhatsApp Live Chat</h4>
-                    <p>Select a chat from the left panel to read logs or reply to a customer.</p>
-                </div>
-
-                <!-- Chat Header -->
-                <div class="chat-header d-none" id="chatHeader">
-                    <div class="chat-header-info">
-                        <div class="thread-avatar" id="headerAvatar">WA</div>
-                        <div>
-                            <div class="chat-header-name" id="headerName">Loading...</div>
-                            <div class="chat-header-phone" id="headerPhone">Loading...</div>
-                        </div>
-                    </div>
-                    <div>
-                        <button class="bot-toggle-btn bot-active-btn" id="botToggleBtn" onclick="toggleBotStatus()">
-                            <i class="fa fa-android mr-1"></i> Bot: Active
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Chat Body (Message logs) -->
-                <div class="chat-body d-none" id="chatBody">
-                    <!-- Message bubbles injected here -->
-                </div>
-
-                <!-- Chat Input Footer -->
-                <div class="chat-footer d-none" id="chatFooter">
-                    <input type="text" id="chatInput" class="chat-input" placeholder="Type a message..." onkeydown="handleInputKeydown(event)">
-                    <button class="send-btn" onclick="sendManualMessage()">
-                        <i class="fa fa-paper-plane"></i>
-                    </button>
-                </div>
-            </div>
+      {{-- LEFT --}}
+      <div class="chat-left">
+        <button class="new-chat-btn" data-toggle="modal" data-target="#newChatModal">
+          <i class="fa fa-plus mr-1"></i> Anzisha Chat Mpya
+        </button>
+        <div class="search-bar">
+          <input type="text" id="searchInput" class="form-control" placeholder="Tafuta jina au namba...">
         </div>
+        <div class="thread-list" id="threadList">
+          @forelse($threads as $t)
+            @php
+              $dispName = $t->customer_name ?? $t->phone;
+              $initials  = strtoupper(substr(collect(explode(' ',$dispName))->map(fn($w)=>$w[0]??'')->join(''),0,2));
+            @endphp
+            <div class="thread-item"
+                 data-phone="{{ $t->phone }}"
+                 data-name="{{ $dispName }}"
+                 data-cid="{{ $t->customer_id ?? '' }}">
+              <div class="t-avatar">{{ $initials }}</div>
+              <div class="t-info">
+                <div class="t-header">
+                  <div class="t-name">{{ $dispName }}</div>
+                  <div class="t-time">{{ \Carbon\Carbon::parse($t->created_at)->diffForHumans(null,true) }}</div>
+                </div>
+                <div class="t-row2">
+                  <div class="t-snip">{{ Str::limit($t->message,45) }}</div>
+                  <span class="badge-bot-{{ $t->is_bot_paused?'paused':'active' }}"
+                        id="badge-{{ preg_replace('/[^0-9]/','', $t->phone) }}">
+                    {{ $t->is_bot_paused?'Bot Paused':'Bot Active' }}
+                  </span>
+                  @if($t->unread_count > 0)
+                    <span class="unread-dot ml-1">{{ $t->unread_count }}</span>
+                  @endif
+                </div>
+              </div>
+            </div>
+          @empty
+            <div class="text-center py-5 text-muted">
+              <i class="fa fa-comments-o fa-3x d-block mb-2"></i>
+              Hakuna mazungumzo bado.
+            </div>
+          @endforelse
+        </div>
+      </div>
+
+      {{-- RIGHT --}}
+      <div class="chat-right">
+        <div class="empty-chat" id="emptyState">
+          <i class="fa fa-whatsapp"></i>
+          <h5>Trumark WhatsApp Live Chat</h5>
+          <p>Chagua mazungumzo kushoto kuona ujumbe.</p>
+        </div>
+
+        <div class="chat-header d-none" id="chatHeader">
+          <div class="chat-header-left">
+            <div class="t-avatar" id="hAvatar">WA</div>
+            <div>
+              <div class="h-name" id="hName">-</div>
+              <div class="h-sub" id="hPhone">-</div>
+            </div>
+            <a href="#" id="crmLink" target="_blank" class="btn btn-outline-secondary btn-sm ml-2" style="font-size:11px;display:none">
+              <i class="fa fa-user"></i> CRM Profile
+            </a>
+          </div>
+          <button class="bot-btn bot-on" id="botBtn" onclick="toggleBot()">
+            <i class="fa fa-android mr-1"></i> Bot: Active
+          </button>
+        </div>
+
+        <div class="window-warn d-none" id="windowWarn">
+          <i class="fa fa-clock-o"></i>
+          <strong>24h Window Imefungwa:</strong> Mteja hajatuma ujumbe kwa zaidi ya masaa 24. Tumia template message tu.
+        </div>
+
+        <div class="chat-body d-none" id="chatBody"></div>
+
+        <div class="chat-footer d-none" id="chatFooter">
+          <input type="text" id="chatInput" class="chat-input" placeholder="Andika ujumbe..." onkeydown="if(event.key==='Enter')sendMsg()">
+          <button class="send-btn" onclick="sendMsg()"><i class="fa fa-paper-plane"></i></button>
+        </div>
+      </div>
+
     </div>
+  </div>
+</div>
+
+{{-- NEW CHAT MODAL --}}
+<div class="modal fade" id="newChatModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#940000;color:#fff">
+        <h5 class="modal-title"><i class="fa fa-whatsapp mr-1"></i> Anzisha Chat Mpya</h5>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="font-weight-bold small">Tafuta Mteja (CRM) au Weka Namba</label>
+          <input type="text" id="custSearch" class="form-control" placeholder="Andika jina au namba...">
+          <div id="custResults" class="border rounded mt-1" style="max-height:180px;overflow-y:auto;display:none"></div>
+        </div>
+        <div class="form-group">
+          <label class="font-weight-bold small">Namba ya WhatsApp (na nchi code, mfano: 255712345678)</label>
+          <input type="text" id="newPhone" class="form-control" placeholder="255712345678">
+        </div>
+        <div class="form-group">
+          <label class="font-weight-bold small">Ujumbe wa Kwanza</label>
+          <textarea id="newMessage" class="form-control" rows="3" placeholder="Andika ujumbe..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-dismiss="modal">Funga</button>
+        <button class="btn btn-success btn-sm" onclick="startNewChat()">
+          <i class="fa fa-paper-plane mr-1"></i> Tuma
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 @endsection
 
 @section('scripts')
 <script>
-    let activePhone = null;
-    let activeName = null;
-    let pollInterval = null;
+var activePhone = null, pollMsgInterval = null, pollThreadInterval = null;
+var lastMsgCount = 0, lastThreadSnapshot = '';
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle Search filtering
-        document.getElementById('chatSearch').addEventListener('input', function(e) {
-            let term = e.target.value.toLowerCase();
-            document.querySelectorAll('.thread-item').forEach(item => {
-                let name = item.getAttribute('data-name').toLowerCase();
-                let phone = item.getAttribute('data-phone').toLowerCase();
-                if (name.includes(term) || phone.includes(term)) {
-                    item.style.setProperty('display', 'flex', 'important');
-                } else {
-                    item.style.setProperty('display', 'none', 'important');
-                }
-            });
-        });
+// ── Thread click ──────────────────────────────────────────────
+document.querySelectorAll('.thread-item').forEach(el => {
+  el.addEventListener('click', function() {
+    openThread(this.dataset.phone, this.dataset.name, this.dataset.cid);
+  });
+});
 
-        // Add click events to thread items
-        document.querySelectorAll('.thread-item').forEach(item => {
-            item.addEventListener('click', function() {
-                document.querySelectorAll('.thread-item').forEach(i => i.classList.remove('active'));
-                this.classList.add('active');
-                
-                let phone = this.getAttribute('data-phone');
-                let name = this.getAttribute('data-name');
-                loadThread(phone, name);
-            });
-        });
+function openThread(phone, name, cid) {
+  activePhone = phone;
+  document.querySelectorAll('.thread-item').forEach(e=>e.classList.remove('active'));
+  let item = document.querySelector(`.thread-item[data-phone="${phone}"]`);
+  if (item) item.classList.add('active');
+
+  document.getElementById('emptyState').classList.add('d-none');
+  ['chatHeader','chatBody','chatFooter'].forEach(id=>document.getElementById(id).classList.remove('d-none'));
+
+  let initials = name.split(' ').map(n=>n[0]||'').join('').substring(0,2).toUpperCase();
+  document.getElementById('hAvatar').textContent = initials;
+  document.getElementById('hName').textContent   = name;
+  document.getElementById('hPhone').textContent  = phone;
+
+  let crmLink = document.getElementById('crmLink');
+  if (cid) { crmLink.href = '/customers/'+cid; crmLink.style.display=''; }
+  else { crmLink.style.display='none'; }
+
+  lastMsgCount = 0;
+  loadMessages(phone);
+  if (pollMsgInterval) clearInterval(pollMsgInterval);
+  pollMsgInterval = setInterval(()=>{ if(activePhone===phone) loadMessages(phone,true); }, 5000);
+}
+
+// ── Load messages ─────────────────────────────────────────────
+function loadMessages(phone, silent=false) {
+  let enc = encodeURIComponent(phone);
+  fetch(`/whatsapp/chat/thread/${enc}`)
+    .then(r=>r.json()).then(d=>{
+      if(!d.success) return;
+      renderMessages(d.messages);
+      updateBotBtn(d.is_bot_paused);
+      updateBadge(phone, d.is_bot_paused);
+
+      // CRM link update
+      if (d.customer) {
+        let lnk=document.getElementById('crmLink');
+        lnk.href='/customers/'+d.customer.id;
+        lnk.style.display='';
+      }
+
+      // 24h window
+      let warn=document.getElementById('windowWarn');
+      warn.classList.toggle('d-none', d.window_open !== false);
+
+      if (!silent || d.messages.length > lastMsgCount) {
+        scrollBottom();
+        if (silent && d.messages.length > lastMsgCount) flashTitle(d.messages.length - lastMsgCount);
+      }
+      lastMsgCount = d.messages.length;
     });
+}
 
-    /**
-     * Load message thread for phone number
-     */
-    function loadThread(phone, name) {
-        activePhone = phone;
-        activeName = name;
-
-        // Show chat components, hide placeholder
-        document.getElementById('emptyPlaceholder').classList.add('d-none');
-        document.getElementById('chatHeader').classList.remove('d-none');
-        document.getElementById('chatBody').classList.remove('d-none');
-        document.getElementById('chatFooter').classList.remove('d-none');
-
-        // Setup Header details
-        document.getElementById('headerPhone').textContent = phone;
-        document.getElementById('headerName').textContent = name;
-        
-        let initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-        document.getElementById('headerAvatar').textContent = initials;
-
-        // Fetch thread messages
-        fetchThreadMessages(phone);
-
-        // Start polling for new messages every 5 seconds
-        if (pollInterval) clearInterval(pollInterval);
-        pollInterval = setInterval(function() {
-            if (activePhone === phone) {
-                fetchThreadMessages(phone, true); // true = silent poll (no scroll interrupt unless new message)
-            }
-        }, 5000);
+// ── Render bubbles ────────────────────────────────────────────
+function renderMessages(msgs) {
+  let body = document.getElementById('chatBody');
+  body.innerHTML = '';
+  msgs.forEach(m => {
+    let isIn  = m.status === 'received' || m.message.startsWith('INCOMING:');
+    let cls   = isIn ? 'in' : 'out';
+    let isBot = !isIn && m.message.startsWith('[BOT REPLY]');
+    if (isBot) cls += ' bot';
+    let text = m.message
+      .replace(/^INCOMING:\s*/,'')
+      .replace(/^\[BOT REPLY\]\s*/,'');
+    let time = new Date(m.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    let tick = '';
+    if (!isIn) {
+      if      (m.status==='read')      tick='<span class="tick read">✓✓</span>';
+      else if (m.status==='delivered') tick='<span class="tick delivered">✓✓</span>';
+      else if (m.status==='sent')      tick='<span class="tick sent">✓</span>';
+      else if (m.status==='failed')    tick='<span class="tick failed">⚠</span>';
     }
+    body.insertAdjacentHTML('beforeend',`
+      <div class="msg-wrap ${cls}">
+        <div class="bubble">
+          ${esc(text)}
+          <div class="msg-meta"><span>${time}</span>${tick}</div>
+        </div>
+      </div>`);
+  });
+}
 
-    let lastMessageCount = 0;
+// ── Send manual message ───────────────────────────────────────
+function sendMsg() {
+  let inp = document.getElementById('chatInput');
+  let txt = inp.value.trim();
+  if (!txt || !activePhone) return;
+  inp.disabled = true;
+  fetch('/whatsapp/chat/send',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}'},
+    body: JSON.stringify({phone:activePhone, message:txt})
+  }).then(r=>r.json()).then(d=>{
+    inp.disabled=false;
+    if(d.success){ inp.value=''; loadMessages(activePhone); }
+    else alert('Hitilafu: '+d.message);
+  }).catch(()=>{inp.disabled=false;alert('Tatizo la mtandao.');});
+}
 
-    /**
-     * Call backend API to fetch logs
-     */
-    function fetchThreadMessages(phone, isPoll = false) {
-        fetch(`/whatsapp/chat/thread/${phone}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    renderMessages(data.messages);
-                    updateBotToggleButton(data.is_bot_paused);
-                    updateThreadBadge(phone, data.is_bot_paused);
+// ── Toggle bot ────────────────────────────────────────────────
+function toggleBot() {
+  if (!activePhone) return;
+  fetch(`/whatsapp/chat/toggle-bot/${encodeURIComponent(activePhone)}`,{
+    method:'POST', headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}'}
+  }).then(r=>r.json()).then(d=>{
+    if(d.success){ updateBotBtn(d.status==='paused'); updateBadge(activePhone,d.status==='paused'); }
+  });
+}
 
-                    // Auto scroll to bottom only on initial load or if message count increases
-                    if (!isPoll || data.messages.length > lastMessageCount) {
-                        scrollToBottom();
-                    }
-                    lastMessageCount = data.messages.length;
-                }
-            })
-            .catch(err => console.error("Error fetching chat:", err));
+function updateBotBtn(paused) {
+  let b=document.getElementById('botBtn');
+  if(paused){ b.className='bot-btn bot-off'; b.innerHTML='<i class="fa fa-pause-circle mr-1"></i> Bot: Paused'; }
+  else      { b.className='bot-btn bot-on';  b.innerHTML='<i class="fa fa-android mr-1"></i> Bot: Active'; }
+}
+
+function updateBadge(phone, paused) {
+  let cl=phone.replace(/[^0-9]/g,'');
+  let b=document.getElementById('badge-'+cl);
+  if(!b) return;
+  if(paused){ b.className='badge-bot-paused'; b.textContent='Bot Paused'; }
+  else      { b.className='badge-bot-active'; b.textContent='Bot Active'; }
+}
+
+// ── Real-time thread list polling ─────────────────────────────
+function pollThreads() {
+  fetch('/whatsapp/chat/threads-data')
+    .then(r=>r.json()).then(d=>{
+      if(!d.success) return;
+      let snap = JSON.stringify(d.threads.map(t=>t.id+t.status+t.created_at));
+      if(snap === lastThreadSnapshot) return;
+      lastThreadSnapshot = snap;
+      refreshThreadList(d.threads);
+    });
+}
+setInterval(pollThreads, 5000);
+
+function refreshThreadList(threads) {
+  let list = document.getElementById('threadList');
+  threads.forEach(t => {
+    let cl   = t.phone.replace(/[^0-9]/g,'');
+    let name = t.customer_name || t.phone;
+    let init = name.split(' ').map(n=>n[0]||'').join('').substring(0,2).toUpperCase();
+    let existing = list.querySelector(`.thread-item[data-phone="${t.phone}"]`);
+    let isActive  = activePhone === t.phone;
+    let botClass  = t.is_bot_paused ? 'badge-bot-paused':'badge-bot-active';
+    let botLabel  = t.is_bot_paused ? 'Bot Paused':'Bot Active';
+    let unreadHtml= t.unread_count>0?`<span class="unread-dot ml-1">${t.unread_count}</span>`:'';
+    let html = `
+      <div class="thread-item${isActive?' active':''}" data-phone="${t.phone}" data-name="${name}" data-cid="${t.customer_id||''}">
+        <div class="t-avatar">${init}</div>
+        <div class="t-info">
+          <div class="t-header">
+            <div class="t-name">${name}</div>
+            <div class="t-time">${timeAgo(t.created_at)}</div>
+          </div>
+          <div class="t-row2">
+            <div class="t-snip">${t.message.substring(0,45)}</div>
+            <span class="${botClass}" id="badge-${cl}">${botLabel}</span>
+            ${unreadHtml}
+          </div>
+        </div>
+      </div>`;
+    if (existing) {
+      existing.outerHTML = html;
+    } else {
+      list.insertAdjacentHTML('afterbegin', html);
+      flashTitle(1);
     }
+    // Re-bind click for new/replaced item
+    let newEl = list.querySelector(`.thread-item[data-phone="${t.phone}"]`);
+    if(newEl) newEl.addEventListener('click', function(){
+      openThread(this.dataset.phone, this.dataset.name, this.dataset.cid);
+    });
+  });
+}
 
-    /**
-     * Render message list into bubbles
-     */
-    function renderMessages(messages) {
-        let body = document.getElementById('chatBody');
-        body.innerHTML = '';
+// ── New Chat Modal ────────────────────────────────────────────
+let custSearchTimer = null;
+document.getElementById('custSearch').addEventListener('input', function(){
+  clearTimeout(custSearchTimer);
+  let q=this.value.trim();
+  if(q.length<2){ document.getElementById('custResults').style.display='none'; return; }
+  custSearchTimer = setTimeout(()=>{
+    fetch(`/whatsapp/chat/search-customers?q=${encodeURIComponent(q)}`)
+      .then(r=>r.json()).then(list=>{
+        let box=document.getElementById('custResults');
+        if(!list.length){ box.style.display='none'; return; }
+        box.innerHTML = list.map(c=>`<div class="p-2 border-bottom" style="cursor:pointer;font-size:13px"
+          onclick="selectCust('${c.phone}','${c.name.replace(/'/g,"\\'")}')">
+          <strong>${c.name}</strong> &nbsp;<span class="text-muted">${c.phone}</span></div>`).join('');
+        box.style.display='block';
+      });
+  }, 300);
+});
 
-        messages.forEach(msg => {
-            let isIncoming = msg.message.startsWith('INCOMING: ');
-            let cleanMessageText = msg.message;
-            
-            let extraClass = '';
-            if (isIncoming) {
-                extraClass = 'incoming';
-                cleanMessageText = msg.message.replace('INCOMING: ', '');
-            } else {
-                extraClass = 'outgoing';
-                if (msg.message.startsWith('[BOT REPLY] ')) {
-                    extraClass += ' bot';
-                    cleanMessageText = msg.message.replace('[BOT REPLY] ', '');
-                }
-            }
+function selectCust(phone, name) {
+  document.getElementById('newPhone').value = phone;
+  document.getElementById('custSearch').value = name;
+  document.getElementById('custResults').style.display='none';
+}
 
-            let date = new Date(msg.created_at);
-            let timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+function startNewChat() {
+  let phone = document.getElementById('newPhone').value.trim();
+  let msg   = document.getElementById('newMessage').value.trim();
+  if(!phone||!msg){alert('Weka namba na ujumbe.');return;}
+  fetch('/whatsapp/chat/send',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}'},
+    body:JSON.stringify({phone:phone,message:msg})
+  }).then(r=>r.json()).then(d=>{
+    if(d.success){
+      $('#newChatModal').modal('hide');
+      document.getElementById('newPhone').value='';
+      document.getElementById('newMessage').value='';
+      document.getElementById('custSearch').value='';
+      openThread(phone, phone, '');
+    } else alert('Hitilafu: '+d.message);
+  });
+}
 
-            let msgHtml = `
-                <div class="message-wrapper ${extraClass}">
-                    <div class="message-bubble">
-                        ${escapeHtml(cleanMessageText)}
-                        <span class="message-meta">${timeStr}</span>
-                    </div>
-                </div>
-            `;
-            body.insertAdjacentHTML('beforeend', msgHtml);
-        });
-    }
+// ── Search filter ─────────────────────────────────────────────
+document.getElementById('searchInput').addEventListener('input', function(){
+  let q=this.value.toLowerCase();
+  document.querySelectorAll('.thread-item').forEach(el=>{
+    let match=el.dataset.name.toLowerCase().includes(q)||el.dataset.phone.includes(q);
+    el.style.display=match?'':'none';
+  });
+});
 
-    /**
-     * Send message to customer via backend API
-     */
-    function sendManualMessage() {
-        let input = document.getElementById('chatInput');
-        let text = input.value.trim();
-        if (!text || !activePhone) return;
-
-        input.disabled = true;
-
-        fetch('/whatsapp/chat/send', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                phone: activePhone,
-                message: text
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            input.disabled = false;
-            if (data.success) {
-                input.value = '';
-                // Reload thread immediately
-                fetchThreadMessages(activePhone);
-                // Switch button status to Paused (since human replied)
-                updateBotToggleButton(true);
-                updateThreadBadge(activePhone, true);
-            } else {
-                alert("Error sending message: " + data.message);
-            }
-        })
-        .catch(err => {
-            input.disabled = false;
-            console.error(err);
-            alert("Exception occurred. Check logs.");
-        });
-    }
-
-    function handleInputKeydown(e) {
-        if (e.key === 'Enter') {
-            sendManualMessage();
-        }
-    }
-
-    /**
-     * Toggle active/paused state of bot
-     */
-    function toggleBotStatus() {
-        if (!activePhone) return;
-
-        fetch(`/whatsapp/chat/toggle-bot/${activePhone}`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                let isPaused = data.status === 'paused';
-                updateBotToggleButton(isPaused);
-                updateThreadBadge(activePhone, isPaused);
-            }
-        })
-        .catch(err => console.error("Error toggling bot:", err));
-    }
-
-    function updateBotToggleButton(isPaused) {
-        let btn = document.getElementById('botToggleBtn');
-        if (isPaused) {
-            btn.className = 'bot-toggle-btn bot-paused-btn';
-            btn.innerHTML = '<i class="fa fa-pause-circle mr-1"></i> Bot: Paused';
-        } else {
-            btn.className = 'bot-toggle-btn bot-active-btn';
-            btn.innerHTML = '<i class="fa fa-android mr-1"></i> Bot: Active';
-        }
-    }
-
-    function updateThreadBadge(phone, isPaused) {
-        let cleanPhone = phone.replace(/[^0-9]/g, '');
-        let badge = document.getElementById(`badge-${cleanPhone}`);
-        if (badge) {
-            if (isPaused) {
-                badge.className = 'status-badge status-badge-paused';
-                badge.textContent = 'Bot Paused';
-            } else {
-                badge.className = 'status-badge status-badge-active';
-                badge.textContent = 'Bot Active';
-            }
-        }
-    }
-
-    function scrollToBottom() {
-        let body = document.getElementById('chatBody');
-        body.scrollTop = body.scrollHeight;
-    }
-
-    function escapeHtml(text) {
-        return text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;")
-            .replace(/\n/g, "<br>");
-    }
+// ── Helpers ───────────────────────────────────────────────────
+function scrollBottom(){let b=document.getElementById('chatBody');b.scrollTop=b.scrollHeight;}
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+function timeAgo(ts){
+  let s=Math.floor((Date.now()-new Date(ts))/1000);
+  if(s<60)return s+'s'; if(s<3600)return Math.floor(s/60)+'m'; if(s<86400)return Math.floor(s/3600)+'h';
+  return Math.floor(s/86400)+'d';
+}
+let origTitle=document.title, flashTimer=null, flashCount=0;
+function flashTitle(n){
+  if(flashTimer)clearInterval(flashTimer);
+  flashCount=0;
+  flashTimer=setInterval(()=>{
+    document.title = flashCount%2===0?`💬 (${n}) Ujumbe Mpya!`:origTitle;
+    if(++flashCount>8){clearInterval(flashTimer);document.title=origTitle;}
+  },700);
+}
 </script>
 @endsection

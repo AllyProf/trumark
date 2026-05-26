@@ -25,7 +25,18 @@ class WhatsAppChatController extends Controller
     public function index()
     {
         $threads = $this->buildThreads();
-        return view('whatsapp.chat', compact('threads'));
+        $user = auth()->user();
+
+        $officers = collect();
+        if ($user->role === 'super_admin' || $user->role === 'manager') {
+            $officers = \App\Models\User::whereIn('role', ['sales_officer', 'manager', 'super_admin'])
+                ->when($user->role === 'manager', function($q) use ($user) {
+                    return $q->where('branch_id', $user->branch_id);
+                })
+                ->get();
+        }
+
+        return view('whatsapp.chat', compact('threads', 'officers'));
     }
 
     /**
@@ -69,18 +80,32 @@ class WhatsAppChatController extends Controller
             ->select('phone', DB::raw('COUNT(*) as cnt'))
             ->pluck('cnt', 'phone');
 
-        $threads = SmsLog::whereIn('sms_logs.id', $maxIds)
+        $user = Auth::user();
+        $query = SmsLog::whereIn('sms_logs.id', $maxIds)
             ->leftJoin('customers', function($join) {
                 $join->on(DB::raw("REPLACE(customers.phone, '+', '')"), '=', DB::raw("REPLACE(sms_logs.phone, '+', '')"));
             })
-            ->select(
+            ->leftJoin('users as officers', 'officers.id', '=', 'customers.sales_officer_id');
+
+        // Filter threads for Sales Officers: only assigned to them OR unassigned (including no CRM profile)
+        if ($user->role === 'sales_officer') {
+            $query->where(function($q) use ($user) {
+                $q->where('customers.sales_officer_id', $user->id)
+                  ->orWhereNull('customers.sales_officer_id')
+                  ->orWhereNull('customers.id');
+            });
+        }
+
+        $threads = $query->select(
                 'sms_logs.id',
                 'sms_logs.phone',
                 'sms_logs.message',
                 'sms_logs.status',
                 'sms_logs.created_at',
                 'customers.name as customer_name',
-                'customers.id as customer_id'
+                'customers.id as customer_id',
+                'customers.sales_officer_id as sales_officer_id',
+                'officers.name as sales_officer_name'
             )
             ->orderBy('sms_logs.created_at', 'desc')
             ->get()
@@ -114,13 +139,24 @@ class WhatsAppChatController extends Controller
     public function thread($phone)
     {
         $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+        $user = Auth::user();
+
+        // 1. Get CRM customer info
+        $customer = Customer::with('salesOfficer')->where(DB::raw("REPLACE(phone, '+', '')"), '=', $cleanPhone)->first();
+
+        // Security check for Sales Officers: prevent accessing threads assigned to other officers
+        if ($user->role === 'sales_officer' && $customer) {
+            if ($customer->sales_officer_id !== null && $customer->sales_officer_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Huna ruhusa ya kuona mazungumzo ya mteja huyu (Kuna afisa mwingine amekabidhiwa).'
+                ], 403);
+            }
+        }
 
         // Only load messages that belong to WhatsApp interactions:
         // - Incoming: status='received'
         // - Outgoing bot/human replies linked to this phone
-        // We identify WhatsApp outgoing by sender_id IS NULL (bot) or sender_id IS NOT NULL (human)
-        // and the phone matching. We exclude records where status='sent' and message does NOT
-        // start with 'INCOMING' but was created by a campaign (no sender_id, no 'received' peer).
         $messages = SmsLog::where('phone', 'like', "%$cleanPhone%")
             ->where(function($q) {
                 // Incoming messages from customer
@@ -146,15 +182,14 @@ class WhatsAppChatController extends Controller
             ? now()->diffInHours($lastCustomerMsg->created_at, false) > -24
             : false;
 
-        // Get CRM customer info
-        $customer = Customer::where('phone', 'like', "%$cleanPhone%")->first();
-
         return response()->json([
-            'success'      => true,
-            'messages'     => $messages,
-            'is_bot_paused'=> $isBotPaused,
-            'window_open'  => $windowOpen,
-            'customer'     => $customer ? ['id' => $customer->id, 'name' => $customer->name] : null,
+            'success'            => true,
+            'messages'           => $messages,
+            'is_bot_paused'      => $isBotPaused,
+            'window_open'        => $windowOpen,
+            'customer'           => $customer ? ['id' => $customer->id, 'name' => $customer->name] : null,
+            'sales_officer_id'   => $customer ? $customer->sales_officer_id : null,
+            'sales_officer_name' => ($customer && $customer->salesOfficer) ? $customer->salesOfficer->name : 'Hajakabidhiwa (Unassigned)',
         ]);
     }
 
@@ -171,8 +206,36 @@ class WhatsAppChatController extends Controller
         $phone = $request->phone;
         $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
         $messageText = $request->message;
+        $user = Auth::user();
 
-        $customer = Customer::where('phone', 'like', "%$cleanPhone%")->first();
+        // 1. Find or create the customer in the CRM
+        $customer = Customer::where(DB::raw("REPLACE(phone, '+', '')"), '=', $cleanPhone)->first();
+
+        // Security check for Sales Officers: prevent replying to threads assigned to other officers
+        if ($user->role === 'sales_officer' && $customer) {
+            if ($customer->sales_officer_id !== null && $customer->sales_officer_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Huna ruhusa ya kumtumia mteja huyu ujumbe. Amekabidhiwa kwa afisa mwingine.'
+                ], 403);
+            }
+        }
+
+        // Auto-Claim and Auto-Register logic
+        if (!$customer) {
+            // Auto-create customer profile and assign to this sales officer
+            $customer = Customer::create([
+                'name'             => 'WhatsApp Lead ' . $phone,
+                'phone'            => $phone,
+                'status'           => 'Potential Customer',
+                'source'           => 'WhatsApp',
+                'sales_officer_id' => $user->role === 'sales_officer' ? $user->id : null,
+            ]);
+        } elseif ($customer->sales_officer_id === null && $user->role === 'sales_officer') {
+            // Auto-claim the unassigned customer
+            $customer->sales_officer_id = $user->id;
+            $customer->save();
+        }
 
         // Send via Meta Cloud API
         $result = $this->whatsapp->sendMessage($phone, $messageText);
@@ -279,5 +342,87 @@ class WhatsAppChatController extends Controller
             ->update(['status' => 'read_by_agent']);
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Claim an unassigned WhatsApp thread manually
+     */
+    public function claimChat($phone)
+    {
+        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+        $user = Auth::user();
+
+        // Find or create customer
+        $customer = Customer::where(DB::raw("REPLACE(phone, '+', '')"), '=', $cleanPhone)->first();
+
+        if (!$customer) {
+            $customer = Customer::create([
+                'name'             => 'WhatsApp Lead ' . $phone,
+                'phone'            => $phone,
+                'status'           => 'Potential Customer',
+                'source'           => 'WhatsApp',
+                'sales_officer_id' => $user->id,
+            ]);
+        } else {
+            if ($customer->sales_officer_id !== null && $customer->sales_officer_id !== $user->id && $user->role === 'sales_officer') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Mazungumzo haya tayari yamechukuliwa na afisa mwingine.'
+                ], 400);
+            }
+            $customer->sales_officer_id = $user->id;
+            $customer->save();
+        }
+
+        return response()->json([
+            'success'      => true,
+            'message'      => 'Umekabidhiwa mazungumzo haya rasmi!',
+            'officer_name' => $user->name
+        ]);
+    }
+
+    /**
+     * Reassign/Transfer a WhatsApp customer thread (Admin / Manager only)
+     */
+    public function transferChat(Request $request, $phone)
+    {
+        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+        $user = Auth::user();
+
+        if ($user->role !== 'manager' && $user->role !== 'super_admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ni Mameneja na Admins pekee wenye ruhusa ya kukabidhi/kuhamisha wateja.'
+            ], 403);
+        }
+
+        $request->validate([
+            'sales_officer_id' => 'nullable|exists:users,id'
+        ]);
+
+        $officerId   = $request->sales_officer_id;
+        $officer     = $officerId ? \App\Models\User::find($officerId) : null;
+        $officerName = $officer ? $officer->name : 'Hajakabidhiwa (Unassigned)';
+
+        $customer = Customer::where(DB::raw("REPLACE(phone, '+', '')"), '=', $cleanPhone)->first();
+
+        if (!$customer) {
+            $customer = Customer::create([
+                'name'             => 'WhatsApp Lead ' . $phone,
+                'phone'            => $phone,
+                'status'           => 'Potential Customer',
+                'source'           => 'WhatsApp',
+                'sales_officer_id' => $officerId,
+            ]);
+        } else {
+            $customer->sales_officer_id = $officerId;
+            $customer->save();
+        }
+
+        return response()->json([
+            'success'      => true,
+            'message'      => 'Mteja amekabidhiwa kwa ' . $officerName,
+            'officer_name' => $officerName
+        ]);
     }
 }

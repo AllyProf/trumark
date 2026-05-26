@@ -104,4 +104,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/whatsapp/chat/send', [\App\Http\Controllers\WhatsAppChatController::class, 'sendMessage'])->name('whatsapp.chat.send');
     Route::post('/whatsapp/chat/toggle-bot/{phone}', [\App\Http\Controllers\WhatsAppChatController::class, 'toggleBot'])->name('whatsapp.chat.toggle_bot');
     Route::post('/whatsapp/chat/mark-read/{phone}', [\App\Http\Controllers\WhatsAppChatController::class, 'markRead'])->name('whatsapp.chat.mark_read');
+    Route::post('/whatsapp/chat/claim/{phone}', [\App\Http\Controllers\WhatsAppChatController::class, 'claimChat'])->name('whatsapp.chat.claim');
+    Route::post('/whatsapp/chat/transfer/{phone}', [\App\Http\Controllers\WhatsAppChatController::class, 'transferChat'])->name('whatsapp.chat.transfer');
 });

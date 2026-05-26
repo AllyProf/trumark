@@ -127,6 +127,9 @@
                         id="badge-{{ preg_replace('/[^0-9]/','', $t->phone) }}">
                     {{ $t->is_bot_paused?'Bot Paused':'Bot Active' }}
                   </span>
+                  <span class="badge badge-light small px-1 border {{ !$t->sales_officer_name ? 'text-danger' : '' }}" style="font-size:9.5px">
+                    {{ $t->sales_officer_name ?? 'Unassigned' }}
+                  </span>
                   @if($t->unread_count > 0)
                     <span class="unread-dot ml-1">{{ $t->unread_count }}</span>
                   @endif
@@ -151,7 +154,7 @@
         </div>
 
         <div class="chat-header d-none" id="chatHeader">
-          <div class="chat-header-left">
+          <div class="chat-header-left" style="flex:1; display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
             {{-- Back chevron for mobile view --}}
             <button id="backBtn" class="btn btn-light btn-sm mr-2 d-md-none" style="border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;" onclick="goBackToList()">
               <i class="fa fa-chevron-left text-muted"></i>
@@ -159,13 +162,42 @@
             <div class="t-avatar" id="hAvatar">WA</div>
             <div>
               <div class="h-name" id="hName">-</div>
-              <div class="h-sub" id="hPhone">-</div>
+              <div class="h-sub" style="display:flex; align-items:center; gap:8px; font-size:11px; color:#666;">
+                <span id="hPhone">-</span>
+                <span>•</span>
+                <span class="badge badge-light text-muted" id="hOfficer" style="padding:4px 8px; font-size:10px; border:1px solid #ddd;">Unassigned</span>
+              </div>
             </div>
-            <a href="#" id="crmLink" target="_blank" class="btn btn-outline-secondary btn-sm ml-2" style="font-size:11px;display:none">
-              <i class="fa fa-user"></i> CRM Profile
-            </a>
+            
+            {{-- Action buttons for claim / transfer --}}
+            <div class="chat-header-actions ml-auto d-flex align-items-center" style="gap:6px;">
+              {{-- CRM Profile link --}}
+              <a href="#" id="crmLink" target="_blank" class="btn btn-outline-secondary btn-sm" style="font-size:11px; display:none;">
+                <i class="fa fa-user"></i> CRM Profile
+              </a>
+              
+              {{-- Claim button (for Sales Officers) --}}
+              @if(auth()->user()->role === 'sales_officer')
+                <button class="btn btn-success btn-sm" id="claimBtn" style="font-size:11px; display:none;" onclick="claimActiveChat()">
+                  <i class="fa fa-handshake-o mr-1"></i> Chukua Chat
+                </button>
+              @endif
+
+              {{-- Reassign selector (for Managers / Admins) --}}
+              @if(auth()->user()->role === 'manager' || auth()->user()->role === 'super_admin')
+                <div class="d-flex align-items-center" id="transferContainer" style="display:none !important; gap:4px;">
+                  <span class="small text-muted" style="font-size:10px;">Reassign:</span>
+                  <select id="transferSelect" class="form-control form-control-sm" style="width:140px; font-size:11px; height:28px; padding:2px 6px;" onchange="transferActiveChat(this.value)">
+                    <option value="">-- Hajakabidhiwa --</option>
+                    @foreach($officers as $off)
+                      <option value="{{ $off->id }}">{{ $off->name }}</option>
+                    @endforeach
+                  </select>
+                </div>
+              @endif
+            </div>
           </div>
-          <button class="bot-btn bot-on" id="botBtn" onclick="toggleBot()">
+          <button class="bot-btn bot-on ml-2" id="botBtn" onclick="toggleBot()">
             <i class="fa fa-android mr-1"></i> Bot: Active
           </button>
         </div>
@@ -277,6 +309,54 @@ function goBackToList() {
   document.querySelectorAll('.thread-item').forEach(e=>e.classList.remove('active'));
 }
 
+// ── Claim Chat manually ───────────────────────────────────────
+function claimActiveChat() {
+  if (!activePhone) return;
+  if (!confirm('Je, una uhakika unataka kujikabidhi mazungumzo ya mteja huyu?')) return;
+
+  fetch(`/whatsapp/chat/claim/${encodeURIComponent(activePhone)}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': '{{ csrf_token() }}'
+    }
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      alert(d.message);
+      loadMessages(activePhone);
+      pollThreads();
+    } else {
+      alert('Hitilafu: ' + d.message);
+    }
+  });
+}
+
+// ── Transfer Chat manually (Manager/Admin only) ──────────────
+function transferActiveChat(officerId) {
+  if (!activePhone) return;
+
+  fetch(`/whatsapp/chat/transfer/${encodeURIComponent(activePhone)}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': '{{ csrf_token() }}'
+    },
+    body: JSON.stringify({ sales_officer_id: officerId || null })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      alert(d.message);
+      loadMessages(activePhone);
+      pollThreads();
+    } else {
+      alert('Hitilafu: ' + d.message);
+    }
+  });
+}
+
 // ── Load messages ─────────────────────────────────────────────
 function loadMessages(phone, silent=false) {
   let enc = encodeURIComponent(phone);
@@ -291,7 +371,38 @@ function loadMessages(phone, silent=false) {
       if (d.customer) {
         let lnk=document.getElementById('crmLink');
         lnk.href='/customers/'+d.customer.id;
-        lnk.style.display='';
+        lnk.style.display='inline-block';
+      } else {
+        document.getElementById('crmLink').style.display='none';
+      }
+
+      // Update assigned sales officer badge
+      let officerBadge = document.getElementById('hOfficer');
+      if (officerBadge) {
+        officerBadge.textContent = d.sales_officer_name || 'Hajakabidhiwa (Unassigned)';
+        if (!d.sales_officer_id) {
+          officerBadge.className = 'badge badge-light text-danger';
+        } else {
+          officerBadge.className = 'badge badge-light text-muted';
+        }
+      }
+
+      // Toggle Claim button for Sales Officers
+      let claimBtn = document.getElementById('claimBtn');
+      if (claimBtn) {
+        if (!d.sales_officer_id) {
+          claimBtn.style.display = 'inline-block';
+        } else {
+          claimBtn.style.display = 'none';
+        }
+      }
+
+      // Toggle Transfer/Reassign selector for Managers & Admins
+      let transferSelect = document.getElementById('transferSelect');
+      let transferContainer = document.getElementById('transferContainer');
+      if (transferSelect && transferContainer) {
+        transferContainer.style.setProperty('display', 'flex', 'important');
+        transferSelect.value = d.sales_officer_id || '';
       }
 
       // 24h window
@@ -403,6 +514,7 @@ function refreshThreadList(threads) {
     let botClass  = t.is_bot_paused ? 'badge-bot-paused':'badge-bot-active';
     let botLabel  = t.is_bot_paused ? 'Bot Paused':'Bot Active';
     let unreadHtml= t.unread_count>0?`<span class="unread-dot ml-1">${t.unread_count}</span>`:'';
+    let officerLabel = t.sales_officer_name ? `<span class="badge badge-light small px-1 border" style="font-size:9.5px">${t.sales_officer_name}</span>` : '<span class="badge badge-light small px-1 border text-danger" style="font-size:9.5px">Unassigned</span>';
     let html = `
       <div class="thread-item${isActive?' active':''}" data-phone="${t.phone}" data-name="${name}" data-cid="${t.customer_id||''}">
         <div class="t-avatar">${init}</div>
@@ -414,6 +526,7 @@ function refreshThreadList(threads) {
           <div class="t-row2">
             <div class="t-snip">${t.message.substring(0,45)}</div>
             <span class="${botClass}" id="badge-${cl}">${botLabel}</span>
+            ${officerLabel}
             ${unreadHtml}
           </div>
         </div>

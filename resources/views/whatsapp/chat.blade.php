@@ -55,6 +55,11 @@
 .bot-off{background:#f8d7da;color:#721c24}
 .window-warn{background:#fff3cd;color:#856404;padding:8px 16px;font-size:12px;border-bottom:1px solid #ffc107;display:flex;align-items:center;gap:6px}
 .d-none{display:none!important}
+/* New thread green highlight */
+@keyframes newThreadPulse{0%{background:#d4edda}50%{background:#c3e6cb}100%{background:transparent}}
+.thread-item.is-new{animation:newThreadPulse 2s ease 3;border-left:3px solid #28a745;}
+.thread-item.is-new .t-name{color:#155724 !important;font-weight:900 !important;}
+.thread-item.is-new .t-avatar{background:#28a745 !important;}
 </style>
 @endsection
 
@@ -215,6 +220,15 @@ function openThread(phone, name, cid) {
 
   lastMsgCount = 0;
   loadMessages(phone);
+
+  // Mark incoming messages as read (clears unread counter)
+  fetch(`/whatsapp/chat/mark-read/${encodeURIComponent(phone)}`,{
+    method:'POST', headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}'}
+  });
+  // Clear unread dot in sidebar
+  let item2 = document.querySelector(`.thread-item[data-phone="${phone}"]`);
+  if(item2){ let dot=item2.querySelector('.unread-dot'); if(dot) dot.remove(); }
+
   if (pollMsgInterval) clearInterval(pollMsgInterval);
   pollMsgInterval = setInterval(()=>{ if(activePhone===phone) loadMessages(phone,true); }, 5000);
 }
@@ -253,7 +267,8 @@ function renderMessages(msgs) {
   let body = document.getElementById('chatBody');
   body.innerHTML = '';
   msgs.forEach(m => {
-    let isIn  = m.status === 'received' || m.message.startsWith('INCOMING:');
+    // incoming = received OR read_by_agent (already read by staff)
+    let isIn  = m.status === 'received' || m.status === 'read_by_agent' || m.message.startsWith('INCOMING:');
     let cls   = isIn ? 'in' : 'out';
     let isBot = !isIn && m.message.startsWith('[BOT REPLY]');
     if (isBot) cls += ' bot';
@@ -324,7 +339,8 @@ function pollThreads() {
   fetch('/whatsapp/chat/threads-data')
     .then(r=>r.json()).then(d=>{
       if(!d.success) return;
-      let snap = JSON.stringify(d.threads.map(t=>t.id+t.status+t.created_at));
+      // Detect changes by including unread_count in snapshot
+      let snap = JSON.stringify(d.threads.map(t=>t.id+'|'+t.status+'|'+t.created_at+'|'+t.unread_count));
       if(snap === lastThreadSnapshot) return;
       lastThreadSnapshot = snap;
       refreshThreadList(d.threads);
@@ -361,7 +377,10 @@ function refreshThreadList(threads) {
     if (existing) {
       existing.outerHTML = html;
     } else {
+      // Brand new thread — insert at top with green highlight
       list.insertAdjacentHTML('afterbegin', html);
+      let newEl2 = list.querySelector(`.thread-item[data-phone="${t.phone}"]`);
+      if(newEl2) newEl2.classList.add('is-new');
       flashTitle(1);
     }
     // Re-bind click for new/replaced item

@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\Customer;
 use App\Models\SmsLog;
+use App\Models\User;
+use App\Notifications\NewWhatsAppMessageNotification;
 
 class WhatsAppWebhookController extends Controller
 {
@@ -89,13 +91,28 @@ class WhatsAppWebhookController extends Controller
                 }
 
                 // Log incoming message
-                SmsLog::create([
+                $incomingLog = SmsLog::create([
                     'customer_id' => $customer ? $customer->id : null,
-                    'phone' => $from,
-                    'message' => "INCOMING: " . $text,
-                    'status' => 'received',
-                    'response' => json_encode($message),
+                    'phone'       => $from,
+                    'message'     => "INCOMING: " . $text,
+                    'status'      => 'received',
+                    'response'    => json_encode($message),
                 ]);
+
+                // Notify all admins & managers in the CRM bell
+                try {
+                    $admins = User::whereIn('role', ['super_admin', 'manager'])->get();
+                    $notif  = new NewWhatsAppMessageNotification(
+                        $from,
+                        $customer->name ?? $from,
+                        $text
+                    );
+                    foreach ($admins as $admin) {
+                        $admin->notify($notif);
+                    }
+                } catch (\Throwable $ne) {
+                    Log::warning('[WA-BOT] Notification dispatch failed: ' . $ne->getMessage());
+                }
 
                 // Check if bot is paused for this number (Human handoff active)
                 $pausedKey = "wa_bot_paused_" . preg_replace('/[^0-9]/', '', $from);

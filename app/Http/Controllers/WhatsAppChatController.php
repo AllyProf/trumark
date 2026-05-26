@@ -231,4 +231,18 @@ class WhatsAppChatController extends Controller
             'status' => $status
         ]);
     }
+
+    /**
+     * Mark all incoming messages for a phone as read (clears unread count)
+     */
+    public function markRead($phone)
+    {
+        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+
+        SmsLog::where('phone', 'like', "%$cleanPhone%")
+            ->where('status', 'received')
+            ->update(['status' => 'read_by_agent']);
+
+        return response()->json(['success' => true]);
+    }
 }

@@ -97,6 +97,15 @@ class WhatsAppWebhookController extends Controller
                     'response' => json_encode($message),
                 ]);
 
+                // Check if bot is paused for this number (Human handoff active)
+                $pausedKey = "wa_bot_paused_" . preg_replace('/[^0-9]/', '', $from);
+                $isBotPaused = \Illuminate\Support\Facades\Cache::get($pausedKey, false);
+
+                if ($isBotPaused) {
+                    Log::info("[WA-BOT] Automated bot is PAUSED for customer $from. Human operator is chatting.");
+                    return response('OK', 200);
+                }
+
                 // ROUTING: 1. State Flow -> 2. Ice Breakers -> 3. Commands -> 4. Keyword Matcher -> 5. AI Fallback
                 $routedCommand = null;
 

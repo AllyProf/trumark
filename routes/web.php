@@ -95,4 +95,10 @@ Route::middleware(['auth'])->group(function () {
     // Supplier Management
     Route::post('/suppliers/{supplier}/toggle-status', [SupplierController::class, 'toggleStatus'])->name('suppliers.toggle_status');
     Route::resource('suppliers', SupplierController::class);
+
+    // WhatsApp Live Chat
+    Route::get('/whatsapp/chat', [\App\Http\Controllers\WhatsAppChatController::class, 'index'])->name('whatsapp.chat');
+    Route::get('/whatsapp/chat/thread/{phone}', [\App\Http\Controllers\WhatsAppChatController::class, 'thread'])->name('whatsapp.chat.thread');
+    Route::post('/whatsapp/chat/send', [\App\Http\Controllers\WhatsAppChatController::class, 'sendMessage'])->name('whatsapp.chat.send');
+    Route::post('/whatsapp/chat/toggle-bot/{phone}', [\App\Http\Controllers\WhatsAppChatController::class, 'toggleBot'])->name('whatsapp.chat.toggle_bot');
 });

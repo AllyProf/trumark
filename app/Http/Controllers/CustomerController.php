@@ -98,7 +98,7 @@ class CustomerController extends Controller
         if ($waTemplate === 'general_broadcast') {
             $waParams['message_content'] = preg_replace('/\s+/', ' ', $message);
         } elseif ($waTemplate === 'survey_invitation') {
-            $waParams['survey_link'] = " " . route('feedback.show', ['uuid' => $customer->survey_uuid]) . " ";
+            $waParams['survey_link'] = " " . \App\Models\SystemSetting::surveyLink($customer->survey_uuid) . " ";
         }
         // Note: payment_reminder, quote_ready, follow_up_reminder only take customer_name in Meta Manager
 
@@ -289,41 +289,52 @@ class CustomerController extends Controller
 
         $welcomeTemplate = $settings['template_welcome_sms'] ?? 'Hello {name}, thank you for choosing TRUMARK Co. LTD. We have received your inquiry and our team is working on it. Welcome!';
         $finalWelcomeMessage = str_replace('{name}', $customer->name, $welcomeTemplate);
-        
-        // 1. Send SMS (Direct)
-        $smsResult = $this->sms->sendSms($customer->phone, $finalWelcomeMessage);
-        SmsLog::create([
-            'customer_id' => $customer->id,
-            'sender_id'   => Auth::id(),
-            'phone'       => $customer->phone,
-            'message'     => "[SMS Welcome] " . $finalWelcomeMessage,
-            'status'      => $smsResult['success'] ? 'sent' : 'failed',
-            'response'    => isset($smsResult['response']) ? (is_array($smsResult['response']) ? json_encode($smsResult['response']) : $smsResult['response']) : null,
-        ]);
+        $useWelcomeSms = ($settings['welcome_channels_sms'] ?? '0') === '1';
+        $useWelcomeWhatsapp = ($settings['welcome_channels_whatsapp'] ?? '1') === '1';
+        $useWelcomeEmail = ($settings['welcome_channels_email'] ?? '1') === '1';
+        $channelsSent = [];
 
-        // 2. Send WhatsApp (Template)
-        $waTemplate = $settings['wa_template_welcome_name'] ?? ($settings['whatsapp_template_general'] ?? 'general_broadcast');
-        $waLang = $settings['wa_template_welcome_lang'] ?? 'en';
-        
-        $cleanWaMsg = preg_replace('/\s+/', ' ', $finalWelcomeMessage);
-        $waResult = $this->whatsapp->sendTemplateMessage($customer->phone, $waTemplate, $waLang, [
-            'customer_name' => $customer->name,
-            'message_content' => $cleanWaMsg
-        ]);
-        SmsLog::create([
-            'customer_id' => $customer->id,
-            'sender_id'   => Auth::id(),
-            'phone'       => $customer->phone,
-            'message'     => "[WhatsApp Welcome: {$waTemplate}] " . $finalWelcomeMessage,
-            'status'      => $waResult['success'] ? 'sent' : 'failed',
-            'response'    => isset($waResult['response']) ? (is_array($waResult['response']) ? json_encode($waResult['response']) : $waResult['response']) : null,
-        ]);
+        if ($useWelcomeSms) {
+            $smsResult = $this->sms->sendSms($customer->phone, $finalWelcomeMessage);
+            SmsLog::create([
+                'customer_id' => $customer->id,
+                'sender_id'   => Auth::id(),
+                'phone'       => $customer->phone,
+                'message'     => "[SMS Welcome] " . $finalWelcomeMessage,
+                'status'      => $smsResult['success'] ? 'sent' : 'failed',
+                'response'    => isset($smsResult['response']) ? (is_array($smsResult['response']) ? json_encode($smsResult['response']) : $smsResult['response']) : null,
+            ]);
+            if ($smsResult['success']) {
+                $channelsSent[] = 'SMS';
+            }
+        }
 
-        // 3. Send Email
-        if ($customer->email) {
+        if ($useWelcomeWhatsapp && $customer->phone) {
+            $waTemplate = $settings['wa_template_welcome_name'] ?? ($settings['whatsapp_template_general'] ?? 'general_broadcast');
+            $waLang = $settings['wa_template_welcome_lang'] ?? 'en';
+
+            $cleanWaMsg = preg_replace('/\s+/', ' ', $finalWelcomeMessage);
+            $waResult = $this->whatsapp->sendTemplateMessage($customer->phone, $waTemplate, $waLang, [
+                'customer_name' => $customer->name,
+                'message_content' => $cleanWaMsg
+            ]);
+            SmsLog::create([
+                'customer_id' => $customer->id,
+                'sender_id'   => Auth::id(),
+                'phone'       => $customer->phone,
+                'message'     => "[WhatsApp Welcome: {$waTemplate}] " . $finalWelcomeMessage,
+                'status'      => $waResult['success'] ? 'sent' : 'failed',
+                'response'    => isset($waResult['response']) ? (is_array($waResult['response']) ? json_encode($waResult['response']) : $waResult['response']) : null,
+            ]);
+            if ($waResult['success']) {
+                $channelsSent[] = 'WhatsApp';
+            }
+        }
+
+        if ($useWelcomeEmail && $customer->email) {
             try {
                 \Illuminate\Support\Facades\Mail::to($customer->email)->send(new \App\Mail\CustomerReminderMail($customer, $finalWelcomeMessage));
-                
+
                 SmsLog::create([
                     'customer_id' => $customer->id,
                     'sender_id'   => Auth::id(),
@@ -332,6 +343,7 @@ class CustomerController extends Controller
                     'status'      => 'sent',
                     'response'    => 'Welcome Email dispatched successfully via SMTP',
                 ]);
+                $channelsSent[] = 'Email';
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error("Welcome Email failed for {$customer->email}: " . $e->getMessage());
                 SmsLog::create([
@@ -345,7 +357,11 @@ class CustomerController extends Controller
             }
         }
 
-        return redirect()->route('customers.index')->with('success', '✅ Lead registered and welcome notifications sent via all channels!');
+        $welcomeNote = !empty($channelsSent)
+            ? 'Welcome sent via ' . implode(', ', $channelsSent) . '.'
+            : 'No welcome channels were enabled.';
+
+        return redirect()->route('customers.index')->with('success', "✅ Lead registered successfully. {$welcomeNote}");
     }
 
     public function edit(Customer $customer)
@@ -802,8 +818,7 @@ class CustomerController extends Controller
         $useSms = ($settings['survey_channels_sms'] ?? '1') === '1';
         $useWhatsapp = ($settings['survey_channels_whatsapp'] ?? '0') === '1';
         
-        // Use production domain for WhatsApp and general links
-        $url = 'https://trumark.mauzolink.co.tz/feedback/' . $customer->survey_uuid;
+        $url = \App\Models\SystemSetting::surveyLink($customer->survey_uuid);
         
         $smsTemplate = $settings['survey_sms_template'] ?? 'Habari {name}, asante kwa kuchagua TRUMARK. Tafadhali tufahamishe jinsi ulivyohudumiwa hapa: {link}. Asante!';
         $message = str_replace(['{name}', '{link}'], [$customer->name, $url], $smsTemplate);
@@ -897,6 +912,13 @@ class CustomerController extends Controller
     {
         $settings = \App\Models\SystemSetting::pluck('value', 'key');
         $template = $request->input('message') ?: ($settings['followup_reminder_template'] ?? 'Habari {name}, TRUMARK tunapenda kukukumbusha kuhusu huduma tulizozungumzia. Je, una maswali yoyote? Karibu!');
+        $useSms = ($settings['followup_channels_sms'] ?? '1') === '1';
+        $useWhatsapp = ($settings['followup_channels_whatsapp'] ?? '0') === '1';
+        $useEmail = ($settings['followup_channels_email'] ?? '1') === '1';
+
+        if (!$useSms && !$useWhatsapp && !$useEmail) {
+            return back()->with('error', 'No follow-up reminder channels are enabled. Update Settings → Survey & KPI → Follow-up Reminders.');
+        }
 
         $user     = Auth::user();
         $branchId = $this->getActiveBranchId();
@@ -919,21 +941,62 @@ class CustomerController extends Controller
         $successCount = 0;
         foreach ($customers as $customer) {
             $message = str_replace('{name}', $customer->name, $template);
-            $result = $this->sms->sendSms($customer->phone, $message);
-            
-            SmsLog::create([
-                'customer_id' => $customer->id,
-                'sender_id'   => Auth::id(),
-                'phone'       => $customer->phone,
-                'message'     => $message,
-                'status'      => $result['success'] ? 'sent' : 'failed',
-                'response'    => $result['response'] ?? null,
-            ]);
+            $sentVia = [];
 
-            if ($result['success']) $successCount++;
+            if ($useSms && $customer->phone) {
+                $result = $this->sms->sendSms($customer->phone, $message);
+
+                SmsLog::create([
+                    'customer_id' => $customer->id,
+                    'sender_id'   => Auth::id(),
+                    'phone'       => $customer->phone,
+                    'message'     => "[SMS Followup] " . $message,
+                    'status'      => $result['success'] ? 'sent' : 'failed',
+                    'response'    => $result['response'] ?? null,
+                ]);
+
+                if ($result['success']) {
+                    $sentVia[] = 'SMS';
+                }
+            }
+
+            if ($useWhatsapp && $customer->phone) {
+                $waTemplate = $settings['wa_template_followup_name'] ?? 'follow_up_reminder';
+                $waLang = $settings['wa_template_followup_lang'] ?? 'en';
+
+                $waResult = $this->whatsapp->sendTemplateMessage($customer->phone, $waTemplate, $waLang, [
+                    'customer_name' => $customer->name,
+                ]);
+
+                SmsLog::create([
+                    'customer_id' => $customer->id,
+                    'sender_id'   => Auth::id(),
+                    'phone'       => $customer->phone,
+                    'message'     => "[WhatsApp Followup: {$waTemplate}] " . $message,
+                    'status'      => $waResult['success'] ? 'sent' : 'failed',
+                    'response'    => isset($waResult['response']) ? (is_array($waResult['response']) ? json_encode($waResult['response']) : $waResult['response']) : null,
+                ]);
+
+                if ($waResult['success']) {
+                    $sentVia[] = 'WhatsApp';
+                }
+            }
+
+            if ($useEmail && $customer->email) {
+                try {
+                    \Illuminate\Support\Facades\Mail::to($customer->email)->send(new \App\Mail\CustomerReminderMail($customer, $message));
+                    $sentVia[] = 'Email';
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Follow-up email failed for {$customer->email}: " . $e->getMessage());
+                }
+            }
+
+            if (!empty($sentVia)) {
+                $successCount++;
+            }
         }
 
-        return back()->with('success', "✅ Sent $successCount follow-up reminders successfully!");
+        return back()->with('success', "✅ Sent follow-up reminders to {$successCount} customer(s) via enabled channels.");
     }
 
     /**

@@ -69,7 +69,7 @@ Detailed profile and sales history for {{ $customer->name }}
                     @endif
 
                     @php
-                        $surveyUrl = 'https://trumark.mauzolink.co.tz/feedback/' . $customer->survey_uuid;
+                        $surveyUrl = \App\Models\SystemSetting::surveyLink($customer->survey_uuid);
                         $shareText = "Habari " . $customer->name . ", asante kwa kuchagua TRUMARK. Tafadhali tufahamishe jinsi ulivyohudumiwa hapa: " . $surveyUrl . " . Asante!";
                         $whatsappUrl = "https://api.whatsapp.com/send?phone=" . preg_replace('/[^0-9]/', '', $customer->phone) . "&text=" . rawurlencode($shareText);
                     @endphp

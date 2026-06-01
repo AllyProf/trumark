@@ -66,25 +66,31 @@ class SendFollowupReminders extends Command
         }
 
         $template = $settings['followup_reminder_template'] ?? 'Habari {name}, TRUMARK tunapenda kukukumbusha kuhusu huduma tulizozungumzia. Je, una maswali yoyote? Karibu!';
-        $useWhatsapp = ($settings['survey_channels_whatsapp'] ?? '0') === '1';
-        $useEmail = ($settings['survey_channels_email'] ?? '1') === '1';
+        $useSms = ($settings['followup_channels_sms'] ?? '1') === '1';
+        $useWhatsapp = ($settings['followup_channels_whatsapp'] ?? '0') === '1';
+        $useEmail = ($settings['followup_channels_email'] ?? '1') === '1';
+
+        if (!$useSms && !$useWhatsapp && !$useEmail) {
+            $this->info('No follow-up reminder channels are enabled.');
+            return;
+        }
 
         $this->info("Sending " . $customers->count() . " reminders...");
 
         foreach ($customers as $customer) {
             $message = str_replace('{name}', $customer->name, $template);
-            
-            // 1. Send SMS
-            $result = $sms->sendSms($customer->phone, $message);
-            SmsLog::create([
-                'customer_id' => $customer->id,
-                'phone'       => $customer->phone,
-                'message'     => "[Automated SMS Followup] " . $message,
-                'status'      => $result['success'] ? 'sent' : 'failed',
-                'response'    => isset($result['response']) ? (is_array($result['response']) ? json_encode($result['response']) : $result['response']) : null,
-            ]);
 
-            // 2. Send WhatsApp (Template)
+            if ($useSms && $customer->phone) {
+                $result = $sms->sendSms($customer->phone, $message);
+                SmsLog::create([
+                    'customer_id' => $customer->id,
+                    'phone'       => $customer->phone,
+                    'message'     => "[Automated SMS Followup] " . $message,
+                    'status'      => $result['success'] ? 'sent' : 'failed',
+                    'response'    => isset($result['response']) ? (is_array($result['response']) ? json_encode($result['response']) : $result['response']) : null,
+                ]);
+            }
+
             if ($useWhatsapp && $customer->phone) {
                 $waTemplate = $settings['wa_template_followup_name'] ?? 'follow_up_reminder';
                 $waLang = $settings['wa_template_followup_lang'] ?? 'en';
@@ -111,22 +117,19 @@ class SendFollowupReminders extends Command
                 }
             }
 
-            // 4. Send SMS, WhatsApp, and Email Reminder to the Assigned Sales Officer
+            // Notify the assigned sales officer on enabled channels
             if ($customer->salesOfficer) {
                 $officer = $customer->salesOfficer;
                 $officerMessage = "TRUMARK Reminder: You have a scheduled follow-up with {$customer->name} today. Please contact them.";
-                
-                // Officer SMS
-                if ($officer->phone) {
+
+                if ($useSms && $officer->phone) {
                     $sms->sendSms($officer->phone, $officerMessage);
                 }
 
-                // Officer WhatsApp (Standard Message)
                 if ($useWhatsapp && $officer->phone) {
                     $whatsapp->sendMessage($officer->phone, $officerMessage);
                 }
 
-                // Officer Email
                 if ($useEmail && $officer->email) {
                     try {
                         \Illuminate\Support\Facades\Mail::raw($officerMessage, function($m) use ($officer, $customer) {

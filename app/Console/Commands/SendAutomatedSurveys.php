@@ -109,8 +109,7 @@ class SendAutomatedSurveys extends Command
                 $customer->save();
             }
 
-            // Use production domain for all links
-            $url = 'https://trumark.mauzolink.co.tz/feedback/' . $customer->survey_uuid;
+            $url = SystemSetting::surveyLink($customer->survey_uuid);
             $msg = str_replace(['{name}', '{link}'], [$customer->name, " " . $url . " "], $smsTemplate);
             $msg .= "\n\n(Note: Save our contact to make the link clickable! 🙏)";
             

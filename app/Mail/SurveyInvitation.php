@@ -25,7 +25,7 @@ class SurveyInvitation extends Mailable
     public function __construct(Customer $customer)
     {
         $this->customer = $customer;
-        $this->url = route('feedback.show', $customer->survey_uuid);
+        $this->url = \App\Models\SystemSetting::surveyLink($customer->survey_uuid);
 
         $settings = \App\Models\SystemSetting::pluck('value', 'key');
         

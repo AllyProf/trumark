@@ -386,6 +386,13 @@ Configure global application behavior, branding, and automation settings
                                         <h4>Survey & KPI Automation</h4>
                                     </div>
                                     <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label>Public System URL</label>
+                                                <input type="url" name="survey_public_url" class="form-control form-control-lg-custom" value="{{ $settings['survey_public_url'] ?? 'https://trumark.emca.tech' }}" placeholder="https://trumark.emca.tech">
+                                                <small class="text-muted">Used for survey links sent via SMS, WhatsApp, and email. Example: <code>{{ rtrim($settings['survey_public_url'] ?? 'https://trumark.emca.tech', '/') }}/feedback/{uuid}</code></small>
+                                            </div>
+                                        </div>
                                         <div class="col-md-3">
                                             <div class="form-group">
                                                 <label>Automation Status</label>
@@ -538,6 +545,29 @@ Configure global application behavior, branding, and automation settings
                                         </div>
                                         <div class="col-md-12">
                                             <div class="form-group">
+                                                <label>Channels</label>
+                                                <div class="p-3 bg-light rounded d-flex justify-content-around">
+                                                    <div class="animated-checkbox">
+                                                        <label>
+                                                            <input type="checkbox" name="followup_channels_sms" value="1" {{ ($settings['followup_channels_sms'] ?? '1') == '1' ? 'checked' : '' }}><span class="label-text">SMS</span>
+                                                        </label>
+                                                    </div>
+                                                    <div class="animated-checkbox">
+                                                        <label>
+                                                            <input type="checkbox" name="followup_channels_whatsapp" value="1" {{ ($settings['followup_channels_whatsapp'] ?? '0') == '1' ? 'checked' : '' }}><span class="label-text">WhatsApp</span>
+                                                        </label>
+                                                    </div>
+                                                    <div class="animated-checkbox">
+                                                        <label>
+                                                            <input type="checkbox" name="followup_channels_email" value="1" {{ ($settings['followup_channels_email'] ?? '1') == '1' ? 'checked' : '' }}><span class="label-text">Email</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted">Choose which channels receive automated follow-up reminders.</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
                                                 <textarea name="followup_reminder_template" class="form-control" rows="2">{{ $settings['followup_reminder_template'] ?? 'Habari {name}, TRUMARK tunapenda kukukumbusha kuhusu huduma tulizozungumzia. Je, una maswali yoyote? Karibu!' }}</textarea>
                                                 <small class="text-muted">Use <b>{name}</b> for customer name.</small>
                                             </div>
@@ -563,7 +593,32 @@ Configure global application behavior, branding, and automation settings
                                     <div class="row">
                                         <div class="col-md-12">
                                             <div class="form-group">
+                                                <label>Welcome Message Channels</label>
+                                                <div class="p-3 bg-light rounded d-flex justify-content-around">
+                                                    <div class="animated-checkbox">
+                                                        <label>
+                                                            <input type="checkbox" name="welcome_channels_sms" value="1" {{ ($settings['welcome_channels_sms'] ?? '0') == '1' ? 'checked' : '' }}><span class="label-text">SMS</span>
+                                                        </label>
+                                                    </div>
+                                                    <div class="animated-checkbox">
+                                                        <label>
+                                                            <input type="checkbox" name="welcome_channels_whatsapp" value="1" {{ ($settings['welcome_channels_whatsapp'] ?? '1') == '1' ? 'checked' : '' }}><span class="label-text">WhatsApp</span>
+                                                        </label>
+                                                    </div>
+                                                    <div class="animated-checkbox">
+                                                        <label>
+                                                            <input type="checkbox" name="welcome_channels_email" value="1" {{ ($settings['welcome_channels_email'] ?? '1') == '1' ? 'checked' : '' }}><span class="label-text">Email</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted">Enable only the channels you want. Sending both SMS and WhatsApp to the same number will show duplicate messages.</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label>Welcome Message Template</label>
                                                 <textarea name="template_welcome_sms" class="form-control" rows="2">{{ $settings['template_welcome_sms'] ?? 'Hello, a new lead for {name} has been added to the TRUMARK system.' }}</textarea>
+                                                <small class="text-muted">Use <b>{name}</b> for customer name.</small>
                                             </div>
                                         </div>
                                         <div class="col-md-6">

@@ -13,4 +13,11 @@ class SystemSetting extends Model
         $setting = self::where('key', $key)->first();
         return $setting ? $setting->value : $default;
     }
+
+    public static function surveyLink(string $uuid): string
+    {
+        $baseUrl = rtrim(self::get('survey_public_url', 'https://trumark.emca.tech'), '/');
+
+        return $baseUrl . '/feedback/' . $uuid;
+    }
 }

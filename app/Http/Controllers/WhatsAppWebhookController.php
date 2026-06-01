@@ -777,11 +777,16 @@ class WhatsAppWebhookController extends Controller
     /**
      * AI Fallback via Google Gemini API
      */
+    protected function getHumanHandoffReply(): string
+    {
+        return "Asante kwa ujumbe wako! Our team will reply shortly. / Mhudumu wetu atakuwa nawe hivi karibuni.\n📞 0754 095 017";
+    }
+
     protected function askGeminiAI($text)
     {
         $apiKey = env('GEMINI_API_KEY');
         if (!$apiKey) {
-            return "Samahani, sijaelewa. (AI is currently offline). Tafadhali tumia /help kuona maelekezo, au /support kuongea na mhudumu wetu.";
+            return $this->getHumanHandoffReply();
         }
 
         $systemPrompt = "You are the official AI assistant for TRUMARK Stationery & Books, a trusted business in Dar es Salaam, Tanzania. Always respond in Swahili first, with simple English clarification when needed. Be short, helpful, professional, warm, and friendly.
@@ -819,15 +824,15 @@ If a user asks anything outside these services, politely redirect them. If uncle
 
             if ($response->successful()) {
                 $result = $response->json();
-                return $result['candidates'][0]['content']['parts'][0]['text'] ?? "Samahani, nimeshindwa kupata jibu kwa sasa. Tumia /support.";
+                return $result['candidates'][0]['content']['parts'][0]['text'] ?? $this->getHumanHandoffReply();
             }
 
             Log::error('Gemini API Error: ' . $response->body());
-            return "Samahani, mtandao wetu uko chini kidogo. Tafadhali tumia /support.";
+            return $this->getHumanHandoffReply();
 
         } catch (\Exception $e) {
             Log::error('Gemini Request Failed: ' . $e->getMessage());
-            return "Samahani, nimeshindwa kuunganishwa. Tafadhali tumia /support.";
+            return $this->getHumanHandoffReply();
         }
     }
 

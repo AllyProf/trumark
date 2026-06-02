@@ -103,16 +103,19 @@ class CustomerController extends Controller
         // Note: payment_reminder, quote_ready, follow_up_reminder only take customer_name in Meta Manager
 
         $waResult = $this->whatsapp->sendTemplateMessage($customer->phone, $waTemplate, 'en', $waParams);
-        
+
         SmsLog::create([
             'customer_id' => $customer->id,
             'sender_id'   => Auth::id(),
             'phone'       => $customer->phone,
             'message'     => "[WhatsApp: {$waTemplate}] " . $message,
             'status'      => $waResult['success'] ? 'sent' : 'failed',
-            'response'    => isset($waResult['response']) ? (is_array($waResult['response']) ? json_encode($waResult['response']) : $waResult['response']) : null,
+            'response'    => \App\Services\WhatsAppService::logResponseFromResult($waResult),
+            'whatsapp_message_id' => $waResult['response']['messages'][0]['id'] ?? null,
         ]);
-        if ($waResult['success']) $results[] = 'WhatsApp';
+        if ($waResult['success']) {
+            $results[] = 'WhatsApp';
+        }
 
         // 3. Send Email
         if ($customer->email) {
@@ -125,7 +128,13 @@ class CustomerController extends Controller
         }
 
         $sentString = implode(', ', $results);
-        return back()->with('success', "✅ Message broadcast successful! Sent via: {$sentString}");
+        $redirect = back()->with('success', "✅ Message broadcast successful! Sent via: {$sentString}");
+
+        if (!$waResult['success']) {
+            $redirect = $redirect->with('warning', $waResult['message'] ?? 'WhatsApp could not be delivered.');
+        }
+
+        return $redirect;
     }
 
     /**
@@ -637,6 +646,7 @@ class CustomerController extends Controller
             'whatsapp' => ['sent' => 0, 'failed' => 0],
             'email' => ['sent' => 0, 'failed' => 0],
         ];
+        $waAlertMessage = null;
         
         /**
          * TIMEOUT PROTECTION & SCALABILITY:
@@ -717,10 +727,17 @@ class CustomerController extends Controller
                     'phone'               => $customer->phone,
                     'message'             => "[WhatsApp Broadcast: {$waTemplate}] " . $message,
                     'status'              => $result['success'] ? 'sent' : 'failed',
-                    'response'            => isset($result['response']) ? (is_array($result['response']) ? json_encode($result['response']) : $result['response']) : null,
+                    'response'            => \App\Services\WhatsAppService::logResponseFromResult($result),
                     'whatsapp_message_id' => $wamid,
                 ]);
-                $result['success'] ? $stats['whatsapp']['sent']++ : $stats['whatsapp']['failed']++;
+                if ($result['success']) {
+                    $stats['whatsapp']['sent']++;
+                } else {
+                    $stats['whatsapp']['failed']++;
+                    if (!$waAlertMessage || !empty($result['is_billing_issue'])) {
+                        $waAlertMessage = $result['message'] ?? 'WhatsApp could not be delivered.';
+                    }
+                }
             } elseif (in_array('whatsapp', $channels)) {
                 $stats['whatsapp']['failed']++;
             }
@@ -765,7 +782,13 @@ class CustomerController extends Controller
 
         $msg = '🚀 Broadcast complete for ' . count($customerIds) . ' recipient(s). ' . implode(' | ', $summaryParts);
 
-        return redirect()->route('customers.sms_reminders')->with('success', $msg);
+        $redirect = redirect()->route('customers.sms_reminders')->with('success', $msg);
+
+        if ($waAlertMessage) {
+            $redirect = $redirect->with('warning', $waAlertMessage);
+        }
+
+        return $redirect;
     }
 
     public function bulkDelegateView(Request $request)

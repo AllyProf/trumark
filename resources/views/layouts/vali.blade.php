@@ -537,6 +537,14 @@
                 title: "{{ session('error') }}"
             });
         @endif
+
+        @if(session('warning'))
+            Toast.fire({
+                icon: 'warning',
+                title: @json(session('warning')),
+                timer: 10000
+            });
+        @endif
         
         // Auto Logout after inactivity
         (function() {

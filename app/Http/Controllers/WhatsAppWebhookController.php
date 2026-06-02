@@ -192,13 +192,56 @@ class WhatsAppWebhookController extends Controller
                 $statuses = $data['entry'][0]['changes'][0]['value']['statuses'] ?? [];
                 if (!empty($statuses)) {
                     foreach ($statuses as $statusUpdate) {
-                        $wamid    = $statusUpdate['id'] ?? null;
-                        $newStatus= $statusUpdate['status'] ?? null; // 'sent','delivered','read','failed'
-                        if ($wamid && $newStatus) {
-                            $updated = SmsLog::where('whatsapp_message_id', $wamid)
-                                ->update(['status' => $newStatus]);
-                            Log::info("[WA-BOT] Status update: wamid=$wamid → $newStatus (rows=$updated)");
+                        $wamid     = $statusUpdate['id'] ?? null;
+                        $newStatus = $statusUpdate['status'] ?? null;
+                        if (!$wamid || !$newStatus) {
+                            continue;
                         }
+
+                        $updateData = ['status' => $newStatus];
+                        $errorInfo  = null;
+
+                        if ($newStatus === 'failed') {
+                            $errorInfo = \App\Services\WhatsAppService::extractErrorInfo([
+                                'errors' => $statusUpdate['errors'] ?? [],
+                            ]);
+                            $updateData['response'] = json_encode([
+                                'meta_error_code' => $errorInfo['code'],
+                                'message' => $errorInfo['user_message'],
+                                'raw_message' => $errorInfo['raw_message'],
+                            ]);
+
+                            if ($errorInfo['is_billing_issue']) {
+                                Log::warning('[WA-BOT] WhatsApp billing issue (131042): ' . $errorInfo['user_message']);
+                            } else {
+                                Log::warning('[WA-BOT] WhatsApp delivery failed (' . ($errorInfo['code'] ?? 'unknown') . '): ' . $errorInfo['user_message']);
+                            }
+                        }
+
+                        $updated = SmsLog::where('whatsapp_message_id', $wamid)->update($updateData);
+
+                        if ($updated === 0 && $newStatus === 'failed') {
+                            $recipientId = $statusUpdate['recipient_id'] ?? null;
+                            if ($recipientId) {
+                                $fallback = SmsLog::where('phone', 'like', '%' . $recipientId . '%')
+                                    ->where(function ($q) {
+                                        $q->where('message', 'like', '[WhatsApp%')
+                                          ->orWhere('message', 'like', '[Automated WhatsApp%');
+                                    })
+                                    ->whereDate('created_at', now()->toDateString())
+                                    ->orderByDesc('id')
+                                    ->first();
+
+                                if ($fallback) {
+                                    $fallback->update(array_merge($updateData, [
+                                        'whatsapp_message_id' => $wamid,
+                                    ]));
+                                    $updated = 1;
+                                }
+                            }
+                        }
+
+                        Log::info("[WA-BOT] Status update: wamid=$wamid → $newStatus (rows=$updated)");
                     }
                 } else {
                     Log::info('[WA-BOT] Non-message, non-status webhook event received.');

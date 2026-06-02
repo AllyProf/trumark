@@ -72,7 +72,7 @@ class SendBulkBroadcastJob implements ShouldQueue
                     'phone'               => $customer->phone,
                     'message'             => "[WhatsApp Broadcast: {$waTemplate}] " . $message,
                     'status'              => $result['success'] ? 'sent' : 'failed',
-                    'response'            => isset($result['response']) ? json_encode($result['response']) : null,
+                    'response'            => \App\Services\WhatsAppService::logResponseFromResult($result),
                     'whatsapp_message_id' => $wamid,
                 ]);
             }

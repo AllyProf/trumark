@@ -20,6 +20,77 @@ class WhatsAppService
     }
 
     /**
+     * Translate common Meta WhatsApp error codes into staff-friendly messages.
+     */
+    public static function humanizeMetaError(?int $code, ?string $fallback = null): string
+    {
+        return match ($code) {
+            131042 => 'WhatsApp billing issue: Meta has blocked sends due to unsettled payments. Open Meta Business Manager → Billing and pay any outstanding balance.',
+            131026 => 'WhatsApp could not deliver to this number. The customer may not have WhatsApp on this phone.',
+            131047 => 'WhatsApp 24-hour window expired. Use an approved template message or wait for the customer to reply.',
+            132000, 132001, 132005 => 'WhatsApp template error: check template name, language, and parameters in Meta Business Manager.',
+            133010 => 'WhatsApp phone number is not registered or not linked correctly in Meta.',
+            default => $fallback ?? 'WhatsApp delivery failed. Check Meta Business Manager for details.',
+        };
+    }
+
+    /**
+     * Parse Meta API or webhook status error payloads.
+     */
+    public static function extractErrorInfo(?array $payload): array
+    {
+        $code = null;
+        $rawMessage = null;
+
+        if (!empty($payload['error'])) {
+            $code = isset($payload['error']['code']) ? (int) $payload['error']['code'] : null;
+            $rawMessage = $payload['error']['message'] ?? null;
+        } elseif (!empty($payload['errors'][0])) {
+            $code = isset($payload['errors'][0]['code']) ? (int) $payload['errors'][0]['code'] : null;
+            $rawMessage = $payload['errors'][0]['message'] ?? null;
+        }
+
+        return [
+            'code' => $code,
+            'raw_message' => $rawMessage,
+            'user_message' => self::humanizeMetaError($code, $rawMessage),
+            'is_billing_issue' => $code === 131042,
+        ];
+    }
+
+    protected function failedApiResponse($response): array
+    {
+        $body = $response->json();
+        $info = self::extractErrorInfo(is_array($body) ? $body : null);
+
+        Log::error('WhatsApp API Error: ' . $response->body());
+
+        return [
+            'success' => false,
+            'message' => $info['user_message'],
+            'error_code' => $info['code'],
+            'is_billing_issue' => $info['is_billing_issue'],
+            'response' => $body,
+        ];
+    }
+
+    public static function logResponseFromResult(array $result): ?string
+    {
+        if (!empty($result['response'])) {
+            return is_array($result['response']) ? json_encode($result['response']) : (string) $result['response'];
+        }
+
+        if (!empty($result['message'])) {
+            return json_encode([
+                'error_code' => $result['error_code'] ?? null,
+                'message' => $result['message'],
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
      * Send a standard text message via WhatsApp Cloud API
      * (Only works within 24-hour window)
      */
@@ -57,11 +128,7 @@ class WhatsAppService
             }
 
             Log::error('WhatsApp API Error: ' . $response->body());
-            return [
-                'success'  => false,
-                'message'  => 'WhatsApp API Error: ' . ($response->json()['error']['message'] ?? 'Unknown error'),
-                'response' => $response->json()
-            ];
+            return $this->failedApiResponse($response);
 
         } catch (\Exception $e) {
             Log::error('WhatsApp Exception: ' . $e->getMessage());
@@ -273,11 +340,7 @@ class WhatsAppService
             }
 
             Log::error('WhatsApp API Error: ' . $response->body());
-            return [
-                'success'  => false,
-                'message'  => 'WhatsApp API Error: ' . ($response->json()['error']['message'] ?? 'Unknown error'),
-                'response' => $response->json()
-            ];
+            return $this->failedApiResponse($response);
 
         } catch (\Exception $e) {
             Log::error('WhatsApp Template Exception: ' . $e->getMessage());

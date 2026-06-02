@@ -624,15 +624,19 @@ class CustomerController extends Controller
     public function sendBulkSms(Request $request)
     {
         $request->validate([
-            'customer_ids' => 'required_without:select_all_in_db|array',
+            'customer_ids' => 'required_unless:select_all_in_db,1|array|min:1',
             'message' => 'required|string|max:500',
             'channels' => 'required|array|min:1',
-            'select_all_in_db' => 'nullable|integer'
+            'channels.*' => 'in:sms,whatsapp,email',
+            'select_all_in_db' => 'nullable|in:0,1',
         ]);
 
-        $successCount = 0;
-        $failCount = 0;
         $channels = $request->channels;
+        $stats = [
+            'sms' => ['sent' => 0, 'failed' => 0],
+            'whatsapp' => ['sent' => 0, 'failed' => 0],
+            'email' => ['sent' => 0, 'failed' => 0],
+        ];
         
         /**
          * TIMEOUT PROTECTION & SCALABILITY:
@@ -675,60 +679,92 @@ class CustomerController extends Controller
 
         foreach ($customerIds as $id) {
             $customer = Customer::find($id);
-            if ($customer) {
-                $message = str_replace('{name}', $customer->name, $request->message);
-                
-                // Send via SMS if selected
-                if (in_array('sms', $channels)) {
-                    $result = $this->sms->sendSms($customer->phone, $message);
+            if (!$customer) {
+                continue;
+            }
+
+            $message = str_replace('{name}', $customer->name, $request->message);
+
+            if (in_array('sms', $channels) && $customer->phone) {
+                $result = $this->sms->sendSms($customer->phone, $message);
+                SmsLog::create([
+                    'customer_id' => $customer->id,
+                    'sender_id'   => Auth::id(),
+                    'phone'       => $customer->phone,
+                    'message'     => "[SMS Broadcast] " . $message,
+                    'status'      => $result['success'] ? 'sent' : 'failed',
+                    'response'    => isset($result['response']) ? (is_array($result['response']) ? json_encode($result['response']) : $result['response']) : null,
+                ]);
+                $result['success'] ? $stats['sms']['sent']++ : $stats['sms']['failed']++;
+            } elseif (in_array('sms', $channels)) {
+                $stats['sms']['failed']++;
+            }
+
+            if (in_array('whatsapp', $channels) && $customer->phone) {
+                $waTemplate = \App\Models\SystemSetting::where('key', 'whatsapp_template_general')->first()?->value ?? 'general_broadcast';
+                $cleanMsg = preg_replace('/\s+/', ' ', $message);
+
+                $result = $this->whatsapp->sendTemplateMessage($customer->phone, $waTemplate, 'en', [
+                    'customer_name' => $customer->name,
+                    'message_content' => $cleanMsg,
+                ]);
+
+                $wamid = $result['response']['messages'][0]['id'] ?? null;
+
+                SmsLog::create([
+                    'customer_id'         => $customer->id,
+                    'sender_id'           => Auth::id(),
+                    'phone'               => $customer->phone,
+                    'message'             => "[WhatsApp Broadcast: {$waTemplate}] " . $message,
+                    'status'              => $result['success'] ? 'sent' : 'failed',
+                    'response'            => isset($result['response']) ? (is_array($result['response']) ? json_encode($result['response']) : $result['response']) : null,
+                    'whatsapp_message_id' => $wamid,
+                ]);
+                $result['success'] ? $stats['whatsapp']['sent']++ : $stats['whatsapp']['failed']++;
+            } elseif (in_array('whatsapp', $channels)) {
+                $stats['whatsapp']['failed']++;
+            }
+
+            if (in_array('email', $channels) && $customer->email) {
+                try {
+                    \Illuminate\Support\Facades\Mail::to($customer->email)->send(new \App\Mail\CustomerReminderMail($customer, $message));
                     SmsLog::create([
                         'customer_id' => $customer->id,
                         'sender_id'   => Auth::id(),
                         'phone'       => $customer->phone,
-                        'message'     => $message,
-                        'status'      => $result['success'] ? 'sent' : 'failed',
-                        'response'    => isset($result['response']) ? (is_array($result['response']) ? json_encode($result['response']) : $result['response']) : null,
+                        'message'     => "[Email Broadcast] " . $message,
+                        'status'      => 'sent',
+                        'response'    => 'Email dispatched successfully via SMTP',
                     ]);
-                    if ($result['success']) $successCount++; else $failCount++;
-                }
-
-                // Send via WhatsApp if selected
-                if (in_array('whatsapp', $channels)) {
-                    $waTemplate = \App\Models\SystemSetting::where('key', 'whatsapp_template_general')->first()?->value ?? 'general_broadcast';
-                    $cleanMsg = preg_replace('/\s+/', ' ', $message);
-                    
-                    $result = $this->whatsapp->sendTemplateMessage($customer->phone, $waTemplate, 'en', [
-                        'customer_name' => $customer->name,
-                        'message_content' => $cleanMsg
-                    ]);
-                    
+                    $stats['email']['sent']++;
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Bulk Email failed for {$customer->email}: " . $e->getMessage());
                     SmsLog::create([
                         'customer_id' => $customer->id,
                         'sender_id'   => Auth::id(),
                         'phone'       => $customer->phone,
-                        'message'     => "[WhatsApp] " . $message,
-                        'status'      => $result['success'] ? 'sent' : 'failed',
-                        'response'    => isset($result['response']) ? (is_array($result['response']) ? json_encode($result['response']) : $result['response']) : null,
+                        'message'     => "[Email Broadcast FAILED] " . $message,
+                        'status'      => 'failed',
+                        'response'    => $e->getMessage(),
                     ]);
-                    if ($result['success']) $successCount++;
+                    $stats['email']['failed']++;
                 }
-
-                // Send via Email if selected
-                if (in_array('email', $channels) && $customer->email) {
-                    try {
-                        \Illuminate\Support\Facades\Mail::to($customer->email)->send(new \App\Mail\CustomerReminderMail($customer, $message));
-                        $successCount++;
-                    } catch (\Exception $e) {
-                        \Illuminate\Support\Facades\Log::error("Bulk Email failed for {$customer->email}: " . $e->getMessage());
-                        $failCount++;
-                    }
-                } elseif (in_array('email', $channels)) {
-                    $failCount++;
-                }
+            } elseif (in_array('email', $channels)) {
+                $stats['email']['failed']++;
             }
         }
 
-        $msg = "🚀 Broadcast complete! Processed: " . count($customerIds) . " recipients via: " . implode(', ', array_map('strtoupper', $channels));
+        $summaryParts = [];
+        foreach ($stats as $channel => $counts) {
+            if (!in_array($channel, $channels)) {
+                continue;
+            }
+            $label = strtoupper($channel);
+            $summaryParts[] = "{$label}: {$counts['sent']} sent" . ($counts['failed'] > 0 ? ", {$counts['failed']} failed" : '');
+        }
+
+        $msg = '🚀 Broadcast complete for ' . count($customerIds) . ' recipient(s). ' . implode(' | ', $summaryParts);
+
         return redirect()->route('customers.sms_reminders')->with('success', $msg);
     }
 

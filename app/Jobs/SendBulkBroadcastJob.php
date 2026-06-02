@@ -49,29 +49,31 @@ class SendBulkBroadcastJob implements ShouldQueue
                     'customer_id' => $customer->id,
                     'sender_id'   => $this->senderId,
                     'phone'       => $customer->phone,
-                    'message'     => $message,
+                    'message'     => "[SMS Broadcast] " . $message,
                     'status'      => $result['success'] ? 'sent' : 'failed',
                     'response'    => isset($result['response']) ? json_encode($result['response']) : null,
                 ]);
             }
 
-            // 2. WhatsApp
-            if (in_array('whatsapp', $this->channels)) {
+            if (in_array('whatsapp', $this->channels) && $customer->phone) {
                 $waTemplate = SystemSetting::where('key', 'whatsapp_template_general')->first()?->value ?? 'general_broadcast';
                 $cleanMsg = preg_replace('/\s+/', ' ', $message);
-                
+
                 $result = $whatsapp->sendTemplateMessage($customer->phone, $waTemplate, 'en', [
                     'customer_name' => $customer->name,
-                    'message_content' => $cleanMsg
+                    'message_content' => $cleanMsg,
                 ]);
-                
+
+                $wamid = $result['response']['messages'][0]['id'] ?? null;
+
                 SmsLog::create([
-                    'customer_id' => $customer->id,
-                    'sender_id'   => $this->senderId,
-                    'phone'       => $customer->phone,
-                    'message'     => "[WhatsApp] " . $message,
-                    'status'      => $result['success'] ? 'sent' : 'failed',
-                    'response'    => isset($result['response']) ? json_encode($result['response']) : null,
+                    'customer_id'         => $customer->id,
+                    'sender_id'           => $this->senderId,
+                    'phone'               => $customer->phone,
+                    'message'             => "[WhatsApp Broadcast: {$waTemplate}] " . $message,
+                    'status'              => $result['success'] ? 'sent' : 'failed',
+                    'response'            => isset($result['response']) ? json_encode($result['response']) : null,
+                    'whatsapp_message_id' => $wamid,
                 ]);
             }
 

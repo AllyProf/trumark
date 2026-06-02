@@ -241,7 +241,7 @@ $(document).ready(function() {
         $('#selectAll').prop('checked', false).trigger('change');
     });
 
-    $(document).on('change', '.customer-checkbox', function() {
+    function syncSelectedRecipients() {
         let selected = [];
         let html = '';
         $('.customer-checkbox:checked').each(function() {
@@ -250,11 +250,16 @@ $(document).ready(function() {
             $(this).closest('tr').addClass('selected-row');
         });
         $('.customer-checkbox:not(:checked)').closest('tr').removeClass('selected-row');
-        
+        $('#hiddenInputs').html(html);
+        return selected;
+    }
+
+    $(document).on('change', '.customer-checkbox', function() {
+        let selected = syncSelectedRecipients();
+
         if ($('#selectAllInDbInput').val() == 0) {
             $('#selectedCount').text(selected.length);
         }
-        $('#hiddenInputs').html(html);
         $('#sendBtn').prop('disabled', selected.length === 0 && $('#selectAllInDbInput').val() == 0);
     });
 
@@ -282,6 +287,26 @@ $(document).ready(function() {
 
     $('#msgText').on('input', function() {
         $('#charCount').text($(this).val().length + ' / 160');
+    });
+
+    $('#bulkForm').on('submit', function(e) {
+        const selectAllDb = $('#selectAllInDbInput').val() == 1;
+        const selected = syncSelectedRecipients();
+        const channels = $('input[name="channels[]"]:checked').length;
+
+        if (!selectAllDb && selected.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one recipient.');
+            return false;
+        }
+
+        if (channels === 0) {
+            e.preventDefault();
+            alert('Please select at least one delivery channel (SMS, WhatsApp, or Email).');
+            return false;
+        }
+
+        $('#sendBtn').prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> Sending...');
     });
 });
 </script>

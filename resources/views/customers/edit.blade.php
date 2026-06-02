@@ -24,6 +24,17 @@ Updating record for {{ $customer->name }}
     .req-tile span { display: block; font-weight: 700; font-size: 11px; color: #333; text-transform: uppercase; letter-spacing: 0.5px; }
     .req-check { position: absolute; top: 8px; right: 8px; color: var(--primary-brand); display: none; font-size: 16px; }
     .req-tile.active .req-check { display: block; }
+    .edit-actions-bar {
+        position: sticky;
+        bottom: 0;
+        z-index: 100;
+        background: #fff;
+        border-top: 3px solid var(--primary-brand);
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+        padding: 16px 20px;
+        margin-top: 8px;
+        border-radius: 8px;
+    }
 </style>
 @endsection
 
@@ -354,11 +365,16 @@ Updating record for {{ $customer->name }}
                         </div>
                     </div>
                 </div>
-                <div class="d-flex justify-content-between mt-4">
-                    <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-secondary px-4">
+            </div>
+
+            <div class="tile edit-actions-bar">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-secondary px-4 mb-2 mb-md-0">
                         <i class="fa fa-times mr-2"></i> Cancel
                     </a>
-                    <button type="button" id="confirmUpdateBtn" class="btn btn-success px-5 shadow-lg py-2" style="font-weight: 700; letter-spacing: 1px;"><i class="fa fa-save mr-2"></i> UPDATE LEAD INFORMATION</button>
+                    <button type="button" id="confirmUpdateBtn" class="btn btn-success px-5 shadow-lg py-2 mb-2 mb-md-0" style="font-weight: 700; letter-spacing: 1px;">
+                        <i class="fa fa-save mr-2"></i> UPDATE LEAD INFORMATION
+                    </button>
                 </div>
             </div>
 

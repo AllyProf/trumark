@@ -68,8 +68,8 @@ class WhatsAppWebhookController extends Controller
                     ]);
                 }
 
-                // --- Payment screenshot (image) ---
-                if ($type === 'image') {
+                // --- Payment screenshot (image or document image) ---
+                if ($type === 'image' || $type === 'document') {
                     return $this->handlePaymentScreenshot($from, $message, $customer, $cleanPhone);
                 }
 
@@ -1121,6 +1121,19 @@ If a user asks anything outside these services, politely redirect them. If uncle
             Log::warning('[WA-BOT] Payment info send failed: ' . $e->getMessage());
         }
 
+        // Remember pending payment even if DB save failed (TEMP orders)
+        $cleanPhone = preg_replace('/[^0-9]/', '', $from);
+        \Illuminate\Support\Facades\Cache::put(
+            "wa_pending_payment_{$cleanPhone}",
+            [
+                'order_number' => $order->order_number,
+                'items' => $items,
+                'phone' => $from,
+                'customer_id' => $customer?->id,
+            ],
+            now()->addHours(24)
+        );
+
         return $order;
     }
 
@@ -1137,94 +1150,145 @@ If a user asks anything outside these services, politely redirect them. If uncle
         }
 
         if ($order->estimated_total) {
-            $msg .= "💰 *Makadirio*: TZS " . number_format($order->estimated_total) . "\n";
+            $msg .= "💰 *Makadirio*: TZS " . number_format((float) $order->estimated_total) . "\n";
         }
 
-        $msg .= "\nTutakutumia *njia za malipo* hapa chini sasa hivi.\n";
-        $msg .= "Baada ya kulipa, tuma *screenshot ya muamala* hapa WhatsApp.\n\nAsante kwa kuchagua TRUMARK! 😊";
+        $msg .= "\n" . SystemSetting::whatsappPaymentMessage();
+        $msg .= "\n\nAsante kwa kuchagua TRUMARK! 😊";
 
         return $msg;
     }
 
     /**
-     * Handle inbound payment screenshot images.
+     * Handle inbound payment screenshot images/documents.
+     * Always replies — never fail silently.
      */
     protected function handlePaymentScreenshot($from, array $message, $customer, string $cleanPhone)
     {
-        $mediaId = $message['image']['id'] ?? null;
-        $caption = trim($message['image']['caption'] ?? '');
+        try {
+            $mediaId = $message['image']['id']
+                ?? $message['document']['id']
+                ?? null;
+            $caption = trim(
+                $message['image']['caption']
+                ?? $message['document']['caption']
+                ?? ''
+            );
 
-        SmsLog::create([
-            'customer_id' => $customer?->id,
-            'phone' => $from,
-            'message' => 'INCOMING: [Payment Screenshot]' . ($caption ? " {$caption}" : ''),
-            'status' => 'received',
-            'response' => json_encode($message),
-        ]);
-
-        $isBotPaused = $this->checkBotPausedStatus($cleanPhone, $from);
-        if ($isBotPaused) {
-            return response('OK', 200);
-        }
-
-        $order = WhatsAppOrder::where('phone', 'like', "%{$cleanPhone}%")
-            ->whereIn('status', ['pending', 'payment_submitted'])
-            ->orderByDesc('id')
-            ->first();
-
-        if (!$order) {
-            $reply = "📷 Asante kwa picha yako!\n\nHakuna oda inayosubiri malipo kwa namba hii. Andika */order* kuweka oda mpya, au */support* kwa msaada.";
-            $this->whatsapp->sendMessage($from, $reply);
-            return response('OK', 200);
-        }
-
-        $path = null;
-        if ($mediaId) {
-            $media = $this->whatsapp->downloadMedia($mediaId);
-            if ($media && !empty($media['content'])) {
-                $ext = str_contains($media['mime_type'] ?? '', 'png') ? 'png' : 'jpg';
-                $filename = $order->order_number . '_' . now()->format('YmdHis') . '.' . $ext;
-                $path = 'whatsapp_payments/' . $filename;
-                Storage::disk('public')->put($path, $media['content']);
+            try {
+                SmsLog::create([
+                    'customer_id' => $customer?->id,
+                    'phone' => $from,
+                    'message' => 'INCOMING: [Payment Screenshot]' . ($caption ? " {$caption}" : ''),
+                    'status' => 'received',
+                    'response' => json_encode($message),
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('[WA-BOT] Could not log payment screenshot: ' . $e->getMessage());
             }
+
+            // Accept payment proof even if bot is paused for human chat
+            $order = null;
+            try {
+                $order = WhatsAppOrder::where('phone', 'like', "%{$cleanPhone}%")
+                    ->whereIn('status', ['pending', 'payment_submitted'])
+                    ->orderByDesc('id')
+                    ->first();
+            } catch (\Throwable $e) {
+                Log::error('[WA-BOT] Order lookup failed (migrate?): ' . $e->getMessage());
+            }
+
+            $cached = \Illuminate\Support\Facades\Cache::get("wa_pending_payment_{$cleanPhone}");
+
+            if (!$order && empty($cached)) {
+                $reply = "📷 Asante kwa picha yako!\n\n"
+                    . "Hatukuona oda inayosubiri malipo kwa namba hii.\n"
+                    . "Andika */order* kuweka oda, au */payment* kuona njia za malipo.\n"
+                    . "Au */support* kuongea na mhudumu.";
+                $this->whatsapp->sendMessage($from, $reply);
+                return response('OK', 200);
+            }
+
+            $orderNumber = $order?->order_number ?? ($cached['order_number'] ?? 'PENDING');
+            $items = $order?->items ?? ($cached['items'] ?? 'N/A');
+
+            $path = null;
+            if ($mediaId) {
+                try {
+                    $media = $this->whatsapp->downloadMedia($mediaId);
+                    if ($media && !empty($media['content'])) {
+                        $mime = $media['mime_type'] ?? 'image/jpeg';
+                        $ext = str_contains($mime, 'png') ? 'png' : (str_contains($mime, 'pdf') ? 'pdf' : 'jpg');
+                        $filename = preg_replace('/[^A-Za-z0-9_\-]/', '_', $orderNumber) . '_' . now()->format('YmdHis') . '.' . $ext;
+                        $path = 'whatsapp_payments/' . $filename;
+                        Storage::disk('public')->put($path, $media['content']);
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('[WA-BOT] Media download/save failed: ' . $e->getMessage());
+                }
+            }
+
+            if ($order) {
+                try {
+                    $order->status = 'payment_submitted';
+                    $order->payment_submitted_at = now();
+                    if ($path) {
+                        $order->payment_screenshot_path = $path;
+                    }
+                    if ($caption !== '') {
+                        $order->notes = trim(($order->notes ? $order->notes . "\n" : '') . 'Customer note: ' . $caption);
+                    }
+                    $order->save();
+                } catch (\Throwable $e) {
+                    Log::warning('[WA-BOT] Could not update order payment status: ' . $e->getMessage());
+                }
+            }
+
+            \Illuminate\Support\Facades\Cache::forget("wa_pending_payment_{$cleanPhone}");
+
+            $adminPhone = env('WHATSAPP_ADMIN_PHONE');
+            if ($adminPhone) {
+                $alertMsg = "💳 *Malipo Yamewasilishwa!*\n\n"
+                    . "🆔 Order: {$orderNumber}\n"
+                    . "👤 Mteja: +{$from}\n"
+                    . "📦 {$items}\n\n"
+                    . ($path ? "Picha imehifadhiwa kwenye CRM.\n" : "Picha haikuhifadhiwa (download failed).\n")
+                    . "Thibitisha malipo:\n"
+                    . url('/whatsapp/orders/' . $orderNumber);
+                $this->whatsapp->sendMessage($adminPhone, $alertMsg);
+            }
+
+            $reply = "✅ *Asante! Malipo yako yamepokelewa.*\n\n"
+                . "🆔 Order: *{$orderNumber}*\n"
+                . "Tunathibitisha muamala wako na tutakujulisha mara tu oda ianze kuandaliwa.\n\n"
+                . "Fuatilia kwa */track* au */support*.";
+
+            $this->whatsapp->sendMessage($from, $reply);
+
+            try {
+                SmsLog::create([
+                    'customer_id' => $customer?->id,
+                    'phone' => $from,
+                    'message' => "[BOT REPLY] Payment received for {$orderNumber}",
+                    'status' => 'sent',
+                ]);
+            } catch (\Throwable $e) {
+                // ignore
+            }
+
+            return response('OK', 200);
+        } catch (\Throwable $e) {
+            Log::error('[WA-BOT] handlePaymentScreenshot failed: ' . $e->getMessage());
+            try {
+                $this->whatsapp->sendMessage(
+                    $from,
+                    "📷 Asante kwa picha yako! Mhudumu wetu ataithibitisha hivi punde.\n📞 0754 095 017\nAu andika */support*."
+                );
+            } catch (\Throwable $ignored) {
+                // ignore
+            }
+            return response('OK', 200);
         }
-
-        $order->status = 'payment_submitted';
-        $order->payment_submitted_at = now();
-        if ($path) {
-            $order->payment_screenshot_path = $path;
-        }
-        if ($caption !== '') {
-            $order->notes = trim(($order->notes ? $order->notes . "\n" : '') . 'Customer note: ' . $caption);
-        }
-        $order->save();
-
-        $adminPhone = env('WHATSAPP_ADMIN_PHONE');
-        if ($adminPhone) {
-            $alertMsg = "💳 *Malipo Yamewasilishwa!*\n\n"
-                . "🆔 Order: {$order->order_number}\n"
-                . "👤 Mteja: +{$from}\n"
-                . "📦 {$order->items}\n\n"
-                . "Thibitisha malipo na badilisha status kwenye CRM:\n"
-                . url('/whatsapp/orders/' . $order->order_number);
-            $this->whatsapp->sendMessage($adminPhone, $alertMsg);
-        }
-
-        $reply = "✅ *Asante! Malipo yako yamepokelewa.*\n\n"
-            . "🆔 Order: *{$order->order_number}*\n"
-            . "Tunathibitisha muamala wako na tutakujulisha mara tu oda ianze kuandaliwa.\n\n"
-            . "Fuatilia kwa */track* au */support*.";
-
-        $this->whatsapp->sendMessage($from, $reply);
-
-        SmsLog::create([
-            'customer_id' => $customer?->id,
-            'phone' => $from,
-            'message' => "[BOT REPLY] Payment received for {$order->order_number}",
-            'status' => 'sent',
-        ]);
-
-        return response('OK', 200);
     }
 
     /**

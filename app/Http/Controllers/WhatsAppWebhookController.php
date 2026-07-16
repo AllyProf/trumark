@@ -944,10 +944,13 @@ If a user asks anything outside these services, politely redirect them. If uncle
 
             case 'awaiting_order_delivery_method':
                 $normalized = strtolower(trim($text));
-                // Prefer keyword checks: button IDs historically started with "delivery_"
-                // and titles may use different emojis (🏢 vs 🏬).
-                $isPickupKimara = str_contains($normalized, 'kimara');
-                $isPickupUbungo = str_contains($normalized, 'ubungo');
+                // Use word-boundary checks — "Kilimanjaro" must NOT match "kimara"
+                $isPickupKimara = (bool) preg_match('/\bkimara\b/u', $normalized)
+                    || str_contains($normalized, 'pickup_kimara')
+                    || str_contains($normalized, 'delivery_pickup_kimara');
+                $isPickupUbungo = (bool) preg_match('/\bubungo\b/u', $normalized)
+                    || str_contains($normalized, 'pickup_ubungo')
+                    || str_contains($normalized, 'delivery_pickup_ubungo');
                 $isHomeDelivery = in_array($normalized, [
                     'delivery_home',
                     'delivery',
@@ -991,9 +994,14 @@ If a user asks anything outside these services, politely redirect them. If uncle
             case 'awaiting_delivery_address':
                 $data['address'] = $text;
                 \Illuminate\Support\Facades\Cache::forget($stateKey);
+                Log::info("[WA-BOT] Delivery address received from {$from}: \"{$text}\"");
                 $order = $this->completeOrder($from, $data, $customer);
 
-                return $this->buildOrderConfirmationMessage($order, $data['delivery_method'] ?? 'Home/Office Delivery', $text);
+                return $this->buildOrderConfirmationMessage(
+                    $order,
+                    $data['delivery_method'] ?? 'Home/Office Delivery',
+                    $text
+                );
 
             // === FEEDBACK STATE MACHINE ===
             case 'awaiting_feedback':

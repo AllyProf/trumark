@@ -17,14 +17,23 @@ WhatsApp bot order details and status management
                     <h3 class="tile-title mb-1">{{ $order->order_number }}</h3>
                     <span class="badge badge-primary">{{ $order->statusLabel() }}</span>
                 </div>
-                <a href="{{ route('whatsapp.orders.index') }}" class="btn btn-sm btn-secondary">← Back to Orders</a>
+                <div>
+                    <a href="{{ route('whatsapp.chat', ['phone' => $order->phone]) }}" class="btn btn-sm btn-success">
+                        <i class="fa fa-whatsapp"></i> Chat in CRM
+                    </a>
+                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $order->phone) }}" target="_blank" class="btn btn-sm btn-outline-success">
+                        Open WhatsApp
+                    </a>
+                    <a href="{{ route('whatsapp.orders.index') }}" class="btn btn-sm btn-secondary">← Back</a>
+                </div>
             </div>
 
             <table class="table table-sm table-borderless">
                 <tr><th width="180">Customer</th><td>{{ $order->customer->name ?? 'WhatsApp Lead' }}</td></tr>
                 <tr><th>Phone</th><td>
-                    <a href="{{ route('whatsapp.chat') }}">{{ $order->phone }}</a>
-                    · <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $order->phone) }}" target="_blank">Open WhatsApp</a>
+                    <strong>{{ $order->phone }}</strong>
+                    · <a href="{{ route('whatsapp.chat', ['phone' => $order->phone]) }}">Chat in CRM</a>
+                    · <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $order->phone) }}" target="_blank">wa.me</a>
                 </td></tr>
                 <tr><th>Items</th><td>{!! nl2br(e($order->items)) !!}</td></tr>
                 <tr><th>Delivery Method</th><td>{{ $order->delivery_method ?? '—' }}</td></tr>
@@ -81,7 +90,7 @@ WhatsApp bot order details and status management
 
     <div class="col-lg-4">
         <div class="tile">
-            <h4 class="tile-title">Update Status</h4>
+            <h4 class="tile-title">Update Order</h4>
             <form method="POST" action="{{ route('whatsapp.orders.update_status', $order->order_number) }}">
                 @csrf
                 @method('PATCH')
@@ -94,11 +103,23 @@ WhatsApp bot order details and status management
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Internal Notes</label>
-                    <textarea name="notes" class="form-control" rows="4" placeholder="Staff notes...">{{ $order->notes }}</textarea>
+                    <label>Items (edit if customer sent wrong text)</label>
+                    <textarea name="items" class="form-control" rows="4" placeholder="Actual products ordered...">{{ $order->items }}</textarea>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-save mr-1"></i> Save Status</button>
+                <div class="form-group">
+                    <label>Internal Notes</label>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Staff notes...">{{ $order->notes }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-save mr-1"></i> Save Order</button>
             </form>
+
+            <hr>
+            <a href="{{ route('whatsapp.chat', ['phone' => $order->phone]) }}" class="btn btn-success btn-block">
+                <i class="fa fa-whatsapp"></i> Chat with Customer in CRM
+            </a>
+            <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $order->phone) }}" target="_blank" class="btn btn-outline-success btn-block mt-2">
+                Open in WhatsApp App
+            </a>
         </div>
     </div>
 </div>

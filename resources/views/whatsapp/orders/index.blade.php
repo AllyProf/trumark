@@ -93,8 +93,11 @@ Bot orders, payment screenshots, and delivery status
                                     <span class="badge badge-{{ $badge }} status-badge">{{ $order->statusLabel() }}</span>
                                 </td>
                                 <td>{{ $order->created_at->format('d M Y H:i') }}</td>
-                                <td>
+                                <td class="text-nowrap">
                                     <a href="{{ route('whatsapp.orders.show', $order->order_number) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                    <a href="{{ route('whatsapp.chat', ['phone' => $order->phone]) }}" class="btn btn-sm btn-success" title="Chat in CRM">
+                                        <i class="fa fa-whatsapp"></i>
+                                    </a>
                                 </td>
                             </tr>
                         @empty

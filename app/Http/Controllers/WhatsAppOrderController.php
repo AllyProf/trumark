@@ -59,11 +59,15 @@ class WhatsAppOrderController extends Controller
 
         $request->validate([
             'status' => 'required|in:' . implode(',', array_keys(WhatsAppOrder::STATUSES)),
+            'items' => 'nullable|string|max:5000',
             'notes' => 'nullable|string|max:2000',
         ]);
 
         $order->status = $request->status;
-        if ($request->filled('notes')) {
+        if ($request->filled('items')) {
+            $order->items = $request->items;
+        }
+        if ($request->has('notes')) {
             $order->notes = $request->notes;
         }
         if ($request->status === 'paid' && !$order->payment_submitted_at) {

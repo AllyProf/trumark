@@ -618,5 +618,24 @@ function flashTitle(n){
     if(++flashCount>8){clearInterval(flashTimer);document.title=origTitle;}
   },700);
 }
+
+// Deep-link from Orders page: /whatsapp/chat?phone=255...
+(function openPhoneFromQuery(){
+  const params = new URLSearchParams(window.location.search);
+  const phone = params.get('phone');
+  if (!phone) return;
+  const clean = phone.replace(/[^0-9]/g,'');
+  let match = null;
+  document.querySelectorAll('.thread-item').forEach(el=>{
+    const p = (el.dataset.phone||'').replace(/[^0-9]/g,'');
+    if (p === clean || p.endsWith(clean) || clean.endsWith(p)) match = el;
+  });
+  if (match) {
+    openThread(match.dataset.phone, match.dataset.name||match.dataset.phone, match.dataset.cid||'');
+  } else {
+    // Start/open thread even if not yet in sidebar list
+    openThread(phone, phone, '');
+  }
+})();
 </script>
 @endsection

@@ -919,6 +919,27 @@ If a user asks anything outside these services, politely redirect them. If uncle
         switch ($step) {
             // === ORDER STATE MACHINE ===
             case 'awaiting_order_items':
+                // Ignore command/button taps so "/delivery" is not saved as items
+                $normalizedItems = strtolower(trim($text));
+                $looksLikeCommand = str_starts_with($normalizedItems, '/')
+                    || in_array($normalizedItems, [
+                        'delivery', 'delivery_home', 'pickup_ubungo', 'pickup_kimara',
+                        'delivery_pickup_ubungo', 'delivery_pickup_kimara',
+                        'payment', 'support', 'menu', 'help', 'order', 'track',
+                    ], true)
+                    || str_starts_with($normalizedItems, 'delivery_')
+                    || str_starts_with($normalizedItems, 'pickup_')
+                    || preg_match('/^(🏢|🏬|🚚|💳|🤝|📚|✏️)/u', $text);
+
+                if ($looksLikeCommand || mb_strlen(trim($text)) < 3) {
+                    return "🛒 *Tafadhali andika orodha ya bidhaa*\n\n"
+                        . "Mfano:\n"
+                        . "• Daftari Counter 3 Quire nakala 5\n"
+                        . "• Kalamu Bic boksi 1\n"
+                        . "• Vitabu vya Form 2 Physics x2\n\n"
+                        . "Usiandike amri kama /delivery — andika *bidhaa* unazohitaji.";
+                }
+
                 $data['items'] = $text;
                 $estimate = WhatsAppPriceEstimator::estimate($text);
                 $data['estimate'] = $estimate;
@@ -928,6 +949,7 @@ If a user asks anything outside these services, politely redirect them. If uncle
 
                 $estimateMsg = WhatsAppPriceEstimator::formatEstimateMessage($estimate);
                 $body = "🛒 *HATUA YA 2/2: Usafirishaji / Delivery*\n\n";
+                $body .= "📦 *Bidhaa*: {$text}\n\n";
                 if ($estimateMsg !== '') {
                     $body .= $estimateMsg . "\n\n";
                 }

@@ -7,7 +7,11 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Customer;
 use App\Models\SmsLog;
 use App\Models\User;
+use App\Models\WhatsAppOrder;
+use App\Models\SystemSetting;
+use App\Services\WhatsAppPriceEstimator;
 use App\Notifications\NewWhatsAppMessageNotification;
+use Illuminate\Support\Facades\Storage;
 
 class WhatsAppWebhookController extends Controller
 {
@@ -53,6 +57,22 @@ class WhatsAppWebhookController extends Controller
                 $from = $message['from'];
                 $type = $message['type'] ?? 'text';
 
+                $cleanPhone = preg_replace('/[^0-9]/', '', $from);
+                $customer = Customer::where('phone', 'like', "%$cleanPhone%")->first();
+                if (!$customer) {
+                    $customer = Customer::create([
+                        'name' => 'WhatsApp Lead (' . $from . ')',
+                        'phone' => $from,
+                        'is_draft' => true,
+                        'notes' => 'Auto-created from WhatsApp first contact.'
+                    ]);
+                }
+
+                // --- Payment screenshot (image) ---
+                if ($type === 'image') {
+                    return $this->handlePaymentScreenshot($from, $message, $customer, $cleanPhone);
+                }
+
                 // --- Handle Interactive Button Reply ---
                 if ($type === 'interactive') {
                     $interactiveType = $message['interactive']['type'] ?? '';
@@ -78,15 +98,16 @@ class WhatsAppWebhookController extends Controller
                     return response('OK', 200);
                 }
 
-                // Find customer by phone, create draft lead if not exists
-                $cleanPhone = preg_replace('/[^0-9]/', '', $from);
-                $customer = Customer::where('phone', 'like', "%$cleanPhone%")->first();
+                // Find customer by phone (already loaded above for images)
+                if (!$customer) {
+                    $customer = Customer::where('phone', 'like', "%$cleanPhone%")->first();
+                }
                 if (!$customer) {
                     $customer = Customer::create([
                         'name' => 'WhatsApp Lead (' . $from . ')',
                         'phone' => $from,
                         'is_draft' => true,
-                        'notes' => 'Auto-created from WhatsApp first contact.'
+                        'notes' => 'Auto-created from WhatsApp first contact.',
                     ]);
                 }
 
@@ -665,7 +686,7 @@ class WhatsAppWebhookController extends Controller
                 return "⏰ *MUDA WA KAZI / WORKING HOURS*\n\nTuko wazi kukuhudumia siku zote za wiki, ikiwemo wikendi!\n\n• 📅 *Jumatatu hadi Ijumaa*: Saa 2:00 Asubuhi hadi Saa 2:30 Usiku (8:00AM - 8:30PM)\n• 📅 *Jumamosi*: Saa 3:00 Asubuhi hadi Saa 2:00 Usiku (9:00AM - 8:00PM)\n• 📅 *Jumapili*: Saa 3:00 Asubuhi hadi Saa 2:00 Usiku (9:00AM - 8:00PM)\n\n📍 *Matawi yetu*:\n   - Ubungo: Soko Kubwa la Kimataifa la Ubungo (EACLC)\n   - Kimara: Kimara Stopover\n\n📞 *Simu*: 0794 467 694\n\n✅ Hata wikendi tuko hapa kukusaidia! Karibu sana.";
 
             case 'payment':
-                return "💳 *NJIA ZA MALIPO / PAYMENT METHODS*\n\nTunapokea malipo kupitia njia zifuatazo:\n\n1. 💵 *Cash (Pesa Taslimu)*: Lipa moja kwa moja katika tawi letu la Ubungo au Kimara.\n\n2. 📱 *M-Pesa*: Tuma pesa kwenye namba yetu ya biashara. Andika */support* kupata namba.\n\n3. 📱 *Tigo Pesa*: Tuma pesa kwenye namba yetu. Andika */support* kupata namba.\n\n4. 📱 *Airtel Money*: Tuma pesa kwenye namba yetu ya Airtel. Andika */support* kupata namba.\n\n5. 🏦 *Bank Transfer*: Tunatoa namba ya akaunti ya benki unapoagiza. Andika */support* kupata maelezo ya benki.\n\n✅ *Nyaraka za Malipo*: Tunatoa risiti, invoice, quotation na nyaraka zote za auditing bila malipo ya ziada.\n\n⚠️ Baada ya kulipa, tuma picha ya muamala hapa ili tuthibitishe na kuanza mzigo wako mara moja!";
+                return SystemSetting::whatsappPaymentMessage();
 
             case 'catalog':
                 return "📑 *KATALOGI YA BIDHAA / PRODUCT CATALOG*\n\nTunaandaa katalogi ya kisasa yenye bidhaa na bei zetu zote za hivi karibuni. \n\nKwa sasa, tafadhali andika jina la kitabu au vifaa unavyohitaji hapa, na tutakupa picha na bei zake mara moja. Unaweza pia kuandika */pricing* kuona bei za vifaa maarufu au */support* kuongea na mhudumu wetu.";
@@ -832,7 +853,7 @@ class WhatsAppWebhookController extends Controller
             return $this->getHumanHandoffReply();
         }
 
-        $systemPrompt = "You are the official AI assistant for TRUMARK Stationery & Books, a trusted business in Dar es Salaam, Tanzania. Always respond in Swahili first, with simple English clarification when needed. Be short, helpful, professional, warm, and friendly.
+        $systemPrompt = "You are the TRUMARK Stationery & Books WhatsApp assistant. Reply in Swahili first, English second when helpful. Be concise and friendly.
 
 KEY BUSINESS FACTS (always use these, never guess):
 - Business Name: TRUMARK Stationery & Books
@@ -846,9 +867,10 @@ KEY BUSINESS FACTS (always use these, never guess):
 - Documents provided: Risiti, Invoice, Quotation, Proforma — all provided free of charge
 - Sales: Both jumla (wholesale) and rejareja (retail) — serves schools, institutions, companies, and individuals
 - Delivery: Inside Dar es Salaam (bodaboda/bajaji) and all regions of Tanzania (via bus/courier)
+- To order: tell customer to type /order
+- To pay: tell customer to type /payment
 
 If a user asks anything outside these services, politely redirect them. If unclear, ask a follow-up question. Do not make up prices unless specifically asked — then give approximate ranges. Keep responses under 200 words.";
-
 
         try {
             $response = \Illuminate\Support\Facades\Http::post("https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={$apiKey}", [
@@ -898,9 +920,18 @@ If a user asks anything outside these services, politely redirect them. If uncle
             // === ORDER STATE MACHINE ===
             case 'awaiting_order_items':
                 $data['items'] = $text;
+                $estimate = WhatsAppPriceEstimator::estimate($text);
+                $data['estimate'] = $estimate;
                 $state['step'] = 'awaiting_order_delivery_method';
                 $state['data'] = $data;
                 \Illuminate\Support\Facades\Cache::put($stateKey, $state, now()->addMinutes(30));
+
+                $estimateMsg = WhatsAppPriceEstimator::formatEstimateMessage($estimate);
+                $body = "🛒 *HATUA YA 2/2: Usafirishaji / Delivery*\n\n";
+                if ($estimateMsg !== '') {
+                    $body .= $estimateMsg . "\n\n";
+                }
+                $body .= "Je, utakuja kuchukua bidhaa zako kwenye matawi yetu wenyewe, au ungependa tukuletee (Delivery)?\n\nTafadhali chagua hapa chini:";
 
                 $buttons = [
                     ['id' => 'delivery_pickup_ubungo', 'title' => '🏢 Ubungo EACLC'],
@@ -908,7 +939,6 @@ If a user asks anything outside these services, politely redirect them. If uncle
                     ['id' => 'delivery_home', 'title' => '🚚 Delivery (Ulipo)'],
                 ];
 
-                $body = "🛒 *HATUA YA 2/2: Usafirishaji / Delivery*\n\nJe, utakuja kuchukua bidhaa zako kwenye matawi yetu wenyewe, au ungependa tukuletee (Delivery)?\n\nTafadhali chagua hapa chini:";
                 $this->whatsapp->sendInteractiveButtons($from, $body, $buttons, '', 'TRUMARK Orders');
                 return true;
 
@@ -934,17 +964,17 @@ If a user asks anything outside these services, politely redirect them. If uncle
                     return "🚚 *Anwani ya Delivery*\n\nTafadhali andika **Eneo lako unapoishi / Ofisi** na **Jina kamili la Mpokeaji**:";
                 } else {
                     \Illuminate\Support\Facades\Cache::forget($stateKey);
-                    $this->completeOrder($from, $data, $customer);
+                    $order = $this->completeOrder($from, $data, $customer);
 
-                    return "✅ *Oda Yako Imepokelewa kwa Ufanisi!*\n\n📍 *Njia ya Kuchukulia*: {$method}\n📦 *Orodha ya Vifaa*: {$data['items']}\n\nMhudumu wetu anaanza kuandaa mzigo wako na atakupigia simu au kukutumia maelekezo ya malipo hapa WhatsApp hivi punde. Asante kwa kuchagua TRUMARK! 😊";
+                    return $this->buildOrderConfirmationMessage($order, $method);
                 }
 
             case 'awaiting_delivery_address':
                 $data['address'] = $text;
                 \Illuminate\Support\Facades\Cache::forget($stateKey);
-                $this->completeOrder($from, $data, $customer);
+                $order = $this->completeOrder($from, $data, $customer);
 
-                return "✅ *Oda Yako Imepokelewa kwa Ufanisi!*\n\n📍 *Mahali pa kuletewa*: {$text}\n📦 *Orodha ya Vifaa*: {$data['items']}\n\nMhudumu wetu anaanza kuandaa mzigo wako na atakupigia simu au kukutumia maelekezo ya malipo hapa WhatsApp hivi punde. Asante kwa kuchagua TRUMARK! 😊";
+                return $this->buildOrderConfirmationMessage($order, $data['delivery_method'] ?? 'Home/Office Delivery', $text);
 
             // === FEEDBACK STATE MACHINE ===
             case 'awaiting_feedback':
@@ -988,24 +1018,163 @@ If a user asks anything outside these services, politely redirect them. If uncle
     }
 
     /**
-     * Complete order and alert Admin
+     * Complete order, save to CRM, alert admin, and auto-send payment info.
      */
-    protected function completeOrder($from, $data, $customer)
+    protected function completeOrder($from, $data, $customer): WhatsAppOrder
     {
-        $adminPhone = env('WHATSAPP_ADMIN_PHONE');
+        $estimate = $data['estimate'] ?? [];
         $delivery = $data['delivery_method'] ?? 'Pickup';
-        $address = $data['address'] ?? 'N/A';
+        $address = $data['address'] ?? null;
         $items = $data['items'] ?? 'N/A';
 
+        $order = WhatsAppOrder::create([
+            'order_number' => WhatsAppOrder::generateOrderNumber(),
+            'customer_id' => $customer?->id,
+            'phone' => $from,
+            'items' => $items,
+            'delivery_method' => $delivery,
+            'address' => $address,
+            'estimated_total' => $estimate['total'] ?? null,
+            'estimate_breakdown' => !empty($estimate['breakdown']) ? $estimate : null,
+            'status' => 'pending',
+        ]);
+
+        $adminPhone = env('WHATSAPP_ADMIN_PHONE');
         if ($adminPhone) {
+            $totalLine = $order->estimated_total
+                ? "\n💰 *Makadirio*: TZS " . number_format($order->estimated_total)
+                : '';
+
             $alertMsg = "🛒 *Oda Mpya ya WhatsApp!*\n\n"
+                . "🆔 *Order*: {$order->order_number}\n"
                 . "👤 *Mteja*: +{$from}\n"
                 . "📦 *Bidhaa*: {$items}\n"
                 . "🚚 *Njia*: {$delivery}\n"
-                . "📍 *Anwani/Tawi*: {$address}\n\n"
-                . "Tafadhali wasiliana na mteja kukamilisha malipo na usafirishaji: https://wa.me/{$from}";
+                . "📍 *Anwani/Tawi*: " . ($address ?: $delivery)
+                . $totalLine
+                . "\n\nAngalia CRM: " . url('/whatsapp/orders/' . $order->order_number)
+                . "\nWasiliana: https://wa.me/{$from}";
+
             $this->whatsapp->sendMessage($adminPhone, $alertMsg);
         }
+
+        sleep(1);
+        $paymentMsg = SystemSetting::whatsappPaymentMessage();
+        $paymentMsg = "🆔 *Oda: {$order->order_number}*\n\n" . $paymentMsg;
+        $sendResult = $this->whatsapp->sendMessage($from, $paymentMsg);
+
+        SmsLog::create([
+            'customer_id' => $customer?->id,
+            'phone' => $from,
+            'message' => "[BOT REPLY] [Payment Info for {$order->order_number}] " . mb_substr($paymentMsg, 0, 500),
+            'status' => ($sendResult['success'] ?? false) ? 'sent' : 'failed',
+            'whatsapp_message_id' => $sendResult['response']['messages'][0]['id'] ?? null,
+        ]);
+
+        return $order;
+    }
+
+    protected function buildOrderConfirmationMessage(WhatsAppOrder $order, string $deliveryLabel, ?string $address = null): string
+    {
+        $msg = "✅ *Oda Yako Imepokelewa kwa Ufanisi!*\n\n";
+        $msg .= "🆔 *Order ID*: {$order->order_number}\n";
+        $msg .= "📦 *Bidhaa*: {$order->items}\n";
+
+        if ($address) {
+            $msg .= "📍 *Mahali pa kuletewa*: {$address}\n";
+        } else {
+            $msg .= "📍 *Njia ya kuchukulia*: {$deliveryLabel}\n";
+        }
+
+        if ($order->estimated_total) {
+            $msg .= "💰 *Makadirio*: TZS " . number_format($order->estimated_total) . "\n";
+        }
+
+        $msg .= "\nTutakutumia *njia za malipo* hapa chini sasa hivi.\n";
+        $msg .= "Baada ya kulipa, tuma *screenshot ya muamala* hapa WhatsApp.\n\nAsante kwa kuchagua TRUMARK! 😊";
+
+        return $msg;
+    }
+
+    /**
+     * Handle inbound payment screenshot images.
+     */
+    protected function handlePaymentScreenshot($from, array $message, $customer, string $cleanPhone)
+    {
+        $mediaId = $message['image']['id'] ?? null;
+        $caption = trim($message['image']['caption'] ?? '');
+
+        SmsLog::create([
+            'customer_id' => $customer?->id,
+            'phone' => $from,
+            'message' => 'INCOMING: [Payment Screenshot]' . ($caption ? " {$caption}" : ''),
+            'status' => 'received',
+            'response' => json_encode($message),
+        ]);
+
+        $isBotPaused = $this->checkBotPausedStatus($cleanPhone, $from);
+        if ($isBotPaused) {
+            return response('OK', 200);
+        }
+
+        $order = WhatsAppOrder::where('phone', 'like', "%{$cleanPhone}%")
+            ->whereIn('status', ['pending', 'payment_submitted'])
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$order) {
+            $reply = "📷 Asante kwa picha yako!\n\nHakuna oda inayosubiri malipo kwa namba hii. Andika */order* kuweka oda mpya, au */support* kwa msaada.";
+            $this->whatsapp->sendMessage($from, $reply);
+            return response('OK', 200);
+        }
+
+        $path = null;
+        if ($mediaId) {
+            $media = $this->whatsapp->downloadMedia($mediaId);
+            if ($media && !empty($media['content'])) {
+                $ext = str_contains($media['mime_type'] ?? '', 'png') ? 'png' : 'jpg';
+                $filename = $order->order_number . '_' . now()->format('YmdHis') . '.' . $ext;
+                $path = 'whatsapp_payments/' . $filename;
+                Storage::disk('public')->put($path, $media['content']);
+            }
+        }
+
+        $order->status = 'payment_submitted';
+        $order->payment_submitted_at = now();
+        if ($path) {
+            $order->payment_screenshot_path = $path;
+        }
+        if ($caption !== '') {
+            $order->notes = trim(($order->notes ? $order->notes . "\n" : '') . 'Customer note: ' . $caption);
+        }
+        $order->save();
+
+        $adminPhone = env('WHATSAPP_ADMIN_PHONE');
+        if ($adminPhone) {
+            $alertMsg = "💳 *Malipo Yamewasilishwa!*\n\n"
+                . "🆔 Order: {$order->order_number}\n"
+                . "👤 Mteja: +{$from}\n"
+                . "📦 {$order->items}\n\n"
+                . "Thibitisha malipo na badilisha status kwenye CRM:\n"
+                . url('/whatsapp/orders/' . $order->order_number);
+            $this->whatsapp->sendMessage($adminPhone, $alertMsg);
+        }
+
+        $reply = "✅ *Asante! Malipo yako yamepokelewa.*\n\n"
+            . "🆔 Order: *{$order->order_number}*\n"
+            . "Tunathibitisha muamala wako na tutakujulisha mara tu oda ianze kuandaliwa.\n\n"
+            . "Fuatilia kwa */track* au */support*.";
+
+        $this->whatsapp->sendMessage($from, $reply);
+
+        SmsLog::create([
+            'customer_id' => $customer?->id,
+            'phone' => $from,
+            'message' => "[BOT REPLY] Payment received for {$order->order_number}",
+            'status' => 'sent',
+        ]);
+
+        return response('OK', 200);
     }
 
     /**

@@ -350,4 +350,51 @@ class WhatsAppService
             ];
         }
     }
+
+    /**
+     * Download inbound media (e.g. payment screenshot) from Meta WhatsApp Cloud API.
+     */
+    public function downloadMedia(string $mediaId): ?array
+    {
+        if (!$this->accessToken || !$mediaId) {
+            return null;
+        }
+
+        try {
+            $metaResponse = Http::withToken($this->accessToken)
+                ->timeout(30)
+                ->withOptions(['verify' => false])
+                ->get("{$this->baseUrl}/{$mediaId}");
+
+            if (!$metaResponse->successful()) {
+                Log::error('WhatsApp media metadata error: ' . $metaResponse->body());
+                return null;
+            }
+
+            $mediaUrl = $metaResponse->json('url');
+            $mimeType = $metaResponse->json('mime_type', 'image/jpeg');
+
+            if (!$mediaUrl) {
+                return null;
+            }
+
+            $fileResponse = Http::withToken($this->accessToken)
+                ->timeout(60)
+                ->withOptions(['verify' => false])
+                ->get($mediaUrl);
+
+            if (!$fileResponse->successful()) {
+                Log::error('WhatsApp media download error: ' . $fileResponse->status());
+                return null;
+            }
+
+            return [
+                'content' => $fileResponse->body(),
+                'mime_type' => $mimeType,
+            ];
+        } catch (\Exception $e) {
+            Log::error('WhatsApp downloadMedia exception: ' . $e->getMessage());
+            return null;
+        }
+    }
 }

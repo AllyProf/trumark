@@ -123,4 +123,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/whatsapp/chat/mark-read/{phone}', [\App\Http\Controllers\WhatsAppChatController::class, 'markRead'])->name('whatsapp.chat.mark_read');
     Route::post('/whatsapp/chat/claim/{phone}', [\App\Http\Controllers\WhatsAppChatController::class, 'claimChat'])->name('whatsapp.chat.claim');
     Route::post('/whatsapp/chat/transfer/{phone}', [\App\Http\Controllers\WhatsAppChatController::class, 'transferChat'])->name('whatsapp.chat.transfer');
+
+    // WhatsApp Bot Orders
+    Route::get('/whatsapp/orders', [\App\Http\Controllers\WhatsAppOrderController::class, 'index'])->name('whatsapp.orders.index');
+    Route::get('/whatsapp/orders/{orderNumber}', [\App\Http\Controllers\WhatsAppOrderController::class, 'show'])->name('whatsapp.orders.show');
+    Route::patch('/whatsapp/orders/{orderNumber}/status', [\App\Http\Controllers\WhatsAppOrderController::class, 'updateStatus'])->name('whatsapp.orders.update_status');
 });

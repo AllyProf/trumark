@@ -429,6 +429,64 @@ Configure global application behavior, branding, and automation settings
                                             </div>
                                         </div>
                                     </div>
+                                    <hr>
+                                    <div class="section-header">
+                                        <i class="fa fa-credit-card"></i>
+                                        <h4>WhatsApp Bot — Payment & Pricing</h4>
+                                        <small class="text-muted ml-2">Shown automatically after bot orders and on /payment command.</small>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>M-Pesa (Lipa Namba / Paybill)</label>
+                                                <input type="text" name="payment_mpesa" class="form-control form-control-lg-custom" value="{{ $settings['payment_mpesa'] ?? '' }}" placeholder="e.g. Lipa Namba 123456 — TRUMARK">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Tigo Pesa</label>
+                                                <input type="text" name="payment_tigo" class="form-control form-control-lg-custom" value="{{ $settings['payment_tigo'] ?? '' }}" placeholder="e.g. 0712 345 678 — TRUMARK">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Airtel Money</label>
+                                                <input type="text" name="payment_airtel" class="form-control form-control-lg-custom" value="{{ $settings['payment_airtel'] ?? '' }}" placeholder="e.g. 0789 123 456 — TRUMARK">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Bank Name</label>
+                                                <input type="text" name="payment_bank_name" class="form-control form-control-lg-custom" value="{{ $settings['payment_bank_name'] ?? '' }}" placeholder="e.g. CRDB Bank">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Bank Account Number</label>
+                                                <input type="text" name="payment_bank_account" class="form-control form-control-lg-custom" value="{{ $settings['payment_bank_account'] ?? '' }}" placeholder="e.g. 0150123456789">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Account Holder Name</label>
+                                                <input type="text" name="payment_bank_holder" class="form-control form-control-lg-custom" value="{{ $settings['payment_bank_holder'] ?? '' }}" placeholder="e.g. TRUMARK CO. LTD">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label>Delivery Fee Estimate (Dar)</label>
+                                                <input type="number" name="wa_delivery_fee_dar" class="form-control form-control-lg-custom" value="{{ $settings['wa_delivery_fee_dar'] ?? '4000' }}" min="0">
+                                                <small class="text-muted">Added to bot price estimates for Dar delivery.</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label>Bot Price List (for auto estimates)</label>
+                                                <textarea name="wa_bot_price_list" class="form-control" rows="8" placeholder="keywords comma-separated|Product Label|Unit Price">{{ $settings['wa_bot_price_list'] ?? '' }}</textarea>
+                                                <small class="text-muted">One product per line. Format: <code>keyword1,keyword2|Product Name|2500</code>. Lines starting with # are ignored. Leave blank to use built-in defaults.</small>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <!-- Survey & KPI -->

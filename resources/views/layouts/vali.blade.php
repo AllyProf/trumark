@@ -416,6 +416,7 @@
         </li>
         
         <li><a class="app-menu__item {{ Route::is('whatsapp.chat') ? 'active' : '' }}" href="{{ route('whatsapp.chat') }}"><i class="app-menu__icon fa fa-whatsapp"></i><span class="app-menu__label">WhatsApp Chat</span></a></li>
+        <li><a class="app-menu__item {{ Route::is('whatsapp.orders.*') ? 'active' : '' }}" href="{{ route('whatsapp.orders.index') }}"><i class="app-menu__icon fa fa-shopping-cart"></i><span class="app-menu__label">WhatsApp Orders</span></a></li>
 
         <li class="treeview {{ Route::is('reports.*') ? 'is-expanded' : '' }}">
             <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-bar-chart"></i><span class="app-menu__label">Reports & Stats</span><i class="treeview-indicator fa fa-angle-right"></i></a>

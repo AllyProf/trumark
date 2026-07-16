@@ -64,4 +64,54 @@ class SystemSetting extends Model
 
         return self::get($key, $defaults[$scenario] ?? '1') === '1';
     }
+
+    /**
+     * Build WhatsApp bot payment instructions from admin-configured numbers.
+     */
+    public static function whatsappPaymentMessage(): string
+    {
+        $mpesa = trim(self::get('payment_mpesa', ''));
+        $tigo = trim(self::get('payment_tigo', ''));
+        $airtel = trim(self::get('payment_airtel', ''));
+        $bankName = trim(self::get('payment_bank_name', ''));
+        $bankAccount = trim(self::get('payment_bank_account', ''));
+        $bankHolder = trim(self::get('payment_bank_holder', ''));
+
+        $msg = "💳 *NJIA ZA MALIPO / PAYMENT METHODS*\n\n";
+        $msg .= "1. 💵 *Cash*: Lipa moja kwa moja Ubungo EACLC au Kimara Stopover.\n\n";
+
+        if ($mpesa !== '') {
+            $msg .= "2. 📱 *M-Pesa*: {$mpesa}\n\n";
+        } else {
+            $msg .= "2. 📱 *M-Pesa*: Andika /support kupata namba.\n\n";
+        }
+
+        if ($tigo !== '') {
+            $msg .= "3. 📱 *Tigo Pesa*: {$tigo}\n\n";
+        } else {
+            $msg .= "3. 📱 *Tigo Pesa*: Andika /support kupata namba.\n\n";
+        }
+
+        if ($airtel !== '') {
+            $msg .= "4. 📱 *Airtel Money*: {$airtel}\n\n";
+        } else {
+            $msg .= "4. 📱 *Airtel Money*: Andika /support kupata namba.\n\n";
+        }
+
+        if ($bankName !== '' && $bankAccount !== '') {
+            $msg .= "5. 🏦 *Bank Transfer*:\n";
+            $msg .= "   Benki: {$bankName}\n";
+            $msg .= "   Akaunti: {$bankAccount}\n";
+            if ($bankHolder !== '') {
+                $msg .= "   Jina: {$bankHolder}\n";
+            }
+            $msg .= "\n";
+        } else {
+            $msg .= "5. 🏦 *Bank Transfer*: Andika /support kupata maelezo ya benki.\n\n";
+        }
+
+        $msg .= "✅ Baada ya kulipa, *tuma picha ya muamala (screenshot)* hapa ili tuthibitishe na kuanza mzigo wako mara moja!";
+
+        return $msg;
+    }
 }

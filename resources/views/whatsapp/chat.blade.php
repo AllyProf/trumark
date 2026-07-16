@@ -438,10 +438,22 @@ function renderMessages(msgs) {
       else if (m.status==='sent')      tick='<span class="tick sent">✓</span>';
       else if (m.status==='failed')    tick='<span class="tick failed">⚠</span>';
     }
+    let mediaHtml = '';
+    if (m.media_url) {
+      const isPdf = /\.pdf($|\?)/i.test(m.media_url);
+      if (isPdf) {
+        mediaHtml = `<div class="mt-1"><a href="${esc(m.media_url)}" target="_blank" class="btn btn-sm btn-light border">📄 Open payment file</a></div>`;
+      } else {
+        mediaHtml = `<div class="chat-media mt-1"><a href="${esc(m.media_url)}" target="_blank"><img src="${esc(m.media_url)}" alt="Payment screenshot" style="max-width:220px;max-height:280px;border-radius:8px;display:block;"></a></div>`;
+      }
+      if (text === '[Payment Screenshot]' || text.trim() === '') {
+        text = '📷 Payment screenshot';
+      }
+    }
     body.insertAdjacentHTML('beforeend',`
       <div class="msg-wrap ${cls}">
         <div class="bubble">
-          ${esc(text)}
+          ${mediaHtml}${text ? esc(text) : ''}
           <div class="msg-meta"><span>${time}</span>${tick}</div>
         </div>
       </div>`);

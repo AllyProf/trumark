@@ -170,6 +170,35 @@ class WhatsAppChatController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
+        // Attach media URLs for chat UI (payment screenshots, etc.)
+        $fallbackOrderShot = null;
+        try {
+            $fallbackOrderShot = \App\Models\WhatsAppOrder::where('phone', 'like', "%$cleanPhone%")
+                ->whereNotNull('payment_screenshot_path')
+                ->orderByDesc('id')
+                ->value('payment_screenshot_path');
+        } catch (\Throwable $e) {
+            // table may be missing on older deploys
+        }
+
+        $messages = $messages->map(function ($m) use ($fallbackOrderShot) {
+            $mediaUrl = $m->mediaUrl();
+            if (!$mediaUrl && $fallbackOrderShot && str_contains((string) $m->message, '[Payment Screenshot]')) {
+                $mediaUrl = asset('storage/' . ltrim($fallbackOrderShot, '/'));
+            }
+
+            return [
+                'id' => $m->id,
+                'phone' => $m->phone,
+                'message' => $m->message,
+                'status' => $m->status,
+                'sender_id' => $m->sender_id,
+                'created_at' => $m->created_at,
+                'media_path' => $m->media_path,
+                'media_url' => $mediaUrl,
+            ];
+        });
+
         // Build customer data for 24h window check
         $lastCustomerMsg = SmsLog::where('phone', 'like', "%$cleanPhone%")
             ->where('status', 'received')

@@ -1218,18 +1218,6 @@ If a user asks anything outside these services, politely redirect them. If uncle
                 ?? ''
             );
 
-            try {
-                SmsLog::create([
-                    'customer_id' => $customer?->id,
-                    'phone' => $from,
-                    'message' => 'INCOMING: [Payment Screenshot]' . ($caption ? " {$caption}" : ''),
-                    'status' => 'received',
-                    'response' => json_encode($message),
-                ]);
-            } catch (\Throwable $e) {
-                Log::warning('[WA-BOT] Could not log payment screenshot: ' . $e->getMessage());
-            }
-
             // Accept payment proof even if bot is paused for human chat
             $order = null;
             try {
@@ -1242,18 +1230,7 @@ If a user asks anything outside these services, politely redirect them. If uncle
             }
 
             $cached = \Illuminate\Support\Facades\Cache::get("wa_pending_payment_{$cleanPhone}");
-
-            if (!$order && empty($cached)) {
-                $reply = "📷 Asante kwa picha yako!\n\n"
-                    . "Hatukuona oda inayosubiri malipo kwa namba hii.\n"
-                    . "Andika */order* kuweka oda, au */payment* kuona njia za malipo.\n"
-                    . "Au */support* kuongea na mhudumu.";
-                $this->whatsapp->sendMessage($from, $reply);
-                return response('OK', 200);
-            }
-
-            $orderNumber = $order?->order_number ?? ($cached['order_number'] ?? 'PENDING');
-            $items = $order?->items ?? ($cached['items'] ?? 'N/A');
+            $orderNumber = $order?->order_number ?? ($cached['order_number'] ?? ('SHOT-' . now()->format('YmdHis')));
 
             $path = null;
             if ($mediaId) {
@@ -1270,6 +1247,34 @@ If a user asks anything outside these services, politely redirect them. If uncle
                     Log::warning('[WA-BOT] Media download/save failed: ' . $e->getMessage());
                 }
             }
+
+            try {
+                SmsLog::create([
+                    'customer_id' => $customer?->id,
+                    'phone' => $from,
+                    'message' => 'INCOMING: [Payment Screenshot]' . ($caption ? " {$caption}" : ''),
+                    'media_path' => $path,
+                    'status' => 'received',
+                    'response' => json_encode([
+                        'type' => $message['type'] ?? 'image',
+                        'media_id' => $mediaId,
+                        'order_number' => $orderNumber,
+                    ]),
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('[WA-BOT] Could not log payment screenshot: ' . $e->getMessage());
+            }
+
+            if (!$order && empty($cached)) {
+                $reply = "📷 Asante kwa picha yako!\n\n"
+                    . "Hatukuona oda inayosubiri malipo kwa namba hii.\n"
+                    . "Andika */order* kuweka oda, au */payment* kuona njia za malipo.\n"
+                    . "Au */support* kuongea na mhudumu.";
+                $this->whatsapp->sendMessage($from, $reply);
+                return response('OK', 200);
+            }
+
+            $items = $order?->items ?? ($cached['items'] ?? 'N/A');
 
             if ($order) {
                 try {

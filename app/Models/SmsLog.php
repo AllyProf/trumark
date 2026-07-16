@@ -11,9 +11,20 @@ class SmsLog extends Model
         'sender_id',
         'phone',
         'message',
+        'media_path',
         'status',
-        'response'
+        'response',
+        'whatsapp_message_id',
     ];
+
+    public function mediaUrl(): ?string
+    {
+        if (empty($this->media_path)) {
+            return null;
+        }
+
+        return asset('storage/' . ltrim($this->media_path, '/'));
+    }
 
     public function customer()
     {

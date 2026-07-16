@@ -79,7 +79,7 @@ class SendAutomatedSurveys extends Command
         }
 
         // Channels
-        $useSms = ($settings['survey_channels_sms'] ?? '1') === '1';
+        $useSms = SystemSetting::isSmsEnabled('survey');
         $useEmail = ($settings['survey_channels_email'] ?? '1') === '1';
         $useWhatsapp = ($settings['survey_channels_whatsapp'] ?? '0') === '1';
 

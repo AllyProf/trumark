@@ -48,7 +48,11 @@ class LeadAssignedSmsNotification extends Notification implements ShouldQueue
 
         // Trigger SMS and WhatsApp manually if the user has a phone
         if ($notifiable->phone) {
-            $this->sendSms($notifiable);
+            if (\App\Models\SystemSetting::isSmsEnabled('lead_assignment')) {
+                $this->sendSms($notifiable);
+            } else {
+                Log::info("⏭️ Skipping assignment SMS for {$notifiable->name}: SMS channel disabled for lead assignment.");
+            }
             $this->sendWhatsApp($notifiable);
         } else {
             Log::warning("⚠️ Skipping SMS/WhatsApp for {$notifiable->name}: No phone number.");

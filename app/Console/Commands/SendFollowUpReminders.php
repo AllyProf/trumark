@@ -66,7 +66,7 @@ class SendFollowupReminders extends Command
         }
 
         $template = $settings['followup_reminder_template'] ?? 'Habari {name}, TRUMARK tunapenda kukukumbusha kuhusu huduma tulizozungumzia. Je, una maswali yoyote? Karibu!';
-        $useSms = ($settings['followup_channels_sms'] ?? '1') === '1';
+        $useSms = SystemSetting::isSmsEnabled('followup');
         $useWhatsapp = ($settings['followup_channels_whatsapp'] ?? '0') === '1';
         $useEmail = ($settings['followup_channels_email'] ?? '1') === '1';
 

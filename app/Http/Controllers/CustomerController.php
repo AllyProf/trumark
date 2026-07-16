@@ -78,16 +78,18 @@ class CustomerController extends Controller
         $results = [];
 
         // 1. Send SMS
-        $smsResult = $this->sms->sendSms($customer->phone, $message);
-        SmsLog::create([
-            'customer_id' => $customer->id,
-            'sender_id'   => Auth::id(),
-            'phone'       => $customer->phone,
-            'message'     => "[SMS] " . $message,
-            'status'      => $smsResult['success'] ? 'sent' : 'failed',
-            'response'    => isset($smsResult['response']) ? (is_array($smsResult['response']) ? json_encode($smsResult['response']) : $smsResult['response']) : null,
-        ]);
-        if ($smsResult['success']) $results[] = 'SMS';
+        if (\App\Models\SystemSetting::isSmsEnabled('manual')) {
+            $smsResult = $this->sms->sendSms($customer->phone, $message);
+            SmsLog::create([
+                'customer_id' => $customer->id,
+                'sender_id'   => Auth::id(),
+                'phone'       => $customer->phone,
+                'message'     => "[SMS] " . $message,
+                'status'      => $smsResult['success'] ? 'sent' : 'failed',
+                'response'    => isset($smsResult['response']) ? (is_array($smsResult['response']) ? json_encode($smsResult['response']) : $smsResult['response']) : null,
+            ]);
+            if ($smsResult['success']) $results[] = 'SMS';
+        }
 
         // 2. Send WhatsApp (Template)
         $waTemplate = $request->get('wa_template', 'general_broadcast');
@@ -298,7 +300,7 @@ class CustomerController extends Controller
 
         $welcomeTemplate = $settings['template_welcome_sms'] ?? 'Hello {name}, thank you for choosing TRUMARK Co. LTD. We have received your inquiry and our team is working on it. Welcome!';
         $finalWelcomeMessage = str_replace('{name}', $customer->name, $welcomeTemplate);
-        $useWelcomeSms = ($settings['welcome_channels_sms'] ?? '0') === '1';
+        $useWelcomeSms = \App\Models\SystemSetting::isSmsEnabled('welcome');
         $useWelcomeWhatsapp = ($settings['welcome_channels_whatsapp'] ?? '1') === '1';
         $useWelcomeEmail = ($settings['welcome_channels_email'] ?? '1') === '1';
         $channelsSent = [];
@@ -681,7 +683,8 @@ class CustomerController extends Controller
                 $customerIds, 
                 $request->message, 
                 $channels, 
-                Auth::id()
+                Auth::id(),
+                'bulk'
             );
 
             return redirect()->back()->with('success', '🚀 Mega-Broadcast Started! Since you selected ' . count($customerIds) . ' customers, the system is sending them in the background. You can check the logs in a few minutes.');
@@ -695,7 +698,7 @@ class CustomerController extends Controller
 
             $message = str_replace('{name}', $customer->name, $request->message);
 
-            if (in_array('sms', $channels) && $customer->phone) {
+            if (in_array('sms', $channels) && $customer->phone && \App\Models\SystemSetting::isSmsEnabled('bulk')) {
                 $result = $this->sms->sendSms($customer->phone, $message);
                 SmsLog::create([
                     'customer_id' => $customer->id,
@@ -874,7 +877,7 @@ class CustomerController extends Controller
         }
 
         $settings = \App\Models\SystemSetting::pluck('value', 'key');
-        $useSms = ($settings['survey_channels_sms'] ?? '1') === '1';
+        $useSms = \App\Models\SystemSetting::isSmsEnabled('survey');
         $useWhatsapp = ($settings['survey_channels_whatsapp'] ?? '0') === '1';
         
         $url = \App\Models\SystemSetting::surveyLink($customer->survey_uuid);
@@ -971,7 +974,7 @@ class CustomerController extends Controller
     {
         $settings = \App\Models\SystemSetting::pluck('value', 'key');
         $template = $request->input('message') ?: ($settings['followup_reminder_template'] ?? 'Habari {name}, TRUMARK tunapenda kukukumbusha kuhusu huduma tulizozungumzia. Je, una maswali yoyote? Karibu!');
-        $useSms = ($settings['followup_channels_sms'] ?? '1') === '1';
+        $useSms = \App\Models\SystemSetting::isSmsEnabled('followup');
         $useWhatsapp = ($settings['followup_channels_whatsapp'] ?? '0') === '1';
         $useEmail = ($settings['followup_channels_email'] ?? '1') === '1';
 

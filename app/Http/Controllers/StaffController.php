@@ -92,11 +92,16 @@ class StaffController extends Controller
         $roleName = ucwords(str_replace('_', ' ', $user->role));
         $branchName = $user->branch ? $user->branch->name : 'Global';
         $smsMessage = "Welcome to TruMark, {$user->name}. Your staff account is ready. Branch: {$branchName}, Role: {$roleName}, User: {$user->email}, Pass: {$plainPassword}. Please login and change your password.";
-        try {
-            $smsResult = $this->sms->sendSms($user->phone, $smsMessage);
-            \Illuminate\Support\Facades\Log::info("Staff SMS to {$user->phone}: " . json_encode($smsResult));
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Staff SMS failed: " . $e->getMessage());
+        $smsResult = ['success' => false];
+        if (SystemSetting::isSmsEnabled('staff')) {
+            try {
+                $smsResult = $this->sms->sendSms($user->phone, $smsMessage);
+                \Illuminate\Support\Facades\Log::info("Staff SMS to {$user->phone}: " . json_encode($smsResult));
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Staff SMS failed: " . $e->getMessage());
+            }
+        } else {
+            \Illuminate\Support\Facades\Log::info("Skipping staff welcome SMS: SMS channel disabled for staff.");
         }
 
         // 2. Send WhatsApp
@@ -230,21 +235,25 @@ class StaffController extends Controller
 
         // 1. Send via SMS
         $message = "TruMark CRM: Your password has been reset. New Password: {$newPassword}. Login: {$user->email}. Please login and change it.";
-        try {
-            $smsResult = $this->sms->sendSms($user->phone, $message);
-            \Illuminate\Support\Facades\Log::info("Reset SMS to {$user->phone}: " . json_encode($smsResult));
-            
-            // Log to SmsLog table
-            \App\Models\SmsLog::create([
-                'customer_id' => null,
-                'sender_id'   => Auth::id(),
-                'phone'       => $user->phone,
-                'message'     => $message,
-                'status'      => $smsResult['success'] ? 'sent' : 'failed',
-                'response'    => $smsResult['response'] ?? ($smsResult['error'] ?? 'Unknown Error'),
-            ]);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Reset SMS failed: " . $e->getMessage());
+        if (SystemSetting::isSmsEnabled('staff')) {
+            try {
+                $smsResult = $this->sms->sendSms($user->phone, $message);
+                \Illuminate\Support\Facades\Log::info("Reset SMS to {$user->phone}: " . json_encode($smsResult));
+                
+                // Log to SmsLog table
+                \App\Models\SmsLog::create([
+                    'customer_id' => null,
+                    'sender_id'   => Auth::id(),
+                    'phone'       => $user->phone,
+                    'message'     => $message,
+                    'status'      => $smsResult['success'] ? 'sent' : 'failed',
+                    'response'    => $smsResult['response'] ?? ($smsResult['error'] ?? 'Unknown Error'),
+                ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Reset SMS failed: " . $e->getMessage());
+            }
+        } else {
+            \Illuminate\Support\Facades\Log::info("Skipping staff password reset SMS: SMS channel disabled for staff.");
         }
 
         // 2. Send via WhatsApp

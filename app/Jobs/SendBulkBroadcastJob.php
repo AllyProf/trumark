@@ -22,13 +22,15 @@ class SendBulkBroadcastJob implements ShouldQueue
     protected $message;
     protected $channels;
     protected $senderId;
+    protected $smsScenario;
 
-    public function __construct($customerIds, $message, $channels, $senderId)
+    public function __construct($customerIds, $message, $channels, $senderId = null, $smsScenario = 'bulk')
     {
         $this->customerIds = $customerIds;
         $this->message = $message;
         $this->channels = $channels;
         $this->senderId = $senderId;
+        $this->smsScenario = $smsScenario;
     }
 
     public function handle()
@@ -43,7 +45,7 @@ class SendBulkBroadcastJob implements ShouldQueue
             $message = str_replace('{name}', $customer->name, $this->message);
 
             // 1. SMS
-            if (in_array('sms', $this->channels)) {
+            if (in_array('sms', $this->channels) && SystemSetting::isSmsEnabled($this->smsScenario)) {
                 $result = $sms->sendSms($customer->phone, $message);
                 SmsLog::create([
                     'customer_id' => $customer->id,

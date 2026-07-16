@@ -65,13 +65,13 @@ class DispatchCampaigns extends Command
                 continue;
             }
 
-            // Dispatch background job to send the SMS
+            // Dispatch background job to send the campaign
             \App\Jobs\SendBulkBroadcastJob::dispatch(
                 $customerIds,
                 $campaign->message,
                 $campaign->channels ?? ['sms'],
-                "Campaign: " . $campaign->name,
-                null
+                null,
+                'campaign'
             );
 
             $campaign->update(['status' => 'Completed']);

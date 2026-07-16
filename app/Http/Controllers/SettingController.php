@@ -37,6 +37,11 @@ class SettingController extends Controller
             'followup_channels_sms',
             'followup_channels_whatsapp',
             'followup_channels_email',
+            'sms_allow_manual',
+            'sms_allow_bulk',
+            'sms_allow_campaign',
+            'sms_allow_lead_assignment',
+            'sms_allow_staff',
         ];
         foreach ($checkboxKeys as $key) {
             if (!$request->has($key)) {

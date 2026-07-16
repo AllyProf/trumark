@@ -304,6 +304,58 @@ Configure global application behavior, branding, and automation settings
                                             </div>
                                         </div>
                                     </div>
+
+                                    <hr>
+                                    <div class="section-header">
+                                        <i class="fa fa-toggle-on"></i>
+                                        <h4>SMS Channel Controls</h4>
+                                    </div>
+                                    <div class="alert alert-warning py-2 border-0">
+                                        <small><i class="fa fa-info-circle mr-1"></i> Turn SMS off globally, or allow/disallow SMS for each action. WhatsApp and Email are controlled separately.</small>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label>Master SMS Channel</label>
+                                                <select name="sms_channel_enabled" class="form-control form-control-lg-custom">
+                                                    <option value="1" {{ ($settings['sms_channel_enabled'] ?? '1') == '1' ? 'selected' : '' }}>ENABLED — SMS can be sent (per rules below)</option>
+                                                    <option value="0" {{ ($settings['sms_channel_enabled'] ?? '1') == '0' ? 'selected' : '' }}>DISABLED — Block all SMS system-wide</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <label class="font-weight-bold d-block mb-2">Allow SMS for these actions</label>
+                                            <div class="p-3 bg-light rounded">
+                                                <div class="row">
+                                                    @php
+                                                        $smsToggles = [
+                                                            'welcome_channels_sms' => ['New lead welcome (customer)', '0'],
+                                                            'survey_channels_sms' => ['Survey invitations (manual & automated)', '1'],
+                                                            'followup_channels_sms' => ['Follow-up reminders (customer & officer)', '1'],
+                                                            'sms_allow_manual' => ['Manual message from customer list', '1'],
+                                                            'sms_allow_bulk' => ['Bulk SMS Reminders page', '1'],
+                                                            'sms_allow_campaign' => ['Scheduled campaigns', '1'],
+                                                            'sms_allow_lead_assignment' => ['Lead assigned alert (to officer)', '1'],
+                                                            'sms_allow_staff' => ['Staff account create & password reset', '1'],
+                                                        ];
+                                                    @endphp
+                                                    @foreach($smsToggles as $key => [$label, $default])
+                                                        <div class="col-md-6 mb-2">
+                                                            <div class="animated-checkbox">
+                                                                <label>
+                                                                    <input type="checkbox" name="{{ $key }}" value="1" {{ ($settings[$key] ?? $default) == '1' ? 'checked' : '' }}>
+                                                                    <span class="label-text">{{ $label }}</span>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <hr>
                                     <div class="section-header">
                                         <i class="fa fa-whatsapp"></i>
@@ -452,11 +504,6 @@ Configure global application behavior, branding, and automation settings
                                                 <div class="p-3 bg-light rounded d-flex justify-content-around">
                                                     <div class="animated-checkbox">
                                                         <label>
-                                                            <input type="checkbox" name="survey_channels_sms" value="1" {{ ($settings['survey_channels_sms'] ?? '1') == '1' ? 'checked' : '' }}><span class="label-text">SMS</span>
-                                                        </label>
-                                                    </div>
-                                                    <div class="animated-checkbox">
-                                                        <label>
                                                             <input type="checkbox" name="survey_channels_whatsapp" value="1" {{ ($settings['survey_channels_whatsapp'] ?? '0') == '1' ? 'checked' : '' }}><span class="label-text">WhatsApp</span>
                                                         </label>
                                                     </div>
@@ -466,6 +513,7 @@ Configure global application behavior, branding, and automation settings
                                                         </label>
                                                     </div>
                                                 </div>
+                                                <small class="text-muted">SMS for surveys is controlled under <b>SMS Gateway → SMS Channel Controls</b>.</small>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
@@ -549,11 +597,6 @@ Configure global application behavior, branding, and automation settings
                                                 <div class="p-3 bg-light rounded d-flex justify-content-around">
                                                     <div class="animated-checkbox">
                                                         <label>
-                                                            <input type="checkbox" name="followup_channels_sms" value="1" {{ ($settings['followup_channels_sms'] ?? '1') == '1' ? 'checked' : '' }}><span class="label-text">SMS</span>
-                                                        </label>
-                                                    </div>
-                                                    <div class="animated-checkbox">
-                                                        <label>
                                                             <input type="checkbox" name="followup_channels_whatsapp" value="1" {{ ($settings['followup_channels_whatsapp'] ?? '0') == '1' ? 'checked' : '' }}><span class="label-text">WhatsApp</span>
                                                         </label>
                                                     </div>
@@ -563,7 +606,7 @@ Configure global application behavior, branding, and automation settings
                                                         </label>
                                                     </div>
                                                 </div>
-                                                <small class="text-muted">Choose which channels receive automated follow-up reminders.</small>
+                                                <small class="text-muted">SMS for follow-ups is controlled under <b>SMS Gateway → SMS Channel Controls</b>.</small>
                                             </div>
                                         </div>
                                         <div class="col-md-12">
@@ -597,11 +640,6 @@ Configure global application behavior, branding, and automation settings
                                                 <div class="p-3 bg-light rounded d-flex justify-content-around">
                                                     <div class="animated-checkbox">
                                                         <label>
-                                                            <input type="checkbox" name="welcome_channels_sms" value="1" {{ ($settings['welcome_channels_sms'] ?? '0') == '1' ? 'checked' : '' }}><span class="label-text">SMS</span>
-                                                        </label>
-                                                    </div>
-                                                    <div class="animated-checkbox">
-                                                        <label>
                                                             <input type="checkbox" name="welcome_channels_whatsapp" value="1" {{ ($settings['welcome_channels_whatsapp'] ?? '1') == '1' ? 'checked' : '' }}><span class="label-text">WhatsApp</span>
                                                         </label>
                                                     </div>
@@ -611,7 +649,7 @@ Configure global application behavior, branding, and automation settings
                                                         </label>
                                                     </div>
                                                 </div>
-                                                <small class="text-muted">Enable only the channels you want. Sending both SMS and WhatsApp to the same number will show duplicate messages.</small>
+                                                <small class="text-muted">SMS for welcome messages is controlled under <b>SMS Gateway → SMS Channel Controls</b>.</small>
                                             </div>
                                         </div>
                                         <div class="col-md-12">

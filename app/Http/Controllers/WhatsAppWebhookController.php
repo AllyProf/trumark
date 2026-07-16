@@ -944,32 +944,28 @@ If a user asks anything outside these services, politely redirect them. If uncle
 
             case 'awaiting_order_delivery_method':
                 $normalized = strtolower(trim($text));
-                $isPickupUbungo = in_array($normalized, [
-                    'pickup_ubungo',
-                    'delivery_pickup_ubungo', // legacy button id
-                    '🏢 ubungo eaclc',
-                    'ubungo eaclc',
-                    'ubungo',
-                ], true);
-                $isPickupKimara = in_array($normalized, [
-                    'pickup_kimara',
-                    'delivery_pickup_kimara', // legacy button id
-                    '🏢 kimara stopover',
-                    'kimara stopover',
-                    'kimara',
-                ], true);
+                // Prefer keyword checks: button IDs historically started with "delivery_"
+                // and titles may use different emojis (🏢 vs 🏬).
+                $isPickupKimara = str_contains($normalized, 'kimara');
+                $isPickupUbungo = str_contains($normalized, 'ubungo');
                 $isHomeDelivery = in_array($normalized, [
                     'delivery_home',
-                    '🚚 delivery (ulipo)',
-                    'delivery (ulipo)',
                     'delivery',
                     'ulipo',
-                ], true) || str_contains($normalized, 'delivery (ulipo)');
+                    '🚚 delivery (ulipo)',
+                    'delivery (ulipo)',
+                ], true) || (
+                    str_contains($normalized, 'ulipo')
+                    && !$isPickupKimara
+                    && !$isPickupUbungo
+                );
 
-                if ($isPickupUbungo) {
-                    $method = 'Pickup - Ubungo EACLC';
-                } elseif ($isPickupKimara) {
+                if ($isPickupKimara) {
                     $method = 'Pickup - Kimara Stopover';
+                    $isHomeDelivery = false;
+                } elseif ($isPickupUbungo) {
+                    $method = 'Pickup - Ubungo EACLC';
+                    $isHomeDelivery = false;
                 } elseif ($isHomeDelivery) {
                     $method = 'Home/Office Delivery';
                 } else {
@@ -977,9 +973,8 @@ If a user asks anything outside these services, politely redirect them. If uncle
                 }
 
                 $data['delivery_method'] = $method;
+                Log::info("[WA-BOT] Delivery method choice from {$from}: raw=\"{$text}\" method=\"{$method}\" home=" . ($isHomeDelivery ? '1' : '0'));
 
-                // Only ask for address on true home delivery — NOT pickup buttons
-                // (pickup button IDs start with "delivery_" and must not match here)
                 if ($isHomeDelivery) {
                     $state['step'] = 'awaiting_delivery_address';
                     $state['data'] = $data;
@@ -1043,6 +1038,7 @@ If a user asks anything outside these services, politely redirect them. If uncle
 
     /**
      * Complete order, save to CRM, alert admin, and auto-send payment info.
+     * Never fail the customer reply if CRM/DB is unavailable.
      */
     protected function completeOrder($from, $data, $customer): WhatsAppOrder
     {
@@ -1051,22 +1047,36 @@ If a user asks anything outside these services, politely redirect them. If uncle
         $address = $data['address'] ?? null;
         $items = $data['items'] ?? 'N/A';
 
-        $order = WhatsAppOrder::create([
-            'order_number' => WhatsAppOrder::generateOrderNumber(),
-            'customer_id' => $customer?->id,
-            'phone' => $from,
-            'items' => $items,
-            'delivery_method' => $delivery,
-            'address' => $address,
-            'estimated_total' => $estimate['total'] ?? null,
-            'estimate_breakdown' => !empty($estimate['breakdown']) ? $estimate : null,
-            'status' => 'pending',
-        ]);
+        try {
+            $order = WhatsAppOrder::create([
+                'order_number' => WhatsAppOrder::generateOrderNumber(),
+                'customer_id' => $customer?->id,
+                'phone' => $from,
+                'items' => $items,
+                'delivery_method' => $delivery,
+                'address' => $address,
+                'estimated_total' => $estimate['total'] ?? null,
+                'estimate_breakdown' => !empty($estimate['breakdown']) ? $estimate : null,
+                'status' => 'pending',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[WA-BOT] Failed to save WhatsApp order (run migrate?): ' . $e->getMessage());
+            $order = new WhatsAppOrder([
+                'order_number' => 'TRM-TEMP-' . now()->format('His'),
+                'customer_id' => $customer?->id,
+                'phone' => $from,
+                'items' => $items,
+                'delivery_method' => $delivery,
+                'address' => $address,
+                'estimated_total' => $estimate['total'] ?? null,
+                'status' => 'pending',
+            ]);
+        }
 
         $adminPhone = env('WHATSAPP_ADMIN_PHONE');
         if ($adminPhone) {
             $totalLine = $order->estimated_total
-                ? "\n💰 *Makadirio*: TZS " . number_format($order->estimated_total)
+                ? "\n💰 *Makadirio*: TZS " . number_format((float) $order->estimated_total)
                 : '';
 
             $alertMsg = "🛒 *Oda Mpya ya WhatsApp!*\n\n"
@@ -1079,21 +1089,29 @@ If a user asks anything outside these services, politely redirect them. If uncle
                 . "\n\nAngalia CRM: " . url('/whatsapp/orders/' . $order->order_number)
                 . "\nWasiliana: https://wa.me/{$from}";
 
-            $this->whatsapp->sendMessage($adminPhone, $alertMsg);
+            try {
+                $this->whatsapp->sendMessage($adminPhone, $alertMsg);
+            } catch (\Throwable $e) {
+                Log::warning('[WA-BOT] Admin order alert failed: ' . $e->getMessage());
+            }
         }
 
-        sleep(1);
-        $paymentMsg = SystemSetting::whatsappPaymentMessage();
-        $paymentMsg = "🆔 *Oda: {$order->order_number}*\n\n" . $paymentMsg;
-        $sendResult = $this->whatsapp->sendMessage($from, $paymentMsg);
+        try {
+            sleep(1);
+            $paymentMsg = SystemSetting::whatsappPaymentMessage();
+            $paymentMsg = "🆔 *Oda: {$order->order_number}*\n\n" . $paymentMsg;
+            $sendResult = $this->whatsapp->sendMessage($from, $paymentMsg);
 
-        SmsLog::create([
-            'customer_id' => $customer?->id,
-            'phone' => $from,
-            'message' => "[BOT REPLY] [Payment Info for {$order->order_number}] " . mb_substr($paymentMsg, 0, 500),
-            'status' => ($sendResult['success'] ?? false) ? 'sent' : 'failed',
-            'whatsapp_message_id' => $sendResult['response']['messages'][0]['id'] ?? null,
-        ]);
+            SmsLog::create([
+                'customer_id' => $customer?->id,
+                'phone' => $from,
+                'message' => "[BOT REPLY] [Payment Info for {$order->order_number}] " . mb_substr($paymentMsg, 0, 500),
+                'status' => ($sendResult['success'] ?? false) ? 'sent' : 'failed',
+                'whatsapp_message_id' => $sendResult['response']['messages'][0]['id'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('[WA-BOT] Payment info send failed: ' . $e->getMessage());
+        }
 
         return $order;
     }

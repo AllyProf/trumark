@@ -934,8 +934,8 @@ If a user asks anything outside these services, politely redirect them. If uncle
                 $body .= "Je, utakuja kuchukua bidhaa zako kwenye matawi yetu wenyewe, au ungependa tukuletee (Delivery)?\n\nTafadhali chagua hapa chini:";
 
                 $buttons = [
-                    ['id' => 'delivery_pickup_ubungo', 'title' => '🏢 Ubungo EACLC'],
-                    ['id' => 'delivery_pickup_kimara', 'title' => '🏢 Kimara Stopover'],
+                    ['id' => 'pickup_ubungo', 'title' => '🏢 Ubungo EACLC'],
+                    ['id' => 'pickup_kimara', 'title' => '🏢 Kimara Stopover'],
                     ['id' => 'delivery_home', 'title' => '🚚 Delivery (Ulipo)'],
                 ];
 
@@ -943,12 +943,34 @@ If a user asks anything outside these services, politely redirect them. If uncle
                 return true;
 
             case 'awaiting_order_delivery_method':
-                $method = '';
-                if ($text === 'delivery_pickup_ubungo') {
+                $normalized = strtolower(trim($text));
+                $isPickupUbungo = in_array($normalized, [
+                    'pickup_ubungo',
+                    'delivery_pickup_ubungo', // legacy button id
+                    '🏢 ubungo eaclc',
+                    'ubungo eaclc',
+                    'ubungo',
+                ], true);
+                $isPickupKimara = in_array($normalized, [
+                    'pickup_kimara',
+                    'delivery_pickup_kimara', // legacy button id
+                    '🏢 kimara stopover',
+                    'kimara stopover',
+                    'kimara',
+                ], true);
+                $isHomeDelivery = in_array($normalized, [
+                    'delivery_home',
+                    '🚚 delivery (ulipo)',
+                    'delivery (ulipo)',
+                    'delivery',
+                    'ulipo',
+                ], true) || str_contains($normalized, 'delivery (ulipo)');
+
+                if ($isPickupUbungo) {
                     $method = 'Pickup - Ubungo EACLC';
-                } elseif ($text === 'delivery_pickup_kimara') {
+                } elseif ($isPickupKimara) {
                     $method = 'Pickup - Kimara Stopover';
-                } elseif ($text === 'delivery_home') {
+                } elseif ($isHomeDelivery) {
                     $method = 'Home/Office Delivery';
                 } else {
                     $method = $text;
@@ -956,18 +978,20 @@ If a user asks anything outside these services, politely redirect them. If uncle
 
                 $data['delivery_method'] = $method;
 
-                if ($text === 'delivery_home' || str_contains(strtolower($text), 'delivery')) {
+                // Only ask for address on true home delivery — NOT pickup buttons
+                // (pickup button IDs start with "delivery_" and must not match here)
+                if ($isHomeDelivery) {
                     $state['step'] = 'awaiting_delivery_address';
                     $state['data'] = $data;
                     \Illuminate\Support\Facades\Cache::put($stateKey, $state, now()->addMinutes(30));
 
                     return "🚚 *Anwani ya Delivery*\n\nTafadhali andika **Eneo lako unapoishi / Ofisi** na **Jina kamili la Mpokeaji**:";
-                } else {
-                    \Illuminate\Support\Facades\Cache::forget($stateKey);
-                    $order = $this->completeOrder($from, $data, $customer);
-
-                    return $this->buildOrderConfirmationMessage($order, $method);
                 }
+
+                \Illuminate\Support\Facades\Cache::forget($stateKey);
+                $order = $this->completeOrder($from, $data, $customer);
+
+                return $this->buildOrderConfirmationMessage($order, $method);
 
             case 'awaiting_delivery_address':
                 $data['address'] = $text;

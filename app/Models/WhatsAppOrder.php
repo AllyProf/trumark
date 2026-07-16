@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WhatsAppOrder extends Model
 {
+    protected $table = 'whatsapp_orders';
+
     public const STATUSES = [
         'pending' => 'Pending Payment',
         'payment_submitted' => 'Payment Submitted',

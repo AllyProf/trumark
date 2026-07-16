@@ -73,6 +73,11 @@ class WhatsAppWebhookController extends Controller
                     return $this->handlePaymentScreenshot($from, $message, $customer, $cleanPhone);
                 }
 
+                // --- Location pin as delivery address ---
+                if ($type === 'location') {
+                    return $this->handleIncomingLocation($from, $message, $customer, $cleanPhone);
+                }
+
                 // --- Handle Interactive Button Reply ---
                 if ($type === 'interactive') {
                     $interactiveType = $message['interactive']['type'] ?? '';
@@ -521,6 +526,15 @@ class WhatsAppWebhookController extends Controller
             'order' => '/order',
             'oda' => '/order',
             'nunua' => '/order',
+            'katalogi' => '/catalog',
+            'catalog' => '/catalog',
+            'bidhaa' => '/catalog',
+            'batilisha' => '/cancel',
+            'cancel' => '/cancel',
+            'ghairi oda' => '/cancel',
+            'edit oda' => '/edit',
+            'badilisha oda' => '/edit',
+            'edit order' => '/edit',
 
             // Feedback Flow
             'feedback' => '/feedback',
@@ -689,32 +703,44 @@ class WhatsAppWebhookController extends Controller
                 return SystemSetting::whatsappPaymentMessage();
 
             case 'catalog':
-                return "📑 *KATALOGI YA BIDHAA / PRODUCT CATALOG*\n\nTunaandaa katalogi ya kisasa yenye bidhaa na bei zetu zote za hivi karibuni. \n\nKwa sasa, tafadhali andika jina la kitabu au vifaa unavyohitaji hapa, na tutakupa picha na bei zake mara moja. Unaweza pia kuandika */pricing* kuona bei za vifaa maarufu au */support* kuongea na mhudumu wetu.";
+                return $this->sendProductCatalog($customerPhone);
 
             case 'trust':
-                return "⭐ *KWANINI UCHAGUE TRUMARK? / WHY CHOOSE TRUMARK?*\n\nTRUMARK Stationery & Books ni biashara ya kuaminika Tanzania kwa sababu zifuatazo:\n\n1. ✅ *Bidhaa za Asili (Original Products)*: Tunauza bidhaa original za ubora wa juu. Tuepuka nakala na bidhaa duni.\n2. 💰 *Bei Nzuri*: Bei zetu ni za ushindani na zinafaa kwa wazazi, walimu, shule na kampuni.\n3. ⚡ *Huduma ya Haraka*: Tunahudumia haraka — delivery, printing na maswali yote tunayajibu kwa wakati.\n4. 📄 *Nyaraka Kamili*: Tunatoa risiti, invoice, quotation na nyaraka zote za biashara kwa uhakika.\n5. 🚚 *Delivery Yote Tanzania*: Tunatuma bidhaa mikoa yote ya Tanzania bila tatizo.\n6. 🤝 *Uaminifu wa Kweli*: Biashara yetu inajengwa juu ya uaminifu, kuheshimu wateja na kuhakikisha unachohitaji unakipata kwa wakati.\n\n👉 Jaribu leo — utapendezwa na huduma yetu! Andika */order* au */support*!";
+                return "⭐ *KWANINI UCHAGUE TRUMARK? / WHY CHOOSE TRUMARK?*\n\nTRUMARK Stationery & Books ni biashara ya kuaminika Tanzania kwa sababu zifuatazo:\n\n1. ✅ *Bidhaa za Asili (Original Products)*: Tunauza bidhaa original za ubora wa juu.\n2. 💰 *Bei Nzuri*: Bei za ushindani kwa wazazi, walimu, shule na kampuni.\n3. ⚡ *Huduma ya Haraka*: Delivery, printing na majibu kwa wakati.\n4. 📄 *Nyaraka Kamili*: Risiti, invoice, quotation.\n5. 🚚 *Delivery Yote Tanzania*.\n\n👉 Andika */order* au */support*!";
 
             case 'pricing':
-                return "💰 *BEI ZA BIDHAA MAARUFU / PRICE LIST*\n\nHapa kuna bei za baadhi ya vifaa vyetu maarufu (Mauzo ya Reja reja):\n\n• 📑 *Karatasi za Print (A4 Reams)*: TZS 11,500 hadi 13,000 (kulingana na chapa - Double A, PaperOne nk).\n• 📓 *Daftari za Counter (3 Quire)*: TZS 2,500 kila moja.\n• 📓 *Daftari za Counter (4 Quire)*: TZS 3,200 kila moja.\n• 🖊️ *Kalamu (Boksi la kalamu 50 - Bic/Speedo)*: TZS 8,000 hadi 10,000.\n• 📖 *Vitabu vya Mazoezi (Exercise Books - A5)*: TZS 500 kila kimoja.\n• 🗂️ *Faili za Ofisi (Box Files)*: TZS 3,500 hadi 5,000 kila moja.\n\n⚠️ *Kumbuka*: Bei za jumla (Wholesale) zina punguzo kubwa! Andika */wholesale* kujua zaidi.";
+                return "💰 *BEI ZA BIDHAA MAARUFU / PRICE LIST*\n\n• 📑 *A4 Reams*: TZS 11,500 - 13,000\n• 📓 *Counter 3 Quire*: TZS 2,500\n• 📓 *Counter 4 Quire*: TZS 3,200\n• 🖊️ *Kalamu Boksi 50*: TZS 8,000 - 10,000\n• 📖 *Exercise Book A5*: TZS 500\n• 🗂️ *Box Files*: TZS 3,500 - 5,000\n\n👉 Andika */catalog* kuchagua bidhaa, au */order* kuagiza!";
 
-            // Edu & Products
             case 'stationery':
-                return "✏️ *VIFAA VYA OFISI NA SHULE / STATIONERY*\n\nTRUMARK tuna vifaa vyote vya shule na ofisi vya ubora wa juu:\n\n• 📑 *Karatasi (Paper)*: A4 Reams (Double A, PaperOne, Supreme nk), A3, karatasi za rangi, manila paper.\n• 📓 *Madaftari (Exercise/Counter Books)*: Counter books (1-4 Quire), Exercise books, Sketchbooks, Diaries.\n• ✒️ *Vifaa vya Kuandika*: Kalamu (Bic, Speedo, Pilot), penseli, markers za rangi, highlighters, chaki.\n• 🎒 *School Bags*: Mabegi ya shule ya ubora mzuri na ya kudumu kwa watoto wa nursery hadi sekondari.\n• 🗂️ *Vifaa vya Ofisi*: Box files, spring files, staplers, punch machines, rulers, makasi, gundi, stampu.\n• 🧮 *Vifaa vya Hesabu*: Mathematical sets na CASIO Scientific Calculators (halisi zenye warranty).\n\n👉 Sema bidhaa unayotaka ili tukufahamishe bei, au andika */pricing* kuona orodha ya bei maarufu!";
+                return "✏️ *VIFAA VYA OFISI NA SHULE / STATIONERY*\n\nKaratasi, madaftari, kalamu, school bags, box files, mathematical sets na CASIO calculators.\n\n👉 Andika */catalog* au */order*!";
 
             case 'revision':
-                return "📖 *VITABU VYA MARUDIO NA PAST PAPERS / REVISION BOOKS*\n\nMsaidie mwanafunzi kufanya vizuri katika mitihani ya NECTA kwa kutumia vitabu vyetu vya marudio:\n\n• 🏫 *Darasa la 4 & 7 (Standard 4 & 7)*: Past papers zenye majibu ya masomo yote (Sayansi, Hesabu, Kiswahili, English, nk).\n• 🎒 *Form 2 & Form 4 (O-Level)*: Solved Past Papers za miaka 10 iliyopita, Miongozo ya kujibu maswali ya mitihani.\n• 🎓 *Form 6 (A-Level)*: Vitabu vya marudio vya masomo ya sayansi na sanaa kulingana na tahasusi (PCM, PCB, PGM, HGL, HKL, EGM, nk).\n\n👉 Andika somo au darasa unalotaka ili kupata maelezo na bei ya vitabu husika!";
+                return "📖 *VITABU VYA MARUDIO NA PAST PAPERS*\n\nPast papers Standard 4/7, Form 2/4/6 zenye majibu.\n\n👉 Andika */order* kuagiza!";
 
             case 'subjects':
-                return "🔬 *MASOMO TUNAYOYAHUDUMIA / SUBJECTS*\n\nTuna vitabu vya masomo yote ya shule:\n\n1. 🧮 *Hesabu & Sayansi*: Mathematics, Physics, Chemistry, Biology, Information Technology (ICT).\n2. 🌍 *Sanaa & Jamii*: Geography, History, Civics, General Studies.\n3. 🗣️ *Lugha (Languages)*: English, Kiswahili, French, Arabic.\n4. 💼 *Biashara*: Commerce, Bookkeeping, Economics.\n\n👉 Andika masomo unayotaka kununulia vitabu, au andika */support* uongee na mhudumu wetu.";
+                return "🔬 *MASOMO*\n\nMathematics, Physics, Chemistry, Biology, Geography, History, English, Kiswahili, Commerce, Economics.\n\n👉 Andika */order* au */support*!";
 
             case 'schoolpacks':
-                return "🎒 *VIFURUSHI VYA SHULE / BACK-TO-SCHOOL PACKS*\n\nOkoa muda na fedha kwa kununua vifurushi vyetu vilivyoandaliwa tayari kwa ajili ya mwanafunzi wako:\n\n1. 🧸 *Kifurushi cha Nursery (TZS 15,000)*:\n   - Kalamu za rangi, daftari la kuchora, herufi, namba na penseli.\n\n2. ✏️ *Kifurushi cha Primary (TZS 35,000)*:\n   - Daftari 12, Kalamu 10, Penseli, Rula, Seti ya hesabu, Kifutio na cherezo.\n\n3. 📚 *Kifurushi cha Secondary (TZS 55,000)*:\n   - Daftari za Counter book 6, Kalamu 12, Seti ya Hesabu (Mathematical Set), Scientific Calculator, rula na box file.\n\n👉 *Jinsi ya kuagiza*: Taja kifurushi unachotaka, kisha andika */order* ili tukuletee mzigo popote ulipo!";
+                return "🎒 *BACK-TO-SCHOOL PACKS*\n\n• Nursery TZS 15,000\n• Primary TZS 35,000\n• Secondary TZS 55,000\n\n👉 Andika */order* kuagiza kifurushi!";
 
-            // Customer Service
             case 'order':
                 $stateKey = "wa_state_" . preg_replace('/[^0-9]/', '', $customerPhone);
-                \Illuminate\Support\Facades\Cache::put($stateKey, ['step' => 'awaiting_order_items', 'data' => []], now()->addMinutes(30));
-                return "🛒 *HATUA YA 1/2: Orodha ya Vifaa / Order Items*\n\nTafadhali andika hapa orodha ya vitabu au vifaa unavyotaka kununua na idadi yake:\n*(Mfano: Daftari za Counter Quire 3 nakala 5, Kalamu za Bic boksi 1)*";
+                \Illuminate\Support\Facades\Cache::put($stateKey, ['step' => 'awaiting_order_items', 'data' => ['cart' => []]], now()->addMinutes(30));
+
+                $buttons = [
+                    ['id' => 'order_browse_catalog', 'title' => '📦 Chagua Bidhaa'],
+                    ['id' => 'order_type_items', 'title' => '✍️ Andika Orodha'],
+                    ['id' => 'order_cancel_flow', 'title' => '❌ Ghairi'],
+                ];
+                $body = "🛒 *WEKA ODA / PLACE ORDER*\n\nChagua jinsi ya kuongeza bidhaa:\n\n• *Chagua Bidhaa* — katalogi yenye bei\n• *Andika Orodha* — andika mwenyewe (mf. Daftari 3 Quire x5)";
+                $this->whatsapp->sendInteractiveButtons($customerPhone, $body, $buttons, '', 'TRUMARK Orders');
+                return true;
+
+            case 'cancel':
+                return $this->handleCancelOrderCommand($customerPhone, $text);
+
+            case 'edit':
+                return $this->handleEditOrderCommand($customerPhone, $text);
 
             case 'feedback':
                 $stateKey = "wa_state_" . preg_replace('/[^0-9]/', '', $customerPhone);
@@ -919,6 +945,51 @@ If a user asks anything outside these services, politely redirect them. If uncle
         switch ($step) {
             // === ORDER STATE MACHINE ===
             case 'awaiting_order_items':
+                // Order flow entry buttons
+                if ($text === 'order_browse_catalog' || $text === '/catalog') {
+                    return $this->sendProductCatalog($from, true);
+                }
+                if ($text === 'order_type_items') {
+                    return "🛒 *Andika orodha ya bidhaa*\n\nMfano:\n• Daftari Counter 3 Quire nakala 5\n• Kalamu Bic boksi 1\n\nAndika hapa sasa:";
+                }
+                if ($text === 'order_cancel_flow') {
+                    \Illuminate\Support\Facades\Cache::forget($stateKey);
+                    return "❌ Oda imeghairiwa. Andika */order* kuanza upya au */menu*.";
+                }
+
+                // Catalog list selection: catalog_item_0, catalog_item_1...
+                if (preg_match('/^catalog_item_(\d+)$/', $text, $m)) {
+                    $catalog = WhatsAppPriceEstimator::getCatalog();
+                    $idx = (int) $m[1];
+                    if (!isset($catalog[$idx])) {
+                        return "Bidhaa haijapatikana. Andika */catalog* tena.";
+                    }
+                    $item = $catalog[$idx];
+                    $cart = $data['cart'] ?? [];
+                    $cart[] = [
+                        'label' => $item['label'],
+                        'quantity' => 1,
+                        'unit_price' => $item['unit_price'],
+                        'line_total' => $item['unit_price'],
+                    ];
+                    $data['cart'] = $cart;
+                    $data['items'] = $this->formatCartItems($cart);
+                    $data['estimate'] = $this->estimateFromCart($cart);
+                    $state['data'] = $data;
+                    $state['step'] = 'awaiting_cart_action';
+                    \Illuminate\Support\Facades\Cache::put($stateKey, $state, now()->addMinutes(30));
+
+                    $buttons = [
+                        ['id' => 'cart_add_more', 'title' => '➕ Ongeza Bidhaa'],
+                        ['id' => 'cart_checkout', 'title' => '✅ Maliza Oda'],
+                        ['id' => 'order_cancel_flow', 'title' => '❌ Ghairi'],
+                    ];
+                    $body = "✅ *Imeongezwa:* {$item['label']} (TZS " . number_format($item['unit_price']) . ")\n\n"
+                        . $this->formatCartSummary($cart);
+                    $this->whatsapp->sendInteractiveButtons($from, $body, $buttons, '', 'TRUMARK Cart');
+                    return true;
+                }
+
                 // Ignore command/button taps so "/delivery" is not saved as items
                 $normalizedItems = strtolower(trim($text));
                 $looksLikeCommand = str_starts_with($normalizedItems, '/')
@@ -926,18 +997,20 @@ If a user asks anything outside these services, politely redirect them. If uncle
                         'delivery', 'delivery_home', 'pickup_ubungo', 'pickup_kimara',
                         'delivery_pickup_ubungo', 'delivery_pickup_kimara',
                         'payment', 'support', 'menu', 'help', 'order', 'track',
+                        'order_browse_catalog', 'order_type_items', 'order_cancel_flow',
+                        'cart_add_more', 'cart_checkout',
                     ], true)
                     || str_starts_with($normalizedItems, 'delivery_')
                     || str_starts_with($normalizedItems, 'pickup_')
+                    || str_starts_with($normalizedItems, 'catalog_item_')
                     || preg_match('/^(🏢|🏬|🚚|💳|🤝|📚|✏️)/u', $text);
 
                 if ($looksLikeCommand || mb_strlen(trim($text)) < 3) {
                     return "🛒 *Tafadhali andika orodha ya bidhaa*\n\n"
                         . "Mfano:\n"
                         . "• Daftari Counter 3 Quire nakala 5\n"
-                        . "• Kalamu Bic boksi 1\n"
-                        . "• Vitabu vya Form 2 Physics x2\n\n"
-                        . "Usiandike amri kama /delivery — andika *bidhaa* unazohitaji.";
+                        . "• Kalamu Bic boksi 1\n\n"
+                        . "Au bonyeza */catalog* kuchagua kutoka orodha.";
                 }
 
                 $data['items'] = $text;
@@ -947,22 +1020,34 @@ If a user asks anything outside these services, politely redirect them. If uncle
                 $state['data'] = $data;
                 \Illuminate\Support\Facades\Cache::put($stateKey, $state, now()->addMinutes(30));
 
-                $estimateMsg = WhatsAppPriceEstimator::formatEstimateMessage($estimate);
-                $body = "🛒 *HATUA YA 2/2: Usafirishaji / Delivery*\n\n";
-                $body .= "📦 *Bidhaa*: {$text}\n\n";
-                if ($estimateMsg !== '') {
-                    $body .= $estimateMsg . "\n\n";
+                return $this->promptDeliveryMethod($from, $text, $estimate);
+
+            case 'awaiting_cart_action':
+                if ($text === 'cart_add_more' || $text === 'order_browse_catalog') {
+                    $state['step'] = 'awaiting_order_items';
+                    \Illuminate\Support\Facades\Cache::put($stateKey, $state, now()->addMinutes(30));
+                    return $this->sendProductCatalog($from, true);
                 }
-                $body .= "Je, utakuja kuchukua bidhaa zako kwenye matawi yetu wenyewe, au ungependa tukuletee (Delivery)?\n\nTafadhali chagua hapa chini:";
-
-                $buttons = [
-                    ['id' => 'pickup_ubungo', 'title' => '🏢 Ubungo EACLC'],
-                    ['id' => 'pickup_kimara', 'title' => '🏢 Kimara Stopover'],
-                    ['id' => 'delivery_home', 'title' => '🚚 Delivery (Ulipo)'],
-                ];
-
-                $this->whatsapp->sendInteractiveButtons($from, $body, $buttons, '', 'TRUMARK Orders');
-                return true;
+                if ($text === 'order_cancel_flow') {
+                    \Illuminate\Support\Facades\Cache::forget($stateKey);
+                    return "❌ Oda imeghairiwa. Andika */order* kuanza upya.";
+                }
+                if ($text === 'cart_checkout') {
+                    $cart = $data['cart'] ?? [];
+                    if (empty($cart)) {
+                        return "Cart ni tupu. Andika */catalog* kuongeza bidhaa.";
+                    }
+                    $data['items'] = $this->formatCartItems($cart);
+                    $data['estimate'] = $this->estimateFromCart($cart);
+                    $state['data'] = $data;
+                    $state['step'] = 'awaiting_order_delivery_method';
+                    \Illuminate\Support\Facades\Cache::put($stateKey, $state, now()->addMinutes(30));
+                    return $this->promptDeliveryMethod($from, $data['items'], $data['estimate']);
+                }
+                // typed items while in cart
+                $state['step'] = 'awaiting_order_items';
+                \Illuminate\Support\Facades\Cache::put($stateKey, $state, now()->addMinutes(30));
+                return $this->handleStateFlow($from, $text, $customer);
 
             case 'awaiting_order_delivery_method':
                 $normalized = strtolower(trim($text));
@@ -1005,7 +1090,10 @@ If a user asks anything outside these services, politely redirect them. If uncle
                     $state['data'] = $data;
                     \Illuminate\Support\Facades\Cache::put($stateKey, $state, now()->addMinutes(30));
 
-                    return "🚚 *Anwani ya Delivery*\n\nTafadhali andika **Eneo lako unapoishi / Ofisi** na **Jina kamili la Mpokeaji**:";
+                    return "🚚 *Anwani ya Delivery*\n\nTafadhali:\n"
+                        . "1️⃣ Andika *Eneo + Jina la Mpokeaji*, au\n"
+                        . "2️⃣ Tuma *Location Pin* kutoka WhatsApp (📎 → Location)\n\n"
+                        . "Mfano: Mbezi Beach, Juma Hassan";
                 }
 
                 \Illuminate\Support\Facades\Cache::forget($stateKey);
@@ -1024,6 +1112,31 @@ If a user asks anything outside these services, politely redirect them. If uncle
                     $data['delivery_method'] ?? 'Home/Office Delivery',
                     $text
                 );
+
+            case 'awaiting_order_edit_items':
+                if (mb_strlen(trim($text)) < 3 || str_starts_with($text, '/')) {
+                    return "✏️ Andika orodha mpya ya bidhaa (si amri). Mfano: Daftari 3 Quire x5";
+                }
+                $orderId = $data['edit_order_id'] ?? null;
+                $order = $orderId ? WhatsAppOrder::find($orderId) : null;
+                if (!$order || !in_array($order->status, ['pending', 'payment_submitted'], true)) {
+                    \Illuminate\Support\Facades\Cache::forget($stateKey);
+                    return "❌ Oda haipatikani tena. Andika */order* kuweka oda mpya.";
+                }
+                $estimate = WhatsAppPriceEstimator::estimate($text);
+                $order->items = $text;
+                $order->estimated_total = $estimate['total'] ?? $order->estimated_total;
+                $order->estimate_breakdown = !empty($estimate['breakdown']) ? $estimate : $order->estimate_breakdown;
+                $order->notes = trim(($order->notes ? $order->notes . "\n" : '') . 'Items edited by customer via bot.');
+                $order->save();
+                \Illuminate\Support\Facades\Cache::forget($stateKey);
+
+                $msg = "✅ *Oda {$order->order_number} imesasishwa!*\n\n📦 Bidhaa mpya:\n{$text}\n";
+                if (!empty($estimate['total'])) {
+                    $msg .= "\n💰 Makadirio: TZS " . number_format($estimate['total']) . "\n";
+                }
+                $msg .= "\nAndika */payment* kuona njia za malipo, au tuma screenshot baada ya kulipa.";
+                return $msg;
 
             // === FEEDBACK STATE MACHINE ===
             case 'awaiting_feedback':
@@ -1337,6 +1450,221 @@ If a user asks anything outside these services, politely redirect them. If uncle
             }
             return response('OK', 200);
         }
+    }
+
+    /**
+     * Handle WhatsApp location pin for delivery address.
+     */
+    protected function handleIncomingLocation($from, array $message, $customer, string $cleanPhone)
+    {
+        $loc = $message['location'] ?? [];
+        $name = trim($loc['name'] ?? '');
+        $address = trim($loc['address'] ?? '');
+        $lat = $loc['latitude'] ?? null;
+        $lng = $loc['longitude'] ?? null;
+
+        $label = $name !== '' ? $name : ($address !== '' ? $address : 'Location pin');
+        if ($address !== '' && $name !== '' && !str_contains($label, $address)) {
+            $label .= ' — ' . $address;
+        }
+        if ($lat !== null && $lng !== null) {
+            $label .= sprintf(' (%.5f, %.5f)', $lat, $lng);
+        }
+
+        SmsLog::create([
+            'customer_id' => $customer?->id,
+            'phone' => $from,
+            'message' => 'INCOMING: [Location] ' . $label,
+            'status' => 'received',
+            'response' => json_encode($message),
+        ]);
+
+        if ($this->checkBotPausedStatus($cleanPhone, $from)) {
+            return response('OK', 200);
+        }
+
+        $stateKey = "wa_state_" . $cleanPhone;
+        $state = \Illuminate\Support\Facades\Cache::get($stateKey);
+
+        if (($state['step'] ?? '') === 'awaiting_delivery_address') {
+            $data = $state['data'] ?? [];
+            $data['address'] = $label;
+            \Illuminate\Support\Facades\Cache::forget($stateKey);
+            $order = $this->completeOrder($from, $data, $customer);
+            $reply = $this->buildOrderConfirmationMessage($order, $data['delivery_method'] ?? 'Home/Office Delivery', $label);
+            $this->whatsapp->sendMessage($from, $reply);
+            SmsLog::create([
+                'customer_id' => $customer?->id,
+                'phone' => $from,
+                'message' => '[BOT REPLY] ' . mb_substr($reply, 0, 500),
+                'status' => 'sent',
+            ]);
+            return response('OK', 200);
+        }
+
+        $reply = "📍 Asante kwa location!\n\n"
+            . "*{$label}*\n\n"
+            . "Ikiwa unataka kuweka oda ya delivery, andika */order* kisha chagua *Delivery (Ulipo)* — utaweza kutuma location tena.";
+        $this->whatsapp->sendMessage($from, $reply);
+        return response('OK', 200);
+    }
+
+    protected function sendProductCatalog(string $phone, bool $forOrder = false)
+    {
+        $catalog = WhatsAppPriceEstimator::getCatalog();
+        $rows = [];
+        foreach (array_slice($catalog, 0, 10) as $i => $item) {
+            $rows[] = [
+                'id' => 'catalog_item_' . $i,
+                'title' => mb_substr($item['label'], 0, 24),
+                'description' => 'TZS ' . number_format($item['unit_price']),
+            ];
+        }
+
+        if (empty($rows)) {
+            return "📑 Katalogi bado haijawekwa. Andika orodha ya bidhaa mwenyewe, au */support*.";
+        }
+
+        // Always keep order-item state so catalog taps add to cart
+        $stateKey = "wa_state_" . preg_replace('/[^0-9]/', '', $phone);
+        $state = \Illuminate\Support\Facades\Cache::get($stateKey, ['step' => 'awaiting_order_items', 'data' => ['cart' => []]]);
+        if (($state['step'] ?? '') !== 'awaiting_cart_action') {
+            $state['step'] = 'awaiting_order_items';
+        }
+        $state['data'] = $state['data'] ?? ['cart' => []];
+        $state['data']['cart'] = $state['data']['cart'] ?? [];
+        \Illuminate\Support\Facades\Cache::put($stateKey, $state, now()->addMinutes(30));
+
+        $sections = [['title' => 'Bidhaa Maarufu', 'rows' => $rows]];
+        $body = "📦 *KATALOGI YA BIDHAA*\n\nChagua bidhaa kutoka orodha. Unaweza kuongeza nyingi kabla ya kukamilisha oda.";
+        $this->whatsapp->sendListMessage($phone, $body, 'Fungua Katalogi', $sections, '', 'TRUMARK Catalog');
+        return true;
+    }
+
+    protected function promptDeliveryMethod(string $from, string $itemsText, array $estimate)
+    {
+        $estimateMsg = WhatsAppPriceEstimator::formatEstimateMessage($estimate);
+        $body = "🛒 *HATUA YA 2/2: Usafirishaji / Delivery*\n\n";
+        $body .= "📦 *Bidhaa*: {$itemsText}\n\n";
+        if ($estimateMsg !== '') {
+            $body .= $estimateMsg . "\n\n";
+        }
+        $body .= "Je, utakuja kuchukua, au tukuletee?\n\nTafadhali chagua:";
+
+        $buttons = [
+            ['id' => 'pickup_ubungo', 'title' => '🏢 Ubungo EACLC'],
+            ['id' => 'pickup_kimara', 'title' => '🏢 Kimara Stopover'],
+            ['id' => 'delivery_home', 'title' => '🚚 Delivery (Ulipo)'],
+        ];
+        $this->whatsapp->sendInteractiveButtons($from, $body, $buttons, '', 'TRUMARK Orders');
+        return true;
+    }
+
+    protected function formatCartItems(array $cart): string
+    {
+        return collect($cart)->map(fn ($r) => $r['label'] . ' x' . $r['quantity'])->implode(', ');
+    }
+
+    protected function formatCartSummary(array $cart): string
+    {
+        $msg = "*Cart yako:*\n";
+        $total = 0;
+        foreach ($cart as $row) {
+            $msg .= "• {$row['label']} x{$row['quantity']} = TZS " . number_format($row['line_total']) . "\n";
+            $total += $row['line_total'];
+        }
+        $msg .= "\n*Jumla:* TZS " . number_format($total);
+        return $msg;
+    }
+
+    protected function estimateFromCart(array $cart): array
+    {
+        $breakdown = [];
+        $total = 0;
+        foreach ($cart as $row) {
+            $breakdown[] = $row;
+            $total += $row['line_total'];
+        }
+        $deliveryFee = (int) \App\Models\SystemSetting::get('wa_delivery_fee_dar', '4000');
+        $total += $deliveryFee;
+
+        return [
+            'breakdown' => $breakdown,
+            'delivery_fee' => $deliveryFee,
+            'total' => $total,
+            'matched' => count($breakdown) > 0,
+        ];
+    }
+
+    protected function handleCancelOrderCommand(string $phone, string $text): string
+    {
+        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+        $parts = preg_split('/\s+/', trim($text));
+        $orderNumber = null;
+        foreach ($parts as $part) {
+            if (preg_match('/^TRM-/i', $part)) {
+                $orderNumber = strtoupper($part);
+                break;
+            }
+        }
+
+        $query = WhatsAppOrder::where('phone', 'like', "%{$cleanPhone}%")
+            ->whereIn('status', ['pending', 'payment_submitted']);
+
+        if ($orderNumber) {
+            $query->where('order_number', $orderNumber);
+        }
+
+        $order = $query->orderByDesc('id')->first();
+        if (!$order) {
+            return "❌ Hakuna oda inayosubiri (pending) kwa namba hii.\nAndika */order* kuweka oda mpya.";
+        }
+
+        $order->status = 'cancelled';
+        $order->notes = trim(($order->notes ? $order->notes . "\n" : '') . 'Cancelled by customer via WhatsApp bot.');
+        $order->save();
+
+        \Illuminate\Support\Facades\Cache::forget("wa_pending_payment_{$cleanPhone}");
+        \Illuminate\Support\Facades\Cache::forget("wa_state_{$cleanPhone}");
+
+        return "❌ *Oda {$order->order_number} imefutwa (Cancelled).*\n\n"
+            . "Bidhaa: {$order->items}\n\n"
+            . "Andika */order* kuweka oda mpya, au */support* kwa msaada.";
+    }
+
+    protected function handleEditOrderCommand(string $phone, string $text): string
+    {
+        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+        $parts = preg_split('/\s+/', trim($text));
+        $orderNumber = null;
+        foreach ($parts as $part) {
+            if (preg_match('/^TRM-/i', $part)) {
+                $orderNumber = strtoupper($part);
+                break;
+            }
+        }
+
+        $query = WhatsAppOrder::where('phone', 'like', "%{$cleanPhone}%")
+            ->whereIn('status', ['pending', 'payment_submitted']);
+
+        if ($orderNumber) {
+            $query->where('order_number', $orderNumber);
+        }
+
+        $order = $query->orderByDesc('id')->first();
+        if (!$order) {
+            return "✏️ Hakuna oda ya kubadilisha. Andika */order* kuweka oda mpya.";
+        }
+
+        $stateKey = "wa_state_{$cleanPhone}";
+        \Illuminate\Support\Facades\Cache::put($stateKey, [
+            'step' => 'awaiting_order_edit_items',
+            'data' => ['edit_order_id' => $order->id, 'order_number' => $order->order_number],
+        ], now()->addMinutes(30));
+
+        return "✏️ *Hariri Oda {$order->order_number}*\n\n"
+            . "Bidhaa za sasa:\n{$order->items}\n\n"
+            . "Andika *orodha mpya ya bidhaa* sasa (itabadilisha ile ya zamani):";
     }
 
     /**

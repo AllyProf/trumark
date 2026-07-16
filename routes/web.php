@@ -144,4 +144,5 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/whatsapp/orders', [\App\Http\Controllers\WhatsAppOrderController::class, 'index'])->name('whatsapp.orders.index');
     Route::get('/whatsapp/orders/{orderNumber}', [\App\Http\Controllers\WhatsAppOrderController::class, 'show'])->name('whatsapp.orders.show');
     Route::patch('/whatsapp/orders/{orderNumber}/status', [\App\Http\Controllers\WhatsAppOrderController::class, 'updateStatus'])->name('whatsapp.orders.update_status');
+    Route::post('/whatsapp/orders/{orderNumber}/reply', [\App\Http\Controllers\WhatsAppOrderController::class, 'reply'])->name('whatsapp.orders.reply');
 });

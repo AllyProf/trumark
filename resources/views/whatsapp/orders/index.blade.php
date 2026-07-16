@@ -34,6 +34,20 @@ Bot orders, payment screenshots, and delivery status
                 </form>
             </div>
 
+            @if(!empty($tableMissing))
+                <div class="alert alert-danger">
+                    <strong>Database table missing:</strong> <code>whatsapp_orders</code> has not been created on this server yet.<br>
+                    Run on the server:
+                    <pre class="mb-0 mt-2 bg-dark text-white p-2 rounded">php artisan migrate --force</pre>
+                    Until this is done, WhatsApp bot orders will show as <code>TRM-TEMP-...</code> and will <strong>not</strong> appear here.
+                </div>
+            @elseif($orders->total() === 0)
+                <div class="alert alert-info">
+                    No saved WhatsApp orders yet. Place a <strong>new</strong> test order via WhatsApp (<code>/order</code>).
+                    Older <code>TRM-TEMP-...</code> confirmations were not saved to the database.
+                </div>
+            @endif
+
             <div class="table-responsive">
                 <table class="table table-hover table-bordered">
                     <thead class="bg-light">

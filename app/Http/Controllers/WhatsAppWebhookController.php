@@ -1056,7 +1056,7 @@ If a user asks anything outside these services, politely redirect them. If uncle
         $items = $data['items'] ?? 'N/A';
 
         try {
-            $order = WhatsAppOrder::create([
+            $payload = [
                 'order_number' => WhatsAppOrder::generateOrderNumber(),
                 'customer_id' => $customer?->id,
                 'phone' => $from,
@@ -1066,19 +1066,40 @@ If a user asks anything outside these services, politely redirect them. If uncle
                 'estimated_total' => $estimate['total'] ?? null,
                 'estimate_breakdown' => !empty($estimate['breakdown']) ? $estimate : null,
                 'status' => 'pending',
-            ]);
+            ];
+
+            $order = WhatsAppOrder::create($payload);
+            Log::info('[WA-BOT] Order saved to CRM: ' . $order->order_number);
         } catch (\Throwable $e) {
-            Log::error('[WA-BOT] Failed to save WhatsApp order (run migrate?): ' . $e->getMessage());
-            $order = new WhatsAppOrder([
-                'order_number' => 'TRM-TEMP-' . now()->format('His'),
-                'customer_id' => $customer?->id,
-                'phone' => $from,
-                'items' => $items,
-                'delivery_method' => $delivery,
-                'address' => $address,
-                'estimated_total' => $estimate['total'] ?? null,
-                'status' => 'pending',
-            ]);
+            Log::error('[WA-BOT] Failed to save WhatsApp order: ' . $e->getMessage());
+
+            // Retry without optional/FK fields that often break on partial deploys
+            try {
+                $order = WhatsAppOrder::create([
+                    'order_number' => 'TRM-' . now()->format('YmdHis'),
+                    'customer_id' => null,
+                    'phone' => $from,
+                    'items' => $items,
+                    'delivery_method' => $delivery,
+                    'address' => $address,
+                    'estimated_total' => is_numeric($estimate['total'] ?? null) ? $estimate['total'] : null,
+                    'estimate_breakdown' => null,
+                    'status' => 'pending',
+                ]);
+                Log::info('[WA-BOT] Order saved on retry: ' . $order->order_number);
+            } catch (\Throwable $e2) {
+                Log::error('[WA-BOT] Order save retry failed (run migrate?): ' . $e2->getMessage());
+                $order = new WhatsAppOrder([
+                    'order_number' => 'TRM-TEMP-' . now()->format('His'),
+                    'customer_id' => $customer?->id,
+                    'phone' => $from,
+                    'items' => $items,
+                    'delivery_method' => $delivery,
+                    'address' => $address,
+                    'estimated_total' => $estimate['total'] ?? null,
+                    'status' => 'pending',
+                ]);
+            }
         }
 
         $adminPhone = env('WHATSAPP_ADMIN_PHONE');

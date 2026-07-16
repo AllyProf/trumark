@@ -9,6 +9,14 @@ class WhatsAppOrderController extends Controller
 {
     public function index(Request $request)
     {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('whatsapp_orders')) {
+            return view('whatsapp.orders.index', [
+                'orders' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 25),
+                'statuses' => WhatsAppOrder::STATUSES,
+                'tableMissing' => true,
+            ]);
+        }
+
         $query = WhatsAppOrder::with('customer')->orderByDesc('created_at');
 
         if ($request->filled('status')) {
@@ -27,7 +35,11 @@ class WhatsAppOrderController extends Controller
         $orders = $query->paginate(25)->withQueryString();
         $statuses = WhatsAppOrder::STATUSES;
 
-        return view('whatsapp.orders.index', compact('orders', 'statuses'));
+        return view('whatsapp.orders.index', [
+            'orders' => $orders,
+            'statuses' => $statuses,
+            'tableMissing' => false,
+        ]);
     }
 
     public function show(string $orderNumber)

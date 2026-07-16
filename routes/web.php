@@ -39,6 +39,22 @@ Route::get('/feedback-health', function () {
     ]);
 });
 
+// WhatsApp orders table health check
+Route::get('/whatsapp-orders-health', function () {
+    $exists = \Illuminate\Support\Facades\Schema::hasTable('whatsapp_orders');
+    $count = $exists ? \App\Models\WhatsAppOrder::count() : 0;
+
+    return response()->json([
+        'ok' => $exists,
+        'table' => 'whatsapp_orders',
+        'table_exists' => $exists,
+        'orders_count' => $count,
+        'hint' => $exists
+            ? 'Table is ready. New WhatsApp /order completions should appear in CRM.'
+            : 'Run: php artisan migrate --force',
+    ]);
+});
+
 // Privacy Policy
 Route::get('/privacy-policy', function () {
     return view('privacy_policy');

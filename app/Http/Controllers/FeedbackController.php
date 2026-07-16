@@ -14,8 +14,13 @@ class FeedbackController extends Controller
      */
     public function show($uuid)
     {
-        $customer = Customer::where('survey_uuid', $uuid)->firstOrFail();
-        
+        $customer = Customer::where('survey_uuid', $uuid)->first();
+
+        if (!$customer) {
+            \Illuminate\Support\Facades\Log::warning("[Survey] Feedback link not found for uuid={$uuid}");
+            return response()->view('feedback.invalid', ['uuid' => $uuid], 404);
+        }
+
         return view('feedback.survey', compact('customer'));
     }
 

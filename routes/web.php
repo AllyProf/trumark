@@ -22,6 +22,23 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('/feedback/{uuid}', [\App\Http\Controllers\FeedbackController::class, 'show'])->name('feedback.show');
 Route::post('/feedback/{uuid}', [\App\Http\Controllers\FeedbackController::class, 'store'])->name('feedback.store');
 
+// Survey link health check (no customer data beyond a sample URL)
+Route::get('/feedback-health', function () {
+    $sample = \App\Models\Customer::whereNotNull('survey_uuid')
+        ->where('survey_uuid', '!=', '')
+        ->value('survey_uuid');
+
+    return response()->json([
+        'ok' => true,
+        'feedback_route' => 'registered',
+        'customers_with_survey_uuid' => \App\Models\Customer::whereNotNull('survey_uuid')->where('survey_uuid', '!=', '')->count(),
+        'sample_test_url' => $sample ? url('/feedback/' . $sample) : null,
+        'hint' => $sample
+            ? 'Open sample_test_url in a browser. If that page loads the survey form, links are healthy.'
+            : 'No survey_uuid in this database. Open a customer in CRM or send a survey to generate one.',
+    ]);
+});
+
 // Privacy Policy
 Route::get('/privacy-policy', function () {
     return view('privacy_policy');

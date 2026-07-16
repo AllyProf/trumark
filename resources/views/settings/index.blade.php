@@ -433,43 +433,56 @@ Configure global application behavior, branding, and automation settings
                                     <div class="section-header">
                                         <i class="fa fa-credit-card"></i>
                                         <h4>WhatsApp Bot — Payment & Pricing</h4>
-                                        <small class="text-muted ml-2">Shown automatically after bot orders and on /payment command.</small>
+                                        <small class="text-muted ml-2">Fully customizable. Shown after bot orders and on /payment.</small>
                                     </div>
                                     <div class="row">
-                                        <div class="col-md-4">
+                                        <div class="col-md-12">
                                             <div class="form-group">
-                                                <label>M-Pesa (Lipa Namba / Paybill)</label>
-                                                <input type="text" name="payment_mpesa" class="form-control form-control-lg-custom" value="{{ $settings['payment_mpesa'] ?? '' }}" placeholder="e.g. Lipa Namba 123456 — TRUMARK">
+                                                <label>Payment Options (custom)</label>
+                                                @php
+                                                    $paymentOptionsValue = $settings['wa_payment_options'] ?? '';
+                                                    if ($paymentOptionsValue === '') {
+                                                        $legacyLines = [];
+                                                        if (!empty($settings['payment_mpesa'])) $legacyLines[] = 'M-Pesa|' . $settings['payment_mpesa'];
+                                                        if (!empty($settings['payment_tigo'])) $legacyLines[] = 'Tigo Pesa|' . $settings['payment_tigo'];
+                                                        if (!empty($settings['payment_airtel'])) $legacyLines[] = 'Airtel Money|' . $settings['payment_airtel'];
+                                                        $bankParts = array_filter([
+                                                            $settings['payment_bank_name'] ?? '',
+                                                            $settings['payment_bank_account'] ?? '',
+                                                            $settings['payment_bank_holder'] ?? '',
+                                                        ]);
+                                                        if (!empty($bankParts)) $legacyLines[] = 'Bank|' . implode(' — ', $bankParts);
+                                                        $paymentOptionsValue = implode("\n", $legacyLines);
+                                                    }
+                                                @endphp
+                                                <textarea name="wa_payment_options" class="form-control" rows="8" placeholder="Method Name|Details">{{ $paymentOptionsValue }}</textarea>
+                                                <small class="text-muted">
+                                                    One payment method per line. Format: <code>Method Name|Details</code><br>
+                                                    Examples:<br>
+                                                    <code>Cash|Lipa Ubungo EACLC au Kimara Stopover</code><br>
+                                                    <code>M-Pesa Lipa Namba|123456 — TRUMARK</code><br>
+                                                    <code>CRDB|0150123456789 — TRUMARK CO. LTD</code><br>
+                                                    You can add / remove any methods you want. Lines starting with <code>#</code> are ignored.
+                                                </small>
                                             </div>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-6">
                                             <div class="form-group">
-                                                <label>Tigo Pesa</label>
-                                                <input type="text" name="payment_tigo" class="form-control form-control-lg-custom" value="{{ $settings['payment_tigo'] ?? '' }}" placeholder="e.g. 0712 345 678 — TRUMARK">
+                                                <label>Payment Intro (optional)</label>
+                                                <input type="text" name="wa_payment_intro" class="form-control form-control-lg-custom" value="{{ $settings['wa_payment_intro'] ?? '💳 *NJIA ZA MALIPO / PAYMENT METHODS*' }}" placeholder="Header shown above payment options">
                                             </div>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-6">
                                             <div class="form-group">
-                                                <label>Airtel Money</label>
-                                                <input type="text" name="payment_airtel" class="form-control form-control-lg-custom" value="{{ $settings['payment_airtel'] ?? '' }}" placeholder="e.g. 0789 123 456 — TRUMARK">
+                                                <label>Payment Footer (optional)</label>
+                                                <input type="text" name="wa_payment_footer" class="form-control form-control-lg-custom" value="{{ $settings['wa_payment_footer'] ?? '✅ Baada ya kulipa, *tuma picha ya muamala (screenshot)* hapa ili tuthibitishe na kuanza mzigo wako mara moja!' }}" placeholder="Closing note shown below payment options">
                                             </div>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-12">
                                             <div class="form-group">
-                                                <label>Bank Name</label>
-                                                <input type="text" name="payment_bank_name" class="form-control form-control-lg-custom" value="{{ $settings['payment_bank_name'] ?? '' }}" placeholder="e.g. CRDB Bank">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label>Bank Account Number</label>
-                                                <input type="text" name="payment_bank_account" class="form-control form-control-lg-custom" value="{{ $settings['payment_bank_account'] ?? '' }}" placeholder="e.g. 0150123456789">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label>Account Holder Name</label>
-                                                <input type="text" name="payment_bank_holder" class="form-control form-control-lg-custom" value="{{ $settings['payment_bank_holder'] ?? '' }}" placeholder="e.g. TRUMARK CO. LTD">
+                                                <label>Full Custom Payment Message (optional override)</label>
+                                                <textarea name="wa_payment_message" class="form-control" rows="6" placeholder="Leave blank to auto-build from Payment Options above. If filled, this exact text is sent instead.">{{ $settings['wa_payment_message'] ?? '' }}</textarea>
+                                                <small class="text-muted">If this box has text, it replaces intro + options + footer completely. Use for full control of the WhatsApp payment reply.</small>
                                             </div>
                                         </div>
                                         <div class="col-md-3">

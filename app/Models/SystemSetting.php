@@ -66,51 +66,87 @@ class SystemSetting extends Model
     }
 
     /**
-     * Build WhatsApp bot payment instructions from admin-configured numbers.
+     * Build WhatsApp bot payment instructions from fully customizable Settings.
+     *
+     * Prefer a full custom message. Otherwise build from payment option lines:
+     *   Method Name|Details
+     * Legacy payment_* keys are still read as a fallback.
      */
     public static function whatsappPaymentMessage(): string
     {
-        $mpesa = trim(self::get('payment_mpesa', ''));
-        $tigo = trim(self::get('payment_tigo', ''));
-        $airtel = trim(self::get('payment_airtel', ''));
-        $bankName = trim(self::get('payment_bank_name', ''));
-        $bankAccount = trim(self::get('payment_bank_account', ''));
-        $bankHolder = trim(self::get('payment_bank_holder', ''));
-
-        $msg = "💳 *NJIA ZA MALIPO / PAYMENT METHODS*\n\n";
-        $msg .= "1. 💵 *Cash*: Lipa moja kwa moja Ubungo EACLC au Kimara Stopover.\n\n";
-
-        if ($mpesa !== '') {
-            $msg .= "2. 📱 *M-Pesa*: {$mpesa}\n\n";
-        } else {
-            $msg .= "2. 📱 *M-Pesa*: Andika /support kupata namba.\n\n";
+        $customMessage = trim(self::get('wa_payment_message', ''));
+        if ($customMessage !== '') {
+            return $customMessage;
         }
 
-        if ($tigo !== '') {
-            $msg .= "3. 📱 *Tigo Pesa*: {$tigo}\n\n";
-        } else {
-            $msg .= "3. 📱 *Tigo Pesa*: Andika /support kupata namba.\n\n";
+        $intro = trim(self::get('wa_payment_intro', ''));
+        if ($intro === '') {
+            $intro = "💳 *NJIA ZA MALIPO / PAYMENT METHODS*";
         }
 
-        if ($airtel !== '') {
-            $msg .= "4. 📱 *Airtel Money*: {$airtel}\n\n";
-        } else {
-            $msg .= "4. 📱 *Airtel Money*: Andika /support kupata namba.\n\n";
+        $footer = trim(self::get('wa_payment_footer', ''));
+        if ($footer === '') {
+            $footer = "✅ Baada ya kulipa, *tuma picha ya muamala (screenshot)* hapa ili tuthibitishe na kuanza mzigo wako mara moja!";
         }
 
-        if ($bankName !== '' && $bankAccount !== '') {
-            $msg .= "5. 🏦 *Bank Transfer*:\n";
-            $msg .= "   Benki: {$bankName}\n";
-            $msg .= "   Akaunti: {$bankAccount}\n";
-            if ($bankHolder !== '') {
-                $msg .= "   Jina: {$bankHolder}\n";
+        $optionsRaw = trim(self::get('wa_payment_options', ''));
+        $lines = [];
+
+        if ($optionsRaw !== '') {
+            foreach (preg_split('/\r\n|\r|\n/', $optionsRaw) as $line) {
+                $line = trim($line);
+                if ($line === '' || str_starts_with($line, '#')) {
+                    continue;
+                }
+
+                if (str_contains($line, '|')) {
+                    [$label, $details] = array_map('trim', explode('|', $line, 2));
+                    if ($label === '') {
+                        continue;
+                    }
+                    $lines[] = $details !== ''
+                        ? "• *{$label}*: {$details}"
+                        : "• *{$label}*";
+                } else {
+                    $lines[] = "• {$line}";
+                }
             }
-            $msg .= "\n";
-        } else {
-            $msg .= "5. 🏦 *Bank Transfer*: Andika /support kupata maelezo ya benki.\n\n";
         }
 
-        $msg .= "✅ Baada ya kulipa, *tuma picha ya muamala (screenshot)* hapa ili tuthibitishe na kuanza mzigo wako mara moja!";
+        // Legacy fallback if new options are empty but old fields still have values
+        if (empty($lines)) {
+            $legacy = [
+                'M-Pesa' => trim(self::get('payment_mpesa', '')),
+                'Tigo Pesa' => trim(self::get('payment_tigo', '')),
+                'Airtel Money' => trim(self::get('payment_airtel', '')),
+            ];
+            foreach ($legacy as $label => $value) {
+                if ($value !== '') {
+                    $lines[] = "• *{$label}*: {$value}";
+                }
+            }
+
+            $bankName = trim(self::get('payment_bank_name', ''));
+            $bankAccount = trim(self::get('payment_bank_account', ''));
+            $bankHolder = trim(self::get('payment_bank_holder', ''));
+            if ($bankName !== '' || $bankAccount !== '') {
+                $bankBits = array_filter([$bankName, $bankAccount, $bankHolder]);
+                $lines[] = '• *Bank*: ' . implode(' — ', $bankBits);
+            }
+        }
+
+        if (empty($lines)) {
+            return $intro . "\n\n"
+                . "Bado hakuna njia za malipo zilizowekwa.\n"
+                . "Andika */support* kupata maelezo ya malipo kutoka kwa mhudumu.\n\n"
+                . $footer;
+        }
+
+        $msg = $intro . "\n\n";
+        foreach ($lines as $i => $line) {
+            $msg .= ($i + 1) . ". " . ltrim($line, "• ") . "\n";
+        }
+        $msg .= "\n" . $footer;
 
         return $msg;
     }

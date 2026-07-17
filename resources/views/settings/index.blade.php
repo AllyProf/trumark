@@ -252,7 +252,7 @@ Configure global application behavior, branding, and automation settings
                                         <div class="col-md-12">
                                             <div class="form-group">
                                                 <label>Headquarters Address</label>
-                                                <textarea name="company_address" class="form-control" rows="4">{{ $settings['company_address'] ?? 'Kariakoo, Dar es Salaam, Tanzania' }}</textarea>
+                                                <textarea name="company_address" class="form-control" rows="4">{{ $settings['company_address'] ?? 'Ubungo EACLC & Kimara Stopover, Dar es Salaam, Tanzania' }}</textarea>
                                             </div>
                                         </div>
                                     </div>

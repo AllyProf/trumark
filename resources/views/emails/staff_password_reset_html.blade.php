@@ -50,8 +50,13 @@
             </tr>
             <tr>
                 <td class="footer">
-                    <strong>TruMark Co. LTD</strong><br>
-                    &copy; {{ date('Y') }} TruMark Co. LTD. All rights reserved.
+                    @php
+                        $companyName = \App\Models\SystemSetting::get('company_name', 'TruMark Co. LTD');
+                        $companyAddress = \App\Models\SystemSetting::get('company_address', 'Ubungo EACLC & Kimara Stopover, Dar es Salaam, Tanzania');
+                    @endphp
+                    <strong>{{ $companyName }}</strong><br>
+                    {{ $companyAddress }}<br>
+                    &copy; {{ date('Y') }} {{ $companyName }}. All rights reserved.
                 </td>
             </tr>
         </table>

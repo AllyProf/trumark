@@ -38,8 +38,12 @@
             <p>Best Regards,<br><strong>The TruMark Team</strong></p>
         </div>
         <div class="footer">
-            &copy; {{ date('Y') }} TruMark Co. LTD. All rights reserved.<br>
-            Professional Equipment & Quality Services
+            @php
+                $companyName = \App\Models\SystemSetting::get('company_name', 'TruMark Co. LTD');
+                $companyAddress = \App\Models\SystemSetting::get('company_address', 'Ubungo EACLC & Kimara Stopover, Dar es Salaam, Tanzania');
+            @endphp
+            &copy; {{ date('Y') }} {{ $companyName }}. All rights reserved.<br>
+            {{ $companyAddress }}
         </div>
     </div>
 </body>

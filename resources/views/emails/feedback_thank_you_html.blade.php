@@ -76,13 +76,17 @@
             </tr>
             <tr>
                 <td class="footer">
+                    @php
+                        $companyName = \App\Models\SystemSetting::get('company_name', 'TruMark Co. LTD');
+                        $companyAddress = \App\Models\SystemSetting::get('company_address', 'Ubungo EACLC & Kimara Stopover, Dar es Salaam, Tanzania');
+                    @endphp
                     <div class="social-links">
-                        <strong>TruMark Co. LTD</strong>
+                        <strong>{{ $companyName }}</strong>
                     </div>
                     <div class="company-info">
-                        &copy; {{ date('Y') }} TruMark Co. LTD. All rights reserved.<br>
-                        Plot No. 123, Arusha, Tanzania<br>
-                        <small>Ulipokea barua pepe hii kwa sababu umewahi kufanya kazi au kuwasiliana na TruMark Co. LTD.</small>
+                        &copy; {{ date('Y') }} {{ $companyName }}. All rights reserved.<br>
+                        {{ $companyAddress }}<br>
+                        <small>Ulipokea barua pepe hii kwa sababu umewahi kufanya kazi au kuwasiliana na {{ $companyName }}.</small>
                     </div>
                 </td>
             </tr>

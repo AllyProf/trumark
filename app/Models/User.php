@@ -35,6 +35,11 @@ class User extends Authenticatable
         return $this->belongsTo(Branch::class);
     }
 
+    public function loginLogs()
+    {
+        return $this->hasMany(UserLoginLog::class);
+    }
+
     public function leads()
     {
         return $this->hasMany(Customer::class, 'sales_officer_id');

@@ -21,6 +21,16 @@ class LoginController extends Controller
         ]);
 
         if (Auth::attempt($credentials)) {
+            if (!Auth::user()->is_active) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors([
+                    'email' => 'Your account has been deactivated. Please contact your administrator.',
+                ])->onlyInput('email');
+            }
+
             $request->session()->regenerate();
             return redirect()->intended('dashboard')->with('success', 'Welcome back!');
         }

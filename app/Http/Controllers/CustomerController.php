@@ -39,9 +39,11 @@ class CustomerController extends Controller
         $officers = collect();
         if ($user->role === 'super_admin' || $user->role === 'manager') {
             $officers = \App\Models\User::with('branch')->whereIn('role', ['sales_officer', 'manager', 'super_admin'])
+                ->where('is_active', true)
                 ->when($user->role === 'manager', function($q) use ($user) {
                     return $q->where('branch_id', $user->branch_id);
                 })
+                ->orderBy('name')
                 ->get();
         }
 
@@ -587,6 +589,12 @@ class CustomerController extends Controller
         $settings = \App\Models\SystemSetting::pluck('value', 'key');
         $template = $settings['followup_reminder_template'] ?? 'Habari {name}, TRUMARK tunapenda kukukumbusha kuhusu huduma tulizozungumzia. Je, una maswali yoyote? Karibu!';
 
+        $followupChannels = [
+            'sms' => \App\Models\SystemSetting::isSmsEnabled('followup'),
+            'whatsapp' => ($settings['followup_channels_whatsapp'] ?? '0') === '1',
+            'email' => ($settings['followup_channels_email'] ?? '1') === '1',
+        ];
+
         $customers = $query->orderBy('next_follow_up_date', 'asc')->get();
         
         $dueCount = Customer::where('next_follow_up_date', '<=', now()->toDateString())
@@ -596,7 +604,7 @@ class CustomerController extends Controller
             ->when($user->role === 'sales_officer', fn($q) => $q->where('sales_officer_id', $user->id))
             ->count();
 
-        return view('customers.follow_ups', compact('customers', 'template', 'dueCount'));
+        return view('customers.follow_ups', compact('customers', 'template', 'dueCount', 'followupChannels'));
     }
 
     public function salesRecords()
@@ -805,16 +813,41 @@ class CustomerController extends Controller
         $currentOfficerId = $request->get('current_officer_id');
         $region = $request->get('region');
 
-        $query = Customer::with('salesOfficer')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $customerBase = Customer::query()
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+
+        $inactiveOwnerIds = \App\Models\User::where('is_active', false)->pluck('id');
+
+        $query = (clone $customerBase)->with('salesOfficer')
             ->when($currentOfficerId === 'unassigned', fn($q) => $q->whereNull('sales_officer_id'))
-            ->when($currentOfficerId && $currentOfficerId !== 'unassigned', fn($q) => $q->where('sales_officer_id', $currentOfficerId))
+            ->when($currentOfficerId === 'inactive', fn($q) => $q->whereIn('sales_officer_id', $inactiveOwnerIds))
+            ->when($currentOfficerId && !in_array($currentOfficerId, ['unassigned', 'inactive'], true), fn($q) => $q->where('sales_officer_id', $currentOfficerId))
             ->when($region, fn($q) => $q->where('region', $region));
 
         $customers = $query->orderBy('name')->get();
 
-        $officers = \App\Models\User::whereIn('role', ['sales_officer', 'manager', 'super_admin'])
+        $unassignedCount = (clone $customerBase)->whereNull('sales_officer_id')->count();
+
+        $leadCounts = (clone $customerBase)
+            ->whereNotNull('sales_officer_id')
+            ->selectRaw('sales_officer_id, count(*) as lead_count')
+            ->groupBy('sales_officer_id')
+            ->pluck('lead_count', 'sales_officer_id');
+
+        $currentOwners = \App\Models\User::with('branch')
+            ->whereIn('id', $leadCounts->keys())
+            ->orderBy('name')
+            ->get();
+
+        $inactiveLeadCount = $currentOwners
+            ->where('is_active', false)
+            ->sum(fn($owner) => $leadCounts[$owner->id] ?? 0);
+
+        $activeOfficers = \App\Models\User::with('branch')
+            ->whereIn('role', ['sales_officer', 'manager', 'super_admin'])
+            ->where('is_active', true)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->orderBy('name')
             ->get();
 
         $regions = Customer::whereNotNull('region')
@@ -834,20 +867,69 @@ class CustomerController extends Controller
             ->unique()
             ->toArray();
 
-        return view('customers.bulk_delegate', compact('customers', 'officers', 'regions', 'currentOfficerId', 'region'));
+        return view('customers.bulk_delegate', compact(
+            'customers',
+            'activeOfficers',
+            'currentOwners',
+            'leadCounts',
+            'unassignedCount',
+            'inactiveLeadCount',
+            'regions',
+            'currentOfficerId',
+            'region'
+        ));
     }
 
     public function processBulkDelegate(Request $request)
     {
         $request->validate([
-            'customer_ids' => 'required|array',
             'target_officer_id' => 'required|exists:users,id',
+            'customer_ids'      => 'required_without:transfer_all_from|array',
+            'transfer_all_from' => 'nullable|string',
+            'transfer_region'   => 'nullable|string',
         ]);
 
         $targetOfficer = \App\Models\User::find($request->target_officer_id);
+        if (!$targetOfficer || !$targetOfficer->is_active) {
+            return back()->with('error', 'Please select an active staff member to assign leads to.');
+        }
+
+        $branchId = $this->getActiveBranchId();
+        $customerIds = $request->customer_ids ?? [];
+
+        if ($request->filled('transfer_all_from')) {
+            $sourceId = $request->transfer_all_from;
+            $inactiveOwnerIds = \App\Models\User::where('is_active', false)->pluck('id');
+
+            if (!in_array($sourceId, ['unassigned', 'inactive'], true) && !\App\Models\User::whereKey($sourceId)->exists()) {
+                return back()->with('error', 'Invalid source staff member selected.');
+            }
+
+            $customerIds = Customer::query()
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->when($sourceId === 'unassigned', fn($q) => $q->whereNull('sales_officer_id'))
+                ->when($sourceId === 'inactive', fn($q) => $q->whereIn('sales_officer_id', $inactiveOwnerIds))
+                ->when(!in_array($sourceId, ['unassigned', 'inactive'], true), fn($q) => $q->where('sales_officer_id', $sourceId))
+                ->when($request->filled('transfer_region'), fn($q) => $q->where('region', $request->transfer_region))
+                ->pluck('id')
+                ->all();
+
+            if (empty($customerIds)) {
+                return back()->with('error', 'No leads found for the selected staff member.');
+            }
+
+            if ((string) $sourceId === (string) $targetOfficer->id) {
+                return back()->with('error', 'Source and target officer cannot be the same.');
+            }
+        }
+
+        if (empty($customerIds)) {
+            return back()->with('error', 'Please select at least one lead to delegate.');
+        }
+
         $count = 0;
 
-        foreach ($request->customer_ids as $id) {
+        foreach ($customerIds as $id) {
             $customer = Customer::find($id);
             if ($customer) {
                 $customer->update([
@@ -855,18 +937,22 @@ class CustomerController extends Controller
                     'branch_id'        => $targetOfficer->branch_id
                 ]);
                 
-                // Notify the new officer
                 $targetOfficer->notify(new \App\Notifications\LeadAssignedSmsNotification($customer));
                 
                 $count++;
             }
         }
 
-        $delegatedIds = $request->customer_ids;
+        \App\Models\AuditLog::record("Bulk delegated {$count} leads to {$targetOfficer->name}", 'Customers');
 
-        return redirect()->route('customers.bulk_delegate')
-            ->with('success', "✅ Successfully delegated {$count} leads to {$targetOfficer->name}!")
-            ->with('delegated_ids', $delegatedIds);
+        $redirectParams = array_filter([
+            'region' => $request->return_region,
+            'current_officer_id' => $request->return_current_officer_id,
+        ], fn($value) => $value !== null && $value !== '');
+
+        return redirect()->route('customers.bulk_delegate', $redirectParams)
+            ->with('success', "Successfully delegated {$count} leads to {$targetOfficer->name}!")
+            ->with('delegated_ids', $customerIds);
     }
 
     public function sendSurvey(Customer $customer)
@@ -1001,6 +1087,7 @@ class CustomerController extends Controller
         }
 
         $successCount = 0;
+        $stats = ['sms' => 0, 'whatsapp' => 0, 'email' => 0];
         foreach ($customers as $customer) {
             $message = str_replace('{name}', $customer->name, $template);
             $sentVia = [];
@@ -1019,6 +1106,7 @@ class CustomerController extends Controller
 
                 if ($result['success']) {
                     $sentVia[] = 'SMS';
+                    $stats['sms']++;
                 }
             }
 
@@ -1041,6 +1129,7 @@ class CustomerController extends Controller
 
                 if ($waResult['success']) {
                     $sentVia[] = 'WhatsApp';
+                    $stats['whatsapp']++;
                 }
             }
 
@@ -1048,6 +1137,7 @@ class CustomerController extends Controller
                 try {
                     \Illuminate\Support\Facades\Mail::to($customer->email)->send(new \App\Mail\CustomerReminderMail($customer, $message));
                     $sentVia[] = 'Email';
+                    $stats['email']++;
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::error("Follow-up email failed for {$customer->email}: " . $e->getMessage());
                 }
@@ -1058,7 +1148,9 @@ class CustomerController extends Controller
             }
         }
 
-        return back()->with('success', "✅ Sent follow-up reminders to {$successCount} customer(s) via enabled channels.");
+        $channelSummary = collect($stats)->filter(fn ($n) => $n > 0)->map(fn ($n, $ch) => strtoupper($ch) . ": {$n}")->implode(', ');
+
+        return back()->with('success', "✅ Sent follow-up reminders to {$successCount} customer(s)." . ($channelSummary ? " ({$channelSummary})" : ''));
     }
 
     /**
@@ -1247,14 +1339,16 @@ class CustomerController extends Controller
         $newOfficerId = $request->sales_officer_id;
         if ($newOfficerId != $customer->sales_officer_id) {
             $newOfficer = \App\Models\User::find($newOfficerId);
-            if ($newOfficer) {
-                $customer->update([
-                    'sales_officer_id' => $newOfficer->id,
-                    'branch_id' => $newOfficer->branch_id
-                ]);
-                $newOfficer->notify(new \App\Notifications\LeadAssignedSmsNotification($customer));
-                \App\Models\AuditLog::record("Delegated customer {$customer->name} to {$newOfficer->name}", 'Customers');
+            if (!$newOfficer || !$newOfficer->is_active) {
+                return redirect()->route('customers.index')->with('error', 'Please select an active staff member.');
             }
+
+            $customer->update([
+                'sales_officer_id' => $newOfficer->id,
+                'branch_id' => $newOfficer->branch_id
+            ]);
+            $newOfficer->notify(new \App\Notifications\LeadAssignedSmsNotification($customer));
+            \App\Models\AuditLog::record("Delegated customer {$customer->name} to {$newOfficer->name}", 'Customers');
         }
 
         return redirect()->route('customers.index')->with('success', "✅ Lead successfully delegated to {$newOfficer->name}!");

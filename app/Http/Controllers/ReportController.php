@@ -114,13 +114,7 @@ class ReportController extends Controller
         }
 
         // ── Attendance & System Usage ────────────────────────────────
-        // Auto-close stale active sessions (older than 16 hours)
-        \App\Models\UserLoginLog::whereNull('logout_at')
-            ->where('login_at', '<', now()->subHours(16))
-            ->update([
-                'logout_at' => DB::raw('DATE_ADD(login_at, INTERVAL 8 HOUR)'),
-                'duration_minutes' => 480
-            ]);
+        $this->closeStaleLoginSessions();
 
         $usageLogs = \App\Models\UserLoginLog::with('user')
             ->when($branchId, function($q) use ($branchId) {
@@ -317,6 +311,133 @@ class ReportController extends Controller
         return view('reports.surveys', compact('feedbacks', 'avgRating', 'totalFeedbacks', 'ratingBreakdown', 'branches', 'branchId', 'officers', 'staffId'));
     }
 
+    public function systemUsage(Request $request)
+    {
+        $user = auth()->user();
+        if (!in_array($user->role, ['super_admin', 'manager'], true)) {
+            return redirect()->route('dashboard')->with('error', 'Unauthorized access.');
+        }
+
+        $branchId = $this->getActiveBranchId();
+        if ($user->role === 'super_admin' && $request->filled('branch_id')) {
+            $branchId = $request->branch_id ?: null;
+            session(['dashboard_branch_id' => $branchId]);
+        }
+
+        $period = $request->get('period', 'week');
+        $usageFilter = $request->get('usage_filter', 'all');
+        $staffFilter = $request->get('staff_id');
+
+        $this->closeStaleLoginSessions();
+
+        $periodStart = match ($period) {
+            'today' => now()->startOfDay(),
+            'week'  => now()->startOfWeek(),
+            'month' => now()->startOfMonth(),
+            default => null,
+        };
+
+        $staffQuery = \App\Models\User::with('branch')
+            ->whereIn('role', ['sales_officer', 'manager', 'super_admin'])
+            ->when($user->role === 'manager', fn($q) => $q->where('branch_id', $user->branch_id))
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->orderBy('name');
+
+        $allStaff = $staffQuery->get();
+
+        $onlineUserIds = \App\Models\UserLoginLog::whereNull('logout_at')
+            ->pluck('user_id')
+            ->unique()
+            ->all();
+
+        $staffUsage = $allStaff->map(function ($member) use ($periodStart, $onlineUserIds) {
+            $logsQuery = \App\Models\UserLoginLog::where('user_id', $member->id);
+            if ($periodStart) {
+                $logsQuery->where('login_at', '>=', $periodStart);
+            }
+
+            $sessions = (clone $logsQuery)->get();
+            $member->session_count = $sessions->count();
+            $member->total_minutes = $sessions->sum(fn($log) => $log->duration_minutes);
+
+            $lastLogin = \App\Models\UserLoginLog::where('user_id', $member->id)
+                ->orderByDesc('login_at')
+                ->first();
+
+            $member->last_login_at = $lastLogin?->login_at;
+            $member->is_online = in_array($member->id, $onlineUserIds, true);
+
+            if ($member->is_online) {
+                $member->usage_status = 'online';
+            } elseif (!$member->last_login_at) {
+                $member->usage_status = 'never';
+            } elseif ($member->last_login_at->lt(now()->subDays(7))) {
+                $member->usage_status = 'inactive';
+            } else {
+                $member->usage_status = 'active';
+            }
+
+            return $member;
+        });
+
+        if ($usageFilter === 'online') {
+            $staffUsage = $staffUsage->filter(fn($s) => $s->usage_status === 'online');
+        } elseif ($usageFilter === 'active') {
+            $staffUsage = $staffUsage->filter(fn($s) => in_array($s->usage_status, ['online', 'active'], true));
+        } elseif ($usageFilter === 'inactive') {
+            $staffUsage = $staffUsage->filter(fn($s) => $s->usage_status === 'inactive');
+        } elseif ($usageFilter === 'never') {
+            $staffUsage = $staffUsage->filter(fn($s) => $s->usage_status === 'never');
+        }
+
+        $summary = [
+            'total_staff'    => $allStaff->count(),
+            'online_now'     => $allStaff->filter(fn($s) => in_array($s->id, $onlineUserIds, true))->count(),
+            'active_users'   => $allStaff->filter(function ($s) use ($onlineUserIds) {
+                if (in_array($s->id, $onlineUserIds, true)) {
+                    return true;
+                }
+                $last = \App\Models\UserLoginLog::where('user_id', $s->id)->orderByDesc('login_at')->value('login_at');
+
+                return $last && \Carbon\Carbon::parse($last)->gte(now()->subDays(7));
+            })->count(),
+            'inactive_users' => $allStaff->filter(function ($s) {
+                $last = \App\Models\UserLoginLog::where('user_id', $s->id)->orderByDesc('login_at')->value('login_at');
+
+                return $last && \Carbon\Carbon::parse($last)->lt(now()->subDays(7));
+            })->count(),
+            'never_used'     => $allStaff->filter(fn($s) => !\App\Models\UserLoginLog::where('user_id', $s->id)->exists())->count(),
+        ];
+
+        $sessionLogsQuery = \App\Models\UserLoginLog::with('user.branch')
+            ->orderByDesc('login_at')
+            ->when($user->role === 'manager', fn($q) => $q->whereHas('user', fn($uq) => $uq->where('branch_id', $user->branch_id)))
+            ->when($branchId, fn($q) => $q->whereHas('user', fn($uq) => $uq->where('branch_id', $branchId)))
+            ->when($staffFilter, fn($q) => $q->where('user_id', $staffFilter))
+            ->when($periodStart, fn($q) => $q->where('login_at', '>=', $periodStart));
+
+        $sessionLogs = $sessionLogsQuery->paginate(20)->appends($request->query());
+
+        $branches = $user->role === 'super_admin'
+            ? \App\Models\Branch::where('is_active', true)->get()
+            : collect();
+
+        $currentBranch = $branchId ? \App\Models\Branch::find($branchId) : null;
+
+        return view('reports.system_usage', compact(
+            'staffUsage',
+            'sessionLogs',
+            'summary',
+            'branches',
+            'currentBranch',
+            'branchId',
+            'period',
+            'usageFilter',
+            'staffFilter',
+            'allStaff'
+        ));
+    }
+
     public function forceLogout($id)
     {
         $user = auth()->user();
@@ -338,5 +459,20 @@ class ReportController extends Controller
         }
 
         return redirect()->back()->with('success', 'User session terminated successfully.');
+    }
+
+    private function closeStaleLoginSessions(): void
+    {
+        \App\Models\UserLoginLog::whereNull('logout_at')
+            ->where('login_at', '<', now()->subHours(16))
+            ->each(function ($log) {
+                $loginTime = \Carbon\Carbon::parse($log->login_at);
+                $duration = min($loginTime->diffInMinutes(now()), 480);
+
+                $log->update([
+                    'logout_at' => $loginTime->copy()->addMinutes($duration),
+                    'duration_minutes' => $duration,
+                ]);
+            });
     }
 }

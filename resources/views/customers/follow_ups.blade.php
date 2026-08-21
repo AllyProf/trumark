@@ -55,9 +55,39 @@ Track and manage scheduled follow-ups with potential leads and customers
 @endsection
 
 @section('content')
+@php
+    $anyChannel = ($followupChannels['sms'] ?? false) || ($followupChannels['whatsapp'] ?? false) || ($followupChannels['email'] ?? false);
+@endphp
+
 <div class="row">
     <div class="col-md-12">
         <div class="tile">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+                <div>
+                    <strong>Active reminder channels:</strong>
+                    @if($followupChannels['sms'] ?? false)
+                        <span class="badge badge-primary ml-1">SMS</span>
+                    @endif
+                    @if($followupChannels['whatsapp'] ?? false)
+                        <span class="badge badge-success ml-1">WhatsApp</span>
+                    @endif
+                    @if($followupChannels['email'] ?? false)
+                        <span class="badge badge-info ml-1">Email</span>
+                    @endif
+                    @if(!$anyChannel)
+                        <span class="badge badge-warning ml-1">None enabled</span>
+                    @endif
+                </div>
+                <a href="{{ route('settings.index') }}#v-pills-survey" class="btn btn-sm btn-outline-secondary">
+                    <i class="fa fa-cog"></i> Change in Settings
+                </a>
+            </div>
+            @if(!$anyChannel)
+                <div class="alert alert-warning py-2 mb-3">
+                    No follow-up channels are enabled. Go to <strong>Settings → Survey & KPI → Follow-up Reminders</strong> and turn on SMS, WhatsApp, or Email.
+                </div>
+            @endif
+
             <div class="d-flex justify-content-between align-items-center mb-4 followup-header">
                 <h3 class="tile-title mb-0">Follow-up Schedule 
                     <span class="badge badge-pill badge-primary ml-2" style="font-size: 14px;">
@@ -65,7 +95,7 @@ Track and manage scheduled follow-ups with potential leads and customers
                     </span>
                 </h3>
                 <div class="d-flex">
-                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#bulkSmsModal">
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#bulkSmsModal" {{ !$anyChannel ? 'disabled' : '' }}>
                         <i class="fa fa-paper-plane"></i> Send All Reminders
                     </button>
                     <div class="input-group">
@@ -158,12 +188,12 @@ Track and manage scheduled follow-ups with potential leads and customers
     </div>
 </div>
 
-{{-- ── BULK SMS MODAL ──────────────────────────────────────────────── --}}
+{{-- ── BULK FOLLOW-UP MODAL ─────────────────────────────────────────── --}}
 <div class="modal fade" id="bulkSmsModal" tabindex="-1" role="dialog" aria-labelledby="bulkSmsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header" style="background:#940000; color: white;">
-                <h5 class="modal-title" id="bulkSmsModalLabel"><i class="fa fa-envelope mr-2"></i> Send Bulk Reminders</h5>
+                <h5 class="modal-title" id="bulkSmsModalLabel"><i class="fa fa-paper-plane mr-2"></i> Send Bulk Follow-up Reminders</h5>
                 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -172,13 +202,17 @@ Track and manage scheduled follow-ups with potential leads and customers
                 @csrf
                 <div class="modal-body">
                     <div class="alert alert-info">
-                        <i class="fa fa-info-circle mr-1"></i> You are about to send an SMS to <b>{{ $dueCount }}</b> customers who are currently due or overdue for follow-up.
+                        <i class="fa fa-info-circle mr-1"></i>
+                        Sending to <b>{{ $dueCount }}</b> due/overdue customer(s) via:
+                        @if($followupChannels['sms'] ?? false)<span class="badge badge-primary ml-1">SMS</span>@endif
+                        @if($followupChannels['whatsapp'] ?? false)<span class="badge badge-success ml-1">WhatsApp</span>@endif
+                        @if($followupChannels['email'] ?? false)<span class="badge badge-info ml-1">Email</span>@endif
                     </div>
                     <div class="form-group">
-                        <label class="font-weight-bold small">SMS CONTENT (EDITABLE)</label>
+                        <label class="font-weight-bold small">REMINDER MESSAGE (SMS & EMAIL)</label>
                         <textarea name="message" id="bulk-sms-message" class="form-control" rows="6" required>{{ $template }}</textarea>
                         <div class="d-flex justify-content-between mt-2">
-                            <small class="text-muted">Note: <b>{name}</b> will be replaced by each customer's actual name.</small>
+                            <small class="text-muted"><b>{name}</b> is replaced per customer. WhatsApp uses the Meta follow-up template.</small>
                             <small class="text-muted" id="bulk-char-count">0 / 160</small>
                         </div>
                     </div>

@@ -333,7 +333,6 @@ Configure global application behavior, branding, and automation settings
                                                         $smsToggles = [
                                                             'welcome_channels_sms' => ['New lead welcome (customer)', '0'],
                                                             'survey_channels_sms' => ['Survey invitations (manual & automated)', '1'],
-                                                            'followup_channels_sms' => ['Follow-up reminders (customer & officer)', '1'],
                                                             'sms_allow_manual' => ['Manual message from customer list', '1'],
                                                             'sms_allow_bulk' => ['Bulk SMS Reminders page', '1'],
                                                             'sms_allow_campaign' => ['Scheduled campaigns', '1'],
@@ -352,6 +351,7 @@ Configure global application behavior, branding, and automation settings
                                                         </div>
                                                     @endforeach
                                                 </div>
+                                                <small class="text-muted d-block mt-2">Follow-up reminder SMS is configured under <b>Survey & KPI → Follow-up Reminders</b>.</small>
                                             </div>
                                         </div>
                                     </div>
@@ -664,24 +664,30 @@ Configure global application behavior, branding, and automation settings
                                         </div>
                                         <div class="col-md-12">
                                             <div class="form-group">
-                                                <label>Channels</label>
-                                                <div class="p-3 bg-light rounded d-flex justify-content-around">
-                                                    <div class="animated-checkbox">
+                                                <label>Notification Channels</label>
+                                                <div class="p-3 bg-light rounded d-flex justify-content-around flex-wrap">
+                                                    <div class="animated-checkbox mx-2 mb-2">
+                                                        <label>
+                                                            <input type="checkbox" name="followup_channels_sms" value="1" {{ ($settings['followup_channels_sms'] ?? '1') == '1' ? 'checked' : '' }}><span class="label-text">SMS</span>
+                                                        </label>
+                                                    </div>
+                                                    <div class="animated-checkbox mx-2 mb-2">
                                                         <label>
                                                             <input type="checkbox" name="followup_channels_whatsapp" value="1" {{ ($settings['followup_channels_whatsapp'] ?? '0') == '1' ? 'checked' : '' }}><span class="label-text">WhatsApp</span>
                                                         </label>
                                                     </div>
-                                                    <div class="animated-checkbox">
+                                                    <div class="animated-checkbox mx-2 mb-2">
                                                         <label>
                                                             <input type="checkbox" name="followup_channels_email" value="1" {{ ($settings['followup_channels_email'] ?? '1') == '1' ? 'checked' : '' }}><span class="label-text">Email</span>
                                                         </label>
                                                     </div>
                                                 </div>
-                                                <small class="text-muted">SMS for follow-ups is controlled under <b>SMS Gateway → SMS Channel Controls</b>.</small>
+                                                <small class="text-muted">Choose which channels are used for <b>automated</b> and <b>manual bulk</b> follow-up reminders on <a href="{{ route('customers.follow_ups') }}">Follow-ups</a>. SMS also requires <b>Master SMS Channel</b> enabled under SMS Gateway.</small>
                                             </div>
                                         </div>
                                         <div class="col-md-12">
                                             <div class="form-group">
+                                                <label>Reminder Message Template</label>
                                                 <textarea name="followup_reminder_template" class="form-control" rows="2">{{ $settings['followup_reminder_template'] ?? 'Habari {name}, TRUMARK tunapenda kukukumbusha kuhusu huduma tulizozungumzia. Je, una maswali yoyote? Karibu!' }}</textarea>
                                                 <small class="text-muted">Use <b>{name}</b> for customer name.</small>
                                             </div>

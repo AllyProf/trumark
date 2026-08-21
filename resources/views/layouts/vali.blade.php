@@ -432,6 +432,13 @@
                         <i class="fa fa-commenting-o"></i> Customer Surveys
                     </a>
                 </li>
+                @if(auth()->user()->role === 'super_admin' || auth()->user()->role === 'manager')
+                <li>
+                    <a class="treeview-item {{ Route::is('reports.system_usage') ? 'active' : '' }}" href="{{ route('reports.system_usage') }}">
+                        <i class="fa fa-sign-in"></i> System Usage & Login
+                    </a>
+                </li>
+                @endif
             </ul>
         </li>
 

@@ -21,15 +21,14 @@ class AppServiceProvider extends ServiceProvider
     {
         \Illuminate\Pagination\Paginator::useBootstrapFour();
 
-        // Event listeners are automatically discovered by Laravel
-        // \Illuminate\Support\Facades\Event::listen(
-        //     \Illuminate\Auth\Events\Login::class,
-        //     \App\Listeners\RecordLoginKpi::class
-        // );
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Auth\Events\Login::class,
+            \App\Listeners\RecordLoginKpi::class
+        );
 
-        // \Illuminate\Support\Facades\Event::listen(
-        //     \Illuminate\Auth\Events\Logout::class,
-        //     \App\Listeners\RecordLogoutKpi::class
-        // );
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Auth\Events\Logout::class,
+            \App\Listeners\RecordLogoutKpi::class
+        );
     }
 }
